@@ -34,16 +34,27 @@ dependencies:
   geolocator: ^14.0.2
   image_picker: ^1.2.1
   sqflite: ^2.3.3+1
-  http: ^1.2.0
+  http: ^1.2.1
   shared_preferences: ^2.3.0
+  dart_crs: ^1.0.3
+  flutter_map: ^8.3.0
+  latlong2: ^0.9.1
+  path_provider: ^2.1.5
+  url_launcher: ^6.3.2
+
+dependency_overrides:
+  proj4dart: ^3.0.0
+
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
 
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_launcher_icons: ^0.14.4
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -66,7 +77,13 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/mlogo.svg
-  #   - images/a_dot_ham.jpeg
+    - assets/sql/
+
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/logo.png"
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

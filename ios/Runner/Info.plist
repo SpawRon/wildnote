@@ -66,5 +66,13 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+    <string>Приложению нужно местоположение для фиксации координат найденных растений.</string>
+
+    <key>NSCameraUsageDescription</key>
+    <string>Приложению нужен доступ к камере для добавления фотографий растений.</string>
+
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Приложению нужен доступ к галерее для выбора фотографий растений.</string>
 </dict>
 </plist>

@@ -1,76 +1,48 @@
-/// database_helper.dart
-///
-/// This file contains a helper class for working with the local SQLite
-/// database used by the WildNote mobile application.  The database stores
-/// plant observations and their associated photographs.  The helper
-/// encapsulates opening the database, creating the schema, and common
-/// operations such as inserting new observations, querying existing
-/// observations with their photos, updating synchronisation status and
-/// deleting old records.
-///
-/// Usage example:
-///
-/// ```dart
-/// final db = await DatabaseHelper.instance.database;
-/// final obsId = await DatabaseHelper.instance.insertObservation(
-///   observation: {
-///     'name': 'Белая берёза',
-///     'description': 'Растёт на окраине леса',
-///     'latitude': 68.97,
-///     'longitude': 33.07,
-///     'is_manual': 0,
-///     'accuracy': 4.0,
-///     'created_at': DateTime.now().toIso8601String(),
-///     'status': 0,
-///   },
-///   photoPaths: ['/path/to/photo1.jpg', '/path/to/photo2.jpg'],
-/// );
-/// ```
-///
-/// When synchronising with the geoportal, update the `status` column and
-/// populate the `uploaded_url` in the photos table once the upload
-/// succeeds.  See `markObservationSynced` and `updatePhotoUploadedUrl`.
-
-import 'dart:async';
-import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:sqflite/sqflite.dart';
+
+class ObservationStatus {
+  static const int localOnly = 0;
+  static const int queued = 1;
+  static const int synced = 2;
+  static const int error = 3;
+}
 
 class DatabaseHelper {
-  // Singleton pattern: a single instance throughout the app.
   DatabaseHelper._privateConstructor();
   static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
 
   static const String _databaseName = 'wildnote.db';
-  static const int _databaseVersion = 1;
+  static const int _databaseVersion = 3;
 
   Database? _database;
 
-  /// Returns the singleton database instance, opening it if necessary.
   Future<Database> get database async {
     if (_database != null) return _database!;
     _database = await _initDatabase();
     return _database!;
   }
 
-  /// Opens the database file and creates the tables on first run.
   Future<Database> _initDatabase() async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, _databaseName);
-    return await openDatabase(
+
+    return openDatabase(
       path,
       version: _databaseVersion,
+      onConfigure: (db) async {
+        await db.execute('PRAGMA foreign_keys = ON');
+      },
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
   }
 
-  /// Called only once when the database is first created.  Executes the
-  /// SQL statements from `database_schema.sql` to create tables.
   Future<void> _onCreate(Database db, int version) async {
-    // Observations table.
     await db.execute('''
       CREATE TABLE observations (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_login TEXT NOT NULL,
         name TEXT,
         description TEXT,
         latitude REAL,
@@ -81,11 +53,14 @@ class DatabaseHelper {
         status INTEGER DEFAULT 0,
         gauss_x REAL,
         gauss_y REAL,
-        zone INTEGER
+        zone INTEGER,
+        remote_feature_id INTEGER,
+        remote_folder TEXT,
+        sync_error TEXT,
+        synced_at TEXT
       )
     ''');
 
-    // Photos table.
     await db.execute('''
       CREATE TABLE photos (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -96,77 +71,189 @@ class DatabaseHelper {
         FOREIGN KEY (observation_id) REFERENCES observations(id) ON DELETE CASCADE
       )
     ''');
+
+    await db.execute('''
+      CREATE TABLE user_resources (
+        user_login TEXT PRIMARY KEY,
+        user_folder_id INTEGER,
+        user_layer_id INTEGER,
+        user_style_id INTEGER,
+        webmap_id INTEGER,
+        updated_at TEXT
+      )
+    ''');
   }
 
-  /// Handles schema upgrades when the database version changes.  This
-  /// implementation simply recreates the tables.  In a production app,
-  /// migrations should preserve existing data.
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < newVersion) {
-      // For simplicity, drop and recreate tables.  In a real project,
-      // consider writing migration scripts to transform data.
-      await db.execute('DROP TABLE IF EXISTS photos');
-      await db.execute('DROP TABLE IF EXISTS observations');
-      await _onCreate(db, newVersion);
+    if (oldVersion < 2) {
+      await _addColumnIfMissing(
+        db,
+        'observations',
+        'user_login',
+        "TEXT NOT NULL DEFAULT 'guest'",
+      );
+      await _addColumnIfMissing(
+        db,
+        'observations',
+        'remote_feature_id',
+        'INTEGER',
+      );
+      await _addColumnIfMissing(
+        db,
+        'observations',
+        'remote_folder',
+        'TEXT',
+      );
+      await _addColumnIfMissing(
+        db,
+        'observations',
+        'sync_error',
+        'TEXT',
+      );
+      await _addColumnIfMissing(
+        db,
+        'observations',
+        'synced_at',
+        'TEXT',
+      );
+    }
+
+    if (oldVersion < 3) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS user_resources (
+          user_login TEXT PRIMARY KEY,
+          user_folder_id INTEGER,
+          user_layer_id INTEGER,
+          user_style_id INTEGER,
+          webmap_id INTEGER,
+          updated_at TEXT
+        )
+      ''');
     }
   }
 
-  /// Inserts a new observation with its associated photo paths.  Returns
-  /// the row ID of the inserted observation.  Use this when the user
-  /// presses the save/submit button in the AddPlant screen.  Photo paths
-  /// should be absolute paths obtained from the camera or image picker.
+  Future<void> _addColumnIfMissing(
+      Database db,
+      String table,
+      String column,
+      String definition,
+      ) async {
+    final info = await db.rawQuery('PRAGMA table_info($table)');
+    final exists = info.any((row) => row['name'] == column);
+    if (!exists) {
+      await db.execute('ALTER TABLE $table ADD COLUMN $column $definition');
+    }
+  }
+
   Future<int> insertObservation({
     required Map<String, dynamic> observation,
     required List<String> photoPaths,
   }) async {
     final db = await database;
-    // Insert observation record.
-    final obsId = await db.insert('observations', observation);
-    // Insert each photo entry.
-    for (int i = 0; i < photoPaths.length; i++) {
-      await db.insert('photos', {
-        'observation_id': obsId,
-        'file_path': photoPaths[i],
-        'order_index': i,
-      });
-    }
-    return obsId;
+
+    return db.transaction<int>((txn) async {
+      final observationId = await txn.insert('observations', observation);
+
+      for (int i = 0; i < photoPaths.length; i++) {
+        await txn.insert('photos', {
+          'observation_id': observationId,
+          'file_path': photoPaths[i],
+          'order_index': i,
+        });
+      }
+
+      return observationId;
+    });
   }
 
-  /// Retrieves all observations from the database, optionally filtering by
-  /// synchronisation status.  The returned list contains a map for each
-  /// observation with an additional `photos` key whose value is a list
-  /// of maps representing the associated photo rows.
-  Future<List<Map<String, dynamic>>> getObservations({int? status}) async {
+  Future<List<Map<String, dynamic>>> getObservations({
+    required String userLogin,
+  }) async {
     final db = await database;
-    final whereClause = status != null ? 'WHERE status = ?' : '';
-    final whereArgs = status != null ? [status] : null;
-    final obsRows = await db.rawQuery(
-      'SELECT * FROM observations $whereClause ORDER BY datetime(created_at) DESC',
-      whereArgs,
+
+    final observationRows = await db.query(
+      'observations',
+      where: 'user_login = ?',
+      whereArgs: [userLogin],
+      orderBy: 'datetime(created_at) DESC',
     );
-    // For each observation, fetch its photos.
+
     final result = <Map<String, dynamic>>[];
-    for (final obs in obsRows) {
+
+    for (final row in observationRows) {
       final photos = await db.query(
         'photos',
         where: 'observation_id = ?',
-        whereArgs: [obs['id']],
-        orderBy: 'order_index',
+        whereArgs: [row['id']],
+        orderBy: 'order_index ASC',
       );
-      final Map<String, dynamic> entry = Map<String, dynamic>.from(obs);
-      entry['photos'] = photos;
-      result.add(entry);
+
+      result.add({
+        ...row,
+        'photos': photos,
+      });
     }
+
     return result;
   }
 
-  /// Updates an existing observation.  Pass the `id` of the observation
-  /// alongside any fields that have changed.  To modify associated
-  /// photos, delete and re‑insert them separately or implement a
-  /// dedicated method.
-  Future<void> updateObservation(int id, Map<String, dynamic> fields) async {
+  Future<Map<String, dynamic>?> getObservationById(int id) async {
     final db = await database;
+
+    final rows = await db.query(
+      'observations',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+
+    if (rows.isEmpty) return null;
+
+    final observation = rows.first;
+    final photos = await db.query(
+      'photos',
+      where: 'observation_id = ?',
+      whereArgs: [id],
+      orderBy: 'order_index ASC',
+    );
+
+    return {
+      ...observation,
+      'photos': photos,
+    };
+  }
+
+  Future<List<Map<String, dynamic>>> getPendingObservations({
+    required String userLogin,
+  }) async {
+    final db = await database;
+
+    return db.query(
+      'observations',
+      where: 'user_login = ? AND (status = ? OR status = ?)',
+      whereArgs: [userLogin, ObservationStatus.queued, ObservationStatus.error],
+      orderBy: 'datetime(created_at) DESC',
+    );
+  }
+
+  Future<void> updateObservationStatus({
+    required int id,
+    required int status,
+    String? error,
+    int? remoteFeatureId,
+    String? remoteFolder,
+    String? syncedAt,
+  }) async {
+    final db = await database;
+
+    final fields = <String, Object?>{
+      'status': status,
+      'sync_error': error,
+      'remote_feature_id': remoteFeatureId,
+      'remote_folder': remoteFolder,
+      'synced_at': syncedAt,
+    };
+
     await db.update(
       'observations',
       fields,
@@ -175,55 +262,73 @@ class DatabaseHelper {
     );
   }
 
-  /// Deletes an observation and all its photos.  Use this when the
-  /// user removes a record from the history screen.  Returns the number
-  /// of deleted observation rows (0 or 1).
-  Future<int> deleteObservation(int id) async {
-    final db = await database;
-    // ON DELETE CASCADE ensures photo rows are removed automatically.
-    return await db.delete(
-      'observations',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-  }
-
-  /// Marks an observation as successfully synchronised.  Also updates
-  /// optional Gauss–Krüger coordinates if provided.  Call this after
-  /// receiving a successful response from the geoportal API.  For
-  /// example, set status = 2 and fill in gauss_x, gauss_y and zone.
-  Future<void> markObservationSynced({
-    required int id,
-    double? gaussX,
-    double? gaussY,
-    int? zone,
-  }) async {
-    final db = await database;
-    final updateFields = <String, Object>{'status': 2};
-    if (gaussX != null) updateFields['gauss_x'] = gaussX;
-    if (gaussY != null) updateFields['gauss_y'] = gaussY;
-    if (zone != null) updateFields['zone'] = zone;
-    await db.update(
-      'observations',
-      updateFields,
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-  }
-
-  /// Updates the uploaded URL of a photo once it has been stored on
-  /// the geoportal.  Use this to replace the local file path with
-  /// a remote HTTP or HTTPS URL.  Returns the number of updated rows.
-  Future<int> updatePhotoUploadedUrl({
+  Future<void> updatePhotoUploadedUrl({
     required int photoId,
     required String uploadedUrl,
   }) async {
     final db = await database;
-    return await db.update(
+    await db.update(
       'photos',
       {'uploaded_url': uploadedUrl},
       where: 'id = ?',
       whereArgs: [photoId],
     );
+  }
+
+  Future<int> deleteObservation(int id) async {
+    final db = await database;
+    return db.delete(
+      'observations',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<void> clearAllObservations({
+    required String userLogin,
+  }) async {
+    final db = await database;
+    await db.delete(
+      'observations',
+      where: 'user_login = ?',
+      whereArgs: [userLogin],
+    );
+  }
+
+  Future<void> saveUserResources({
+    required String userLogin,
+    required int userFolderId,
+    required int userLayerId,
+    required int userStyleId,
+    required int webMapId,
+  }) async {
+    final db = await database;
+
+    await db.insert(
+      'user_resources',
+      {
+        'user_login': userLogin,
+        'user_folder_id': userFolderId,
+        'user_layer_id': userLayerId,
+        'user_style_id': userStyleId,
+        'webmap_id': webMapId,
+        'updated_at': DateTime.now().toIso8601String(),
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<Map<String, dynamic>?> getUserResources(String userLogin) async {
+    final db = await database;
+
+    final rows = await db.query(
+      'user_resources',
+      where: 'user_login = ?',
+      whereArgs: [userLogin],
+      limit: 1,
+    );
+
+    if (rows.isEmpty) return null;
+    return rows.first;
   }
 }
