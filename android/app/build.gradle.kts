@@ -1,12 +1,20 @@
 import java.util.Properties
 import java.io.FileInputStream
 
-// 1. Загружаем настройки ключа
+// 1. Загружаем настройки ключа безопасно
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")
-if (keystorePropertiesFile.exists()) {
+val hasKeyProperties = keystorePropertiesFile.exists()
+
+if (hasKeyProperties) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
+
+// Извлекаем значения с безопасным приведением типов
+val myKeyAlias = (keystoreProperties["keyAlias"] as? String) ?: ""
+val myKeyPassword = (keystoreProperties["keyPassword"] as? String) ?: ""
+val myStoreFile = (keystoreProperties["storeFile"] as? String) ?: ""
+val myStorePassword = (keystoreProperties["storePassword"] as? String) ?: ""
 
 plugins {
     id("com.android.application")
@@ -38,17 +46,22 @@ android {
 
     signingConfigs {
         create("release") {
-            // Берем данные из файла key.properties
-            keyAlias = keystoreProperties["keyAlias"] as String
-            keyPassword = keystoreProperties["keyPassword"] as String
-            storeFile = file(keystoreProperties["storeFile"] as String)
-            storePassword = keystoreProperties["storePassword"] as String
+            // Если файл ключей есть — используем его, иначе временно подставляем пустые строки
+            keyAlias = myKeyAlias
+            keyPassword = myKeyPassword
+            storeFile = if (myStoreFile.isNotEmpty()) file(myStoreFile) else null
+            storePassword = myStorePassword
         }
     }
 
     buildTypes {
         getByName("release") {
-            signingConfig = signingConfigs.getByName("release")
+            // Если ключей нет, используем стандартную debug-подпись, чтобы сборка не ломалась
+            signingConfig = if (hasKeyProperties) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
 
             isMinifyEnabled = false
             isShrinkResources = false
