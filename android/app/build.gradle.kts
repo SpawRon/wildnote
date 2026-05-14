@@ -46,7 +46,6 @@ android {
 
     signingConfigs {
         create("release") {
-            // Если файл ключей есть — используем его, иначе временно подставляем пустые строки
             keyAlias = myKeyAlias
             keyPassword = myKeyPassword
             storeFile = if (myStoreFile.isNotEmpty()) file(myStoreFile) else null
@@ -56,7 +55,7 @@ android {
 
     buildTypes {
         getByName("release") {
-            // Если ключей нет, используем стандартную debug-подпись, чтобы сборка не ломалась
+            //ключей нет используем стандартную debug-подпись, чтобы сборка не ломалась
             signingConfig = if (hasKeyProperties) {
                 signingConfigs.getByName("release")
             } else {

@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 class UserSession {
@@ -60,15 +62,22 @@ class UserSession {
 
   factory UserSession.fromMap(Map<String, dynamic> map) {
     return UserSession(
-      userLogin: map['userLogin'] as String,
-      isGuest: map['isGuest'] as bool,
+      userLogin: (map['userLogin'] ?? '').toString(),
+      isGuest: map['isGuest'] == true,
       accessToken: map['accessToken'] as String?,
       remoteFolder: map['remoteFolder'] as String?,
-      userFolderId: map['userFolderId'] as int?,
-      userLayerId: map['userLayerId'] as int?,
-      userStyleId: map['userStyleId'] as int?,
-      webMapId: map['webMapId'] as int?,
+      userFolderId: _toInt(map['userFolderId']),
+      userLayerId: _toInt(map['userLayerId']),
+      userStyleId: _toInt(map['userStyleId']),
+      webMapId: _toInt(map['webMapId']),
     );
+  }
+
+  static int? _toInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value.toString());
   }
 }
 
@@ -77,23 +86,52 @@ class SessionManager {
   static final SessionManager instance = SessionManager._privateConstructor();
 
   static const String _sessionKey = 'wildnote_user_session';
+  static const Duration _prefsTimeout = Duration(seconds: 3);
+
+  Future<SharedPreferences?> _prefsSafe() async {
+    try {
+      return await SharedPreferences.getInstance().timeout(_prefsTimeout);
+    } catch (_) {
+      return null;
+    }
+  }
 
   Future<void> saveSession(UserSession session) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefsSafe();
+    if (prefs == null) return;
     await prefs.setString(_sessionKey, jsonEncode(session.toMap()));
   }
 
   Future<UserSession?> getSession() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefsSafe();
+    if (prefs == null) return null;
+
     final raw = prefs.getString(_sessionKey);
     if (raw == null || raw.isEmpty) return null;
 
-    final map = jsonDecode(raw) as Map<String, dynamic>;
-    return UserSession.fromMap(map);
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) {
+        await prefs.remove(_sessionKey);
+        return null;
+      }
+
+      final map = decoded.map((key, value) => MapEntry(key.toString(), value));
+      final session = UserSession.fromMap(map);
+      if (session.userLogin.trim().isEmpty) {
+        await prefs.remove(_sessionKey);
+        return null;
+      }
+      return session;
+    } catch (_) {
+      await prefs.remove(_sessionKey);
+      return null;
+    }
   }
 
   Future<void> clearSession() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _prefsSafe();
+    if (prefs == null) return;
     await prefs.remove(_sessionKey);
   }
 }

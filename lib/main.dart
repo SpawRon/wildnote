@@ -12,7 +12,11 @@ import 'services/session_manager.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await AppLogger.instance.init();
+  try {
+    await AppLogger.instance.init().timeout(const Duration(seconds: 2));
+  } catch (_) {
+    // логгер не должен блокировать запуск, возможно из за него зависало при перезаходе
+  }
 
   FlutterError.onError = (FlutterErrorDetails details) {
     AppLogger.instance.error(
@@ -21,7 +25,6 @@ Future<void> main() async {
       error: details.exception,
       stackTrace: details.stack,
     );
-
     FlutterError.presentError(details);
   };
 
@@ -32,7 +35,6 @@ Future<void> main() async {
       error: error,
       stackTrace: stack,
     );
-
     return true;
   };
 
@@ -97,8 +99,6 @@ class _StartupGateState extends State<_StartupGate> {
   @override
   void initState() {
     super.initState();
-
-    AppLogger.instance.info('StartupGate', 'Loading saved session');
     _sessionFuture = _loadSession();
   }
 
@@ -128,7 +128,6 @@ class _StartupGateState extends State<_StartupGate> {
         error: e,
         stackTrace: st,
       );
-
       return null;
     }
   }
@@ -140,30 +139,14 @@ class _StartupGateState extends State<_StartupGate> {
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
           return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
+            body: Center(child: CircularProgressIndicator()),
           );
         }
 
         final session = snapshot.data;
         if (session == null) {
-          AppLogger.instance.info(
-            'StartupGate',
-            'Opening LoginScreen',
-          );
-
           return const LoginScreen();
         }
-
-        AppLogger.instance.info(
-          'StartupGate',
-          'Opening MainHomeScreen',
-          data: {
-            'userLogin': session.userLogin,
-            'isGuest': session.isGuest,
-          },
-        );
 
         return MainHomeScreen(
           isGuest: session.isGuest,

@@ -10,6 +10,8 @@ import '../services/geoportal_sync_service.dart';
 import '../services/session_manager.dart';
 import 'login_screen.dart';
 
+enum _ClearHistoryMode { localOnly, localAndServer }
+
 class HistoryScreen extends StatefulWidget {
   final bool isGuest;
   final String userLogin;
@@ -26,6 +28,7 @@ class HistoryScreen extends StatefulWidget {
 
 class HistoryScreenState extends State<HistoryScreen> {
   List<Map<String, dynamic>> _observations = [];
+  String? _authToken;
   bool _isLoading = true;
   bool _isBusy = false;
 
@@ -38,15 +41,38 @@ class HistoryScreenState extends State<HistoryScreen> {
   Future<void> reload() async {
     setState(() => _isLoading = true);
 
-    final data = await DatabaseHelper.instance.getObservations(
-      userLogin: widget.userLogin,
-    );
+    try {
+      final session = await SessionManager.instance.getSession();
+      final data = await GeoportalSyncService.instance.loadHistoryForUser(
+        userLogin: widget.userLogin,
+      );
 
-    if (!mounted) return;
-    setState(() {
-      _observations = data;
-      _isLoading = false;
-    });
+      if (!mounted) return;
+      setState(() {
+        _authToken = session?.accessToken;
+        _observations = data;
+        _isLoading = false;
+      });
+    } catch (e, st) {
+      AppLogger.instance.error(
+        'HistoryScreen',
+        'History reload failed',
+        error: e,
+        stackTrace: st,
+        data: {'userLogin': widget.userLogin},
+      );
+
+      final fallback = await DatabaseHelper.instance.getObservations(
+        userLogin: widget.userLogin,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _observations = fallback;
+        _isLoading = false;
+      });
+      _showMessage('Не удалось обновить историю с сервера. Показаны локальные записи.');
+    }
   }
   Future<void> _openDeveloperLog() async {
     AppLogger.instance.info(
@@ -102,12 +128,30 @@ class HistoryScreenState extends State<HistoryScreen> {
     }
   }
 
-  Future<void> _deleteObservation(int id) async {
-    AppLogger.instance.info('HistoryScreen', 'Delete observation pressed', data: {'id': id});
+  Future<void> _deleteObservation(Map<String, dynamic> item) async {
+    final remoteOnly = item['_remote_only'] == true;
+    final localId = item['id'] as int?;
+    final remoteFeatureId = item['remote_feature_id'] as int?;
+
+    AppLogger.instance.info(
+      'HistoryScreen',
+      'Delete observation pressed',
+      data: {
+        'localId': localId,
+        'remoteFeatureId': remoteFeatureId,
+        'remoteOnly': remoteOnly,
+      },
+    );
+
     setState(() => _isBusy = true);
 
-    final result =
-    await GeoportalSyncService.instance.deleteObservationEverywhere(id);
+    final result = remoteOnly && remoteFeatureId != null
+        ? await GeoportalSyncService.instance.deleteRemoteFeatureForCurrentUser(
+      remoteFeatureId,
+    )
+        : await GeoportalSyncService.instance.deleteObservationEverywhere(
+      localId ?? 0,
+    );
 
     if (!mounted) return;
     setState(() => _isBusy = false);
@@ -117,34 +161,109 @@ class HistoryScreenState extends State<HistoryScreen> {
   }
 
   Future<void> _clearAll() async {
-    AppLogger.instance.info('HistoryScreen', 'Clear all pressed', data: {'userLogin': widget.userLogin});
-    if (_observations.isEmpty) return;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Очистить историю'),
-        content: const Text('Удалить все записи текущего пользователя?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Отмена'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Удалить'),
-          ),
-        ],
-      ),
-    ) ??
-        false;
-
-    if (!confirmed) return;
-
-    await DatabaseHelper.instance.clearAllObservations(
-      userLogin: widget.userLogin,
+    AppLogger.instance.info(
+      'HistoryScreen',
+      'Clear all pressed',
+      data: {'userLogin': widget.userLogin},
     );
+
+    if (_observations.isEmpty) return;
+
+    final mode = await showDialog<_ClearHistoryMode>(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Очистить историю',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF131D1C),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Отмена'),
+                    ),
+                    OutlinedButton(
+                      onPressed: () =>
+                          Navigator.pop(context, _ClearHistoryMode.localOnly),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF0B7A75),
+                        side: const BorderSide(
+                          color: Color(0xFF0B7A75),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                      ),
+                      child: Text(
+                        widget.isGuest ? 'Очистить' : 'На устройстве',
+                      ),
+                    ),
+                    if (!widget.isGuest)
+                      FilledButton(
+                        onPressed: () => Navigator.pop(
+                          context,
+                          _ClearHistoryMode.localAndServer,
+                        ),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Colors.redAccent,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                        ),
+                        child: const Text('Везде'),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (mode == null) return;
+
+    setState(() => _isBusy = true);
+
+    final result = await GeoportalSyncService.instance.clearHistory(
+      userLogin: widget.userLogin,
+      includeServer: mode == _ClearHistoryMode.localAndServer,
+    );
+
+    if (!mounted) return;
+    setState(() => _isBusy = false);
+
     await reload();
-    _showMessage('История очищена');
+    _showMessage(result.message);
   }
 
   Future<void> _sendOne(int observationId) async {
@@ -248,6 +367,83 @@ class HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
+  bool _isRemotePath(String? value) {
+    if (value == null) return false;
+    final lower = value.toLowerCase();
+    return lower.startsWith('http://') || lower.startsWith('https://');
+  }
+
+  Widget _buildHistoryPreview(String? path) {
+    final borderRadius = BorderRadius.circular(8);
+
+    if (_isRemotePath(path)) {
+      final headers = _authToken == null || _authToken!.isEmpty
+          ? null
+          : <String, String>{'Authorization': _authToken!};
+
+      return ClipRRect(
+        borderRadius: borderRadius,
+        child: Image.network(
+          path!,
+          headers: headers,
+          width: 72,
+          height: 72,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => const Icon(
+            Icons.image,
+            color: Colors.grey,
+          ),
+        ),
+      );
+    }
+
+    if (path != null && path.isNotEmpty && File(path).existsSync()) {
+      return ClipRRect(
+        borderRadius: borderRadius,
+        child: Image.file(
+          File(path),
+          width: 72,
+          height: 72,
+          fit: BoxFit.cover,
+        ),
+      );
+    }
+
+    return const Icon(
+      Icons.image,
+      color: Colors.grey,
+    );
+  }
+
+
+  double? _asFiniteDouble(dynamic value) {
+    if (value == null) return null;
+    double? parsed;
+    if (value is num) {
+      parsed = value.toDouble();
+    } else {
+      parsed = double.tryParse(value.toString().replaceAll(',', '.'));
+    }
+    if (parsed == null || !parsed.isFinite) return null;
+    return parsed;
+  }
+
+  String _formatCoordinates(Map<String, dynamic> item) {
+    final lat = _asFiniteDouble(item['latitude']);
+    final lon = _asFiniteDouble(item['longitude']);
+
+    if (lat == null ||
+        lon == null ||
+        lat < -90 ||
+        lat > 90 ||
+        lon < -180 ||
+        lon > 180) {
+      return 'Координаты не найдены';
+    }
+
+    return '${lat.toStringAsFixed(6)}, ${lon.toStringAsFixed(6)}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool hasRecords = _observations.isNotEmpty;
@@ -323,8 +519,12 @@ class HistoryScreenState extends State<HistoryScreen> {
 
                   final hasPhoto = photos.isNotEmpty;
                   final firstPhotoPath = hasPhoto
-                      ? photos.first['file_path'] as String?
+                      ? (photos.first['uploaded_url'] ??
+                      photos.first['url'] ??
+                      photos.first['file_path'])
+                  as String?
                       : null;
+                  final remoteOnly = item['_remote_only'] == true;
 
                   final status = item['status'] as int? ?? 0;
                   final isManual = (item['is_manual'] as int? ?? 0) == 1;
@@ -366,25 +566,9 @@ class HistoryScreenState extends State<HistoryScreen> {
                             decoration: BoxDecoration(
                               color: Colors.grey.shade200,
                               borderRadius: BorderRadius.circular(8),
-                              image: (hasPhoto &&
-                                  firstPhotoPath != null &&
-                                  File(firstPhotoPath).existsSync())
-                                  ? DecorationImage(
-                                image: FileImage(
-                                  File(firstPhotoPath),
-                                ),
-                                fit: BoxFit.cover,
-                              )
-                                  : null,
                             ),
-                            child: (!hasPhoto ||
-                                firstPhotoPath == null ||
-                                !File(firstPhotoPath).existsSync())
-                                ? const Icon(
-                              Icons.image,
-                              color: Colors.grey,
-                            )
-                                : null,
+                            clipBehavior: Clip.antiAlias,
+                            child: _buildHistoryPreview(firstPhotoPath),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -414,7 +598,7 @@ class HistoryScreenState extends State<HistoryScreen> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  '${item['latitude'] ?? 0}, ${item['longitude'] ?? 0}',
+                                  _formatCoordinates(item),
                                   style: const TextStyle(fontSize: 12),
                                 ),
                                 if (isManual)
@@ -468,6 +652,7 @@ class HistoryScreenState extends State<HistoryScreen> {
                           Column(
                             children: [
                               if (!widget.isGuest &&
+                                  !remoteOnly &&
                                   status != ObservationStatus.synced)
                                 IconButton(
                                   onPressed: _isBusy
@@ -484,9 +669,7 @@ class HistoryScreenState extends State<HistoryScreen> {
                               IconButton(
                                 onPressed: _isBusy
                                     ? null
-                                    : () => _deleteObservation(
-                                  item['id'] as int,
-                                ),
+                                    : () => _deleteObservation(item),
                                 icon: const Icon(
                                   Icons.delete_outline,
                                   color: Colors.redAccent,

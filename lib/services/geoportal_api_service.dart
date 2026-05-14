@@ -61,6 +61,16 @@ class GeoportalPointResult {
   });
 }
 
+class _LayerFieldSchema {
+  final Map<int, String> keyById;
+  final List<String> orderedKeys;
+
+  const _LayerFieldSchema({
+    required this.keyById,
+    required this.orderedKeys,
+  });
+}
+
 class GeoportalApiService {
   GeoportalApiService._privateConstructor();
   static final GeoportalApiService instance =
@@ -1105,13 +1115,307 @@ class GeoportalApiService {
     return urls;
   }
 
-  Map<String, dynamic> _extractFields(Map<String, dynamic> row) {
-    final rawFields = row['fields'];
-    if (rawFields is Map<String, dynamic>) return rawFields;
-    if (rawFields is Map) {
-      return rawFields.map((key, value) => MapEntry(key.toString(), value));
+  Future<_LayerFieldSchema> _loadLayerFieldSchema({
+    required String auth,
+    required int layerId,
+  }) async {
+    try {
+      final resource = await _getResource(auth: auth, id: layerId);
+      final byId = <int, String>{};
+      final ordered = <String>[];
+
+      void readFields(dynamic rawFields) {
+        if (rawFields is! List) return;
+
+        for (final item in rawFields) {
+          if (item is! Map) continue;
+          final map = item.map((key, value) => MapEntry(key.toString(), value));
+          final id = _toInt(map['id']);
+          final keyname = _asTrimmedString(map['keyname']) ??
+              _asTrimmedString(map['name']) ??
+              _asTrimmedString(map['field_name']);
+
+          if (keyname == null || keyname.isEmpty) continue;
+          ordered.add(keyname);
+          if (id != null) {
+            byId[id] = keyname;
+          }
+        }
+      }
+
+      final vectorLayer = resource['vector_layer'];
+      if (vectorLayer is Map) {
+        final map = vectorLayer.map((key, value) => MapEntry(key.toString(), value));
+        readFields(map['fields']);
+      }
+
+      final featureLayer = resource['feature_layer'];
+      if (featureLayer is Map) {
+        final map = featureLayer.map((key, value) => MapEntry(key.toString(), value));
+        readFields(map['fields']);
+      }
+
+      readFields(resource['fields']);
+
+      AppLogger.instance.info(
+        'GeoportalApiService',
+        'Layer field schema loaded',
+        data: {
+          'layerId': layerId,
+          'mappedById': byId.length,
+          'ordered': ordered.length,
+          'keys': ordered.join(','),
+        },
+      );
+
+      return _LayerFieldSchema(keyById: byId, orderedKeys: ordered);
+    } catch (e, st) {
+      AppLogger.instance.warning(
+        'GeoportalApiService',
+        'Layer field schema loading failed',
+        error: e,
+        stackTrace: st,
+        data: {'layerId': layerId},
+      );
+
+      return const _LayerFieldSchema(keyById: {}, orderedKeys: []);
     }
-    return const <String, dynamic>{};
+  }
+
+  Future<Map<String, dynamic>?> _getFeatureById({
+    required String auth,
+    required int layerId,
+    required int featureId,
+  }) async {
+    try {
+      final response = await http.get(
+        _uri('/resource/$layerId/feature/$featureId', {'srs': '4326'}),
+        headers: _headers(auth),
+      );
+
+      if (response.statusCode != 200) {
+        AppLogger.instance.warning(
+          'GeoportalApiService',
+          'Feature detail request failed',
+          data: {
+            'layerId': layerId,
+            'featureId': featureId,
+            'statusCode': response.statusCode,
+            'body': response.body,
+          },
+        );
+        return null;
+      }
+
+      final decoded = jsonDecode(response.body);
+      if (decoded is Map<String, dynamic>) return decoded;
+      if (decoded is Map) {
+        return decoded.map((key, value) => MapEntry(key.toString(), value));
+      }
+    } catch (e, st) {
+      AppLogger.instance.warning(
+        'GeoportalApiService',
+        'Feature detail request exception',
+        error: e,
+        stackTrace: st,
+        data: {'layerId': layerId, 'featureId': featureId},
+      );
+    }
+
+    return null;
+  }
+
+  Map<String, dynamic> _extractFields(
+      Map<String, dynamic> row, {
+        _LayerFieldSchema fieldSchema = const _LayerFieldSchema(
+          keyById: {},
+          orderedKeys: [],
+        ),
+      }) {
+    final result = <String, dynamic>{};
+
+    void addKnownFlatFields(Map<String, dynamic> source) {
+      const keys = <String>[
+        'local_id',
+        'user_login',
+        'name',
+        'description',
+        'latitude',
+        'longitude',
+        'is_manual',
+        'accuracy',
+        'created_at',
+        'gauss_x',
+        'gauss_y',
+        'photo_url_main',
+        'photo_urls_json',
+        'photo_count',
+      ];
+
+      for (final key in keys) {
+        if (source.containsKey(key) && !result.containsKey(key)) {
+          result[key] = source[key];
+        }
+      }
+    }
+
+    void addMap(dynamic raw) {
+      if (raw is Map<String, dynamic>) {
+        result.addAll(raw);
+      } else if (raw is Map) {
+        result.addAll(raw.map((key, value) => MapEntry(key.toString(), value)));
+      }
+    }
+
+    final rawFields = row['fields'];
+
+    if (rawFields is Map || rawFields is Map<String, dynamic>) {
+      addMap(rawFields);
+    } else if (rawFields is List) {
+      for (int i = 0; i < rawFields.length; i++) {
+        final item = rawFields[i];
+
+        if (item is! Map) {
+          if (i < fieldSchema.orderedKeys.length) {
+            result[fieldSchema.orderedKeys[i]] = item;
+          }
+          continue;
+        }
+
+        final map = item.map((key, value) => MapEntry(key.toString(), value));
+
+        String? key = _asTrimmedString(map['keyname']) ??
+            _asTrimmedString(map['field_name']);
+
+        final field = map['field'];
+        int? fieldId;
+
+        if (field is Map) {
+          final fieldMap = field.map((k, v) => MapEntry(k.toString(), v));
+          key ??= _asTrimmedString(fieldMap['keyname']) ??
+              _asTrimmedString(fieldMap['field_name']);
+          fieldId = _toInt(fieldMap['id']);
+        } else {
+          fieldId = _toInt(field);
+        }
+
+        fieldId ??= _toInt(map['field_id']) ??
+            _toInt(map['field']) ??
+            _toInt(map['id']);
+
+        if (fieldId != null && fieldSchema.keyById.containsKey(fieldId)) {
+          key = fieldSchema.keyById[fieldId];
+        }
+
+        key ??= _asTrimmedString(map['name']);
+
+        if ((key == null || key.isEmpty) && i < fieldSchema.orderedKeys.length) {
+          key = fieldSchema.orderedKeys[i];
+        }
+
+        if (key == null || key.isEmpty) continue;
+
+        dynamic value;
+        if (map.containsKey('value')) {
+          value = map['value'];
+        } else if (map.containsKey('val')) {
+          value = map['val'];
+        } else if (map.containsKey('data')) {
+          value = map['data'];
+        } else if (map.containsKey('v')) {
+          value = map['v'];
+        } else if (map.containsKey('field_value')) {
+          value = map['field_value'];
+        } else {
+          continue;
+        }
+
+        result[key] = value;
+      }
+    }
+
+    addMap(row['properties']);
+    addKnownFlatFields(row);
+
+    void addAlias(String target, List<String> aliases) {
+      if (result.containsKey(target) && result[target] != null) return;
+      for (final alias in aliases) {
+        if (result.containsKey(alias) && result[alias] != null) {
+          result[target] = result[alias];
+          return;
+        }
+      }
+    }
+
+    addAlias('name', const ['Название', 'Наименование', 'title', 'plant_name']);
+    addAlias('description', const ['Описание', 'desc', 'comment', 'Комментарий']);
+    addAlias('latitude', const ['Широта', 'lat']);
+    addAlias('longitude', const ['Долгота', 'lon', 'lng']);
+    addAlias('is_manual', const ['Ручной ввод', 'manual']);
+    addAlias('accuracy', const ['Точность', 'accuracy_m']);
+    addAlias('created_at', const ['Дата создания', 'Дата', 'created', 'createdAt', 'datetime']);
+    addAlias('gauss_x', const ['Gauss X', 'Гаусс X']);
+    addAlias('gauss_y', const ['Gauss Y', 'Гаусс Y']);
+    addAlias('photo_url_main', const ['Основное фото URL', 'photo_url']);
+    addAlias('photo_urls_json', const ['Список фото URL', 'photo_urls']);
+    addAlias('photo_count', const ['Количество фото', 'photos_count']);
+
+    return result;
+  }
+
+  bool _isValidLatLon(double latitude, double longitude) {
+    return latitude.isFinite &&
+        longitude.isFinite &&
+        latitude >= -90 &&
+        latitude <= 90 &&
+        longitude >= -180 &&
+        longitude <= 180;
+  }
+
+  (double, double)? _extractLatLonFromFeature(
+      Map<String, dynamic> row,
+      Map<String, dynamic> fields,
+      ) {
+    final lat = _finiteDouble(fields['latitude'] ?? row['latitude']);
+    final lon = _finiteDouble(fields['longitude'] ?? row['longitude']);
+    if (lat != null && lon != null && _isValidLatLon(lat, lon)) {
+      return (lat, lon);
+    }
+
+    final geom = row['geom'] ?? row['geometry'];
+
+    if (geom is String) {
+      final match = RegExp(
+        r'POINT\s*\(?\s*([-+0-9.eE]+)\s+([-+0-9.eE]+)\s*\)?',
+        caseSensitive: false,
+      ).firstMatch(geom);
+
+      if (match != null) {
+        final lonValue = _finiteDouble(match.group(1));
+        final latValue = _finiteDouble(match.group(2));
+        if (latValue != null &&
+            lonValue != null &&
+            _isValidLatLon(latValue, lonValue)) {
+          return (latValue, lonValue);
+        }
+      }
+    }
+
+    if (geom is Map) {
+      final map = geom.map((key, value) => MapEntry(key.toString(), value));
+      final coordinates = map['coordinates'];
+      if (coordinates is List && coordinates.length >= 2) {
+        final lonValue = _finiteDouble(coordinates[0]);
+        final latValue = _finiteDouble(coordinates[1]);
+        if (latValue != null &&
+            lonValue != null &&
+            _isValidLatLon(latValue, lonValue)) {
+          return (latValue, lonValue);
+        }
+      }
+    }
+
+    return null;
   }
 
   String? _asTrimmedString(dynamic value) {
@@ -1429,4 +1733,262 @@ class GeoportalApiService {
       );
     }
   }
+
+  String _normalizeHistoryPhotoUrl(String raw) {
+    final value = raw.trim();
+    if (value.isEmpty) return '';
+
+    var normalized = value;
+    if (normalized.startsWith('/api/')) {
+      normalized = '$portalBaseUrl$normalized';
+    } else if (normalized.startsWith('/resource/')) {
+      normalized = '$apiBaseUrl$normalized';
+    } else if (normalized.startsWith('/')) {
+      normalized = '$portalBaseUrl$normalized';
+    }
+
+    if (normalized.contains('/image?')) return normalized;
+    if (RegExp(r'/attachment/\d+$', caseSensitive: false).hasMatch(normalized)) {
+      return '$normalized/image?size=1600x1600';
+    }
+    return normalized;
+  }
+
+  List<String> _photoUrlsFromHistoryFields(Map<String, dynamic> fields) {
+    final urls = <String>[];
+
+    void addUrl(dynamic raw) {
+      if (raw == null) return;
+      final normalized = _normalizeHistoryPhotoUrl(raw.toString());
+      if (normalized.isNotEmpty && !urls.contains(normalized)) {
+        urls.add(normalized);
+      }
+    }
+
+    addUrl(fields['photo_url_main']);
+
+    final rawList = fields['photo_urls_json'];
+    if (rawList is List) {
+      for (final item in rawList) {
+        addUrl(item);
+      }
+    } else if (rawList is String && rawList.trim().isNotEmpty) {
+      try {
+        final decoded = jsonDecode(rawList);
+        if (decoded is List) {
+          for (final item in decoded) {
+            addUrl(item);
+          }
+        } else {
+          addUrl(rawList);
+        }
+      } catch (_) {
+        addUrl(rawList);
+      }
+    }
+
+    return urls;
+  }
+
+  Future<List<Map<String, dynamic>>> fetchUserLayerHistory({
+    required UserSession session,
+    int limit = 5000,
+  }) async {
+    if (session.accessToken == null || session.accessToken!.isEmpty) {
+      return const [];
+    }
+    if (session.userLayerId == null) {
+      return const [];
+    }
+
+    final auth = session.accessToken!;
+    final layerId = session.userLayerId!;
+
+    AppLogger.instance.info(
+      'GeoportalApiService',
+      'Fetch user layer history started',
+      data: {
+        'userLogin': session.userLogin,
+        'layerId': layerId,
+        'limit': limit,
+      },
+    );
+
+    final fieldSchema = await _loadLayerFieldSchema(
+      auth: auth,
+      layerId: layerId,
+    );
+
+    final rows = await _getFeatures(
+      auth: auth,
+      layerId: layerId,
+      query: {
+        'limit': limit.toString(),
+        'offset': '0',
+        'srs': '4326',
+        'fields': const [
+          'local_id',
+          'user_login',
+          'name',
+          'description',
+          'latitude',
+          'longitude',
+          'is_manual',
+          'accuracy',
+          'created_at',
+          'gauss_x',
+          'gauss_y',
+          'photo_url_main',
+          'photo_urls_json',
+          'photo_count',
+        ].join(','),
+        'order_by': '-created_at',
+      },
+    );
+
+    final result = <Map<String, dynamic>>[];
+
+    for (final row in rows) {
+      final featureId = _toInt(row['id']);
+      if (featureId == null || featureId <= 0) continue;
+
+      var rowForParsing = row;
+      var fields = _extractFields(rowForParsing, fieldSchema: fieldSchema);
+
+      if (_asTrimmedString(fields['name']) == null &&
+          _asTrimmedString(fields['created_at']) == null &&
+          _asTrimmedString(fields['description']) == null) {
+        final detailedRow = await _getFeatureById(
+          auth: auth,
+          layerId: layerId,
+          featureId: featureId,
+        );
+        if (detailedRow != null) {
+          rowForParsing = detailedRow;
+          fields = _extractFields(rowForParsing, fieldSchema: fieldSchema);
+        }
+      }
+
+      final latLon = _extractLatLonFromFeature(rowForParsing, fields);
+      final photoUrls = _photoUrlsFromHistoryFields(fields);
+      if (photoUrls.isEmpty) {
+        photoUrls.addAll(
+          await _listAttachmentImageUrls(
+            auth: auth,
+            layerId: layerId,
+            featureId: featureId,
+          ),
+        );
+      }
+
+      result.add({
+        'id': -featureId,
+        '_remote_only': true,
+        '_source_layer_id': layerId,
+        'local_id': _toInt(fields['local_id']),
+        'remote_feature_id': featureId,
+        'remote_folder': session.remoteFolder,
+        'user_login': _asTrimmedString(fields['user_login']) ?? session.userLogin,
+        'name': _asTrimmedString(fields['name']) ?? 'Без названия',
+        'description': _asTrimmedString(fields['description']),
+        'latitude': latLon?.$1,
+        'longitude': latLon?.$2,
+        'is_manual': _toInt(fields['is_manual']) ?? 0,
+        'accuracy': _finiteDouble(fields['accuracy']),
+        'created_at': _asTrimmedString(fields['created_at']),
+        'gauss_x': _finiteDouble(fields['gauss_x']),
+        'gauss_y': _finiteDouble(fields['gauss_y']),
+        'sync_error': null,
+        'synced_at': _asTrimmedString(fields['created_at']),
+        'photo_count': _toInt(fields['photo_count']) ?? photoUrls.length,
+        'photos': [
+          for (int i = 0; i < photoUrls.length; i++)
+            {
+              'id': -((featureId * 1000) + i + 1),
+              'observation_id': -featureId,
+              'file_path': photoUrls[i],
+              'uploaded_url': photoUrls[i],
+              'url': photoUrls[i],
+              'order_index': i,
+            },
+        ],
+      });
+    }
+
+    result.sort((a, b) {
+      final ad = DateTime.tryParse((a['created_at'] ?? '').toString());
+      final bd = DateTime.tryParse((b['created_at'] ?? '').toString());
+      if (ad == null && bd == null) return 0;
+      if (ad == null) return 1;
+      if (bd == null) return -1;
+      return bd.compareTo(ad);
+    });
+
+    AppLogger.instance.info(
+      'GeoportalApiService',
+      'Fetch user layer history finished',
+      data: {
+        'userLogin': session.userLogin,
+        'layerId': layerId,
+        'count': result.length,
+      },
+    );
+
+    return result;
+  }
+
+  Future<int> deleteAllFeaturesInUserLayer({
+    required UserSession session,
+  }) async {
+    if (session.accessToken == null || session.accessToken!.isEmpty) {
+      throw Exception('Нет данных авторизации');
+    }
+    if (session.userLayerId == null) {
+      throw Exception('Не найден персональный слой пользователя');
+    }
+
+    final auth = session.accessToken!;
+    final layerId = session.userLayerId!;
+
+    final rows = await _getFeatures(
+      auth: auth,
+      layerId: layerId,
+      query: const {
+        'limit': '5000',
+        'offset': '0',
+        'fields': 'id',
+      },
+    );
+
+    int deleted = 0;
+    for (final row in rows) {
+      final featureId = _toInt(row['id']);
+      if (featureId == null || featureId <= 0) continue;
+
+      final response = await http.delete(
+        _uri('/resource/$layerId/feature/$featureId'),
+        headers: _headers(auth),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception(
+          'Не удалось удалить точку $featureId: ${response.statusCode} ${response.body}',
+        );
+      }
+      deleted++;
+    }
+
+    AppLogger.instance.info(
+      'GeoportalApiService',
+      'All features in user layer deleted',
+      data: {
+        'userLogin': session.userLogin,
+        'layerId': layerId,
+        'deleted': deleted,
+      },
+    );
+
+    return deleted;
+  }
+
 }

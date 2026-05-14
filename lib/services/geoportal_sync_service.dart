@@ -512,4 +512,192 @@ class GeoportalSyncService {
       );
     }
   }
+
+  List<Map<String, dynamic>> _mergeLocalAndRemoteHistory(
+      List<Map<String, dynamic>> local,
+      List<Map<String, dynamic>> remote,
+      ) {
+    final merged = <Map<String, dynamic>>[];
+    final localRemoteIds = <int>{};
+
+    for (final item in local) {
+      final remoteId = item['remote_feature_id'];
+      if (remoteId is int && remoteId > 0) {
+        localRemoteIds.add(remoteId);
+      }
+      merged.add(item);
+    }
+
+    for (final item in remote) {
+      final remoteId = item['remote_feature_id'];
+      if (remoteId is int && localRemoteIds.contains(remoteId)) {
+        continue;
+      }
+
+      final copy = Map<String, dynamic>.from(item);
+      copy['status'] = ObservationStatus.synced;
+      copy['_remote_only'] = true;
+      merged.add(copy);
+    }
+
+    int compareDates(Map<String, dynamic> a, Map<String, dynamic> b) {
+      final ad = DateTime.tryParse((a['created_at'] ?? '').toString());
+      final bd = DateTime.tryParse((b['created_at'] ?? '').toString());
+      if (ad == null && bd == null) return 0;
+      if (ad == null) return 1;
+      if (bd == null) return -1;
+      return bd.compareTo(ad);
+    }
+
+    merged.sort(compareDates);
+    return merged;
+  }
+
+  Future<List<Map<String, dynamic>>> loadHistoryForUser({
+    required String userLogin,
+  }) async {
+    final local = await DatabaseHelper.instance.getObservations(
+      userLogin: userLogin,
+    );
+
+    final session = await SessionManager.instance.getSession();
+    if (session == null || session.isGuest) {
+      return local;
+    }
+    if (session.userLogin != userLogin) {
+      return local;
+    }
+
+    try {
+      final workingSession = await _ensureWorkspace(
+        session,
+        refreshRemote: true,
+      );
+
+      final remote = await GeoportalApiService.instance.fetchUserLayerHistory(
+        session: workingSession,
+      );
+
+      AppLogger.instance.info(
+        'GeoportalSyncService',
+        'History loaded from local and remote sources',
+        data: {
+          'userLogin': userLogin,
+          'localCount': local.length,
+          'remoteCount': remote.length,
+        },
+      );
+
+      return _mergeLocalAndRemoteHistory(local, remote);
+    } catch (e, st) {
+      AppLogger.instance.error(
+        'GeoportalSyncService',
+        'Remote history loading failed; local history will be used',
+        error: e,
+        stackTrace: st,
+        data: {'userLogin': userLogin},
+      );
+      return local;
+    }
+  }
+
+  Future<SyncResult> deleteRemoteFeatureForCurrentUser(int featureId) async {
+    final session = await SessionManager.instance.getSession();
+    if (session == null || session.isGuest) {
+      return const SyncResult(
+        success: false,
+        message: 'Для удаления на сервере нужно войти в аккаунт',
+      );
+    }
+
+    try {
+      final workingSession = await _ensureWorkspace(
+        session,
+        refreshRemote: true,
+      );
+
+      await GeoportalApiService.instance.deleteFeature(
+        session: workingSession,
+        featureId: featureId,
+      );
+
+      return const SyncResult(
+        success: true,
+        message: 'Запись удалена на сервере',
+      );
+    } catch (e, st) {
+      AppLogger.instance.error(
+        'GeoportalSyncService',
+        'Delete remote-only feature failed',
+        error: e,
+        stackTrace: st,
+        data: {'featureId': featureId},
+      );
+
+      return SyncResult(
+        success: false,
+        message: 'Не удалось удалить запись на сервере: $e',
+      );
+    }
+  }
+
+  Future<SyncResult> clearHistory({
+    required String userLogin,
+    required bool includeServer,
+  }) async {
+    if (!includeServer) {
+      await DatabaseHelper.instance.clearAllObservations(userLogin: userLogin);
+      return const SyncResult(
+        success: true,
+        message: 'Локальная история очищена',
+      );
+    }
+
+    final session = await SessionManager.instance.getSession();
+    if (session == null || session.isGuest) {
+      await DatabaseHelper.instance.clearAllObservations(userLogin: userLogin);
+      return const SyncResult(
+        success: true,
+        message: 'Локальная история очищена',
+      );
+    }
+    if (session.userLogin != userLogin) {
+      return const SyncResult(
+        success: false,
+        message: 'Активная сессия не совпадает с пользователем истории',
+      );
+    }
+
+    try {
+      final workingSession = await _ensureWorkspace(
+        session,
+        refreshRemote: true,
+      );
+
+      final deletedRemote = await GeoportalApiService.instance.deleteAllFeaturesInUserLayer(
+        session: workingSession,
+      );
+
+      await DatabaseHelper.instance.clearAllObservations(userLogin: userLogin);
+
+      return SyncResult(
+        success: true,
+        message: 'История очищена на устройстве и на сервере. Удалено точек на сервере: $deletedRemote',
+      );
+    } catch (e, st) {
+      AppLogger.instance.error(
+        'GeoportalSyncService',
+        'Clear history everywhere failed',
+        error: e,
+        stackTrace: st,
+        data: {'userLogin': userLogin},
+      );
+
+      return SyncResult(
+        success: false,
+        message: 'Не удалось очистить историю на сервере: $e',
+      );
+    }
+  }
+
 }
