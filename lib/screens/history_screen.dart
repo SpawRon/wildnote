@@ -219,7 +219,7 @@ class HistoryScreenState extends State<HistoryScreen> {
                         ),
                       ),
                       child: Text(
-                        widget.isGuest ? 'Очистить' : 'На устройстве',
+                        widget.isGuest ? 'Очистить' : 'Удалить для себя',
                       ),
                     ),
                     if (!widget.isGuest)
@@ -239,7 +239,7 @@ class HistoryScreenState extends State<HistoryScreen> {
                             vertical: 12,
                           ),
                         ),
-                        child: const Text('Везде'),
+                        child: const Text('Удалить для всех'),
                       ),
                   ],
                 ),
