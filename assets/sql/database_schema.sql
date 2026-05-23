@@ -1,58 +1,106 @@
 
 
 /*
- * таблица наблюдений
- *
- * идентификатор: Первичный ключ, автоматически увеличивающийся.
- * название: общее название или идентификатор растения.  Может быть пустым.
- * описание: описание растения, почвы или других примечаний в произвольной форме.
- * широта: Широта в WGS‑84 (десятичных градусах).  Положительная для северного полушария
- *, отрицательная для южного.  Может быть нулевой, если координаты
- * неизвестны или отложены.
- * долгота: Долгота в WGS‑84 (десятичных градусах).  Положительная для восточного полушария
- * западная долгота отрицательна.
- * is_manual : Целочисленный флажок (0 или 1), указывающий, вводил ли пользователь
- * широту/долготу вручную.  Значение 1 означает
-, что * координаты были введены пользователем, а не получены с помощью
- * датчиков GNSS устройства.  Используйте этот флажок при загрузке
- * на геопортал, чтобы соответствующим образом отметить точки.
- * точность: оценочная точность определения горизонтального положения в метрах, возвращаемая
- * поставщиком местоположения.  Значение NULL, если недоступно.
- * created_at: временная метка ISO8601, указывающая, когда наблюдение было записано на
- * устройство.  Сохранено в виде текста для сохранения форматирования.
- * статус : Статус синхронизации.  0 = сохранено локально (гостевое или
- * не отправлено), 1 = находится в очереди на загрузку, 2 = успешно загружено.
- * gauss_x : Планируемая восточная координата Гаусса–Крюгера в метрах.
-По умолчанию значение равно нулю.  Может быть введено после реализации алгоритма преобразования
- * (см. пункт 2 плана проекта).
- * gauss_y : Плановая северная координата Гаусса–Крюгера в метрах.
- * зона : номер зоны Гаусса–Крюгера (целое число).  Обычно рассчитывается
- * от долготы.
- *Логика статусов такая:
+ *Логика статусов:
  * 0 — локально, не для отправки (гость)
  * 1 — в очереди на отправку
  * 2 — успешно отправлено
  * 3 — ошибка отправки
  */
-CREATE TABLE IF NOT EXISTS observations (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_login TEXT NOT NULL,
-    name TEXT,
-    description TEXT,
-    latitude REAL,
-    longitude REAL,
-    is_manual INTEGER DEFAULT 0,
-    accuracy REAL,
-    created_at TEXT NOT NULL,
-    status INTEGER DEFAULT 0,
-    gauss_x REAL,
-    gauss_y REAL,
-    zone INTEGER,
-    remote_feature_id INTEGER,
-    remote_folder TEXT,
-    sync_error TEXT,
-    synced_at TEXT
+CREATE TABLE observations (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  local_uuid TEXT NOT NULL UNIQUE,
+  user_login TEXT NOT NULL,
+  observed_at TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT,
+  latitude REAL NOT NULL,
+  longitude REAL NOT NULL,
+  is_manual INTEGER NOT NULL DEFAULT 0,
+  accuracy REAL,
+  altitude REAL,
+  gauss_x REAL,
+  gauss_y REAL,
+  zone INTEGER,
+
+  status INTEGER NOT NULL DEFAULT 0,
+  remote_feature_id INTEGER,
+  remote_folder TEXT,
+  sync_error TEXT,
+  synced_at TEXT,
+
+  deleted_at TEXT,
+  schema_version INTEGER NOT NULL DEFAULT 4
 );
+
+CREATE TABLE observation_attributes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  observation_id INTEGER NOT NULL,
+  attribute_key TEXT NOT NULL,
+  value_text TEXT,
+  value_number REAL,
+  value_bool INTEGER,
+  option_id INTEGER,
+
+  created_at TEXT NOT NULL,
+  updated_at TEXT,
+
+  FOREIGN KEY (observation_id)
+    REFERENCES observations(id)
+    ON DELETE CASCADE,
+
+  FOREIGN KEY (option_id)
+    REFERENCES attribute_options(id)
+    ON DELETE SET NULL,
+
+  UNIQUE(observation_id, attribute_key)
+);
+
+/* описываем что такое поле  */
+CREATE TABLE attribute_definitions (
+  attribute_key TEXT PRIMARY KEY,
+
+  title TEXT NOT NULL,
+  value_type TEXT NOT NULL,
+  input_type TEXT NOT NULL,
+
+  is_required INTEGER NOT NULL DEFAULT 0,
+  is_core INTEGER NOT NULL DEFAULT 0,
+  is_synced INTEGER NOT NULL DEFAULT 1,
+  allow_custom INTEGER NOT NULL DEFAULT 1,
+
+  hint TEXT,
+  dwc_term TEXT,
+
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT
+);
+
+/* общие списки через сервер */
+CREATE TABLE attribute_options (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+  attribute_key TEXT NOT NULL,
+  value TEXT NOT NULL,
+  normalized_value TEXT NOT NULL,
+
+  is_builtin INTEGER NOT NULL DEFAULT 0,
+  is_deleted INTEGER NOT NULL DEFAULT 0,
+  created_by TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT,
+  remote_id INTEGER,
+  synced_at TEXT,
+  sync_status INTEGER NOT NULL DEFAULT 0,
+
+  FOREIGN KEY (attribute_key)
+    REFERENCES attribute_definitions(attribute_key)
+    ON DELETE CASCADE,
+
+  UNIQUE(attribute_key, normalized_value)
+);
+
 CREATE TABLE IF NOT EXISTS user_resources (
     user_login TEXT PRIMARY KEY,
     user_folder_id INTEGER,
@@ -61,28 +109,17 @@ CREATE TABLE IF NOT EXISTS user_resources (
     webmap_id INTEGER,
     updated_at TEXT
 );
-/*
- * таблица фотографий
- *
- * id: Первичный ключ для записи фотографии.
- * observation_id : Внешний ключ, ссылающийся на наблюдения(id).  Каждая фотография
- * относится только к одному наблюдению.  Когда наблюдение
- * удаляется, его фотографии удаляются автоматически.
- * file_path: путь к изображению в локальной файловой системе устройства.  Приложение
-* должно сохранять URI, возвращаемый камерой
- * или галереей здесь.  После загрузки фотография может быть
-* заменена удаленным URL-адресом в uploaded_url.
- * uploaded_url : URL-адрес на геопортале, где хранится изображение.  Этот
- * поле остается ПУСТЫМ до тех пор, пока синхронизация не завершится успешно.
- * order_index : Порядок, в котором пользователь сделал снимок или выбрал
-* фотографию.  Позволяет воссоздать исходную последовательность
-изображений *.
- */
-CREATE TABLE IF NOT EXISTS photos (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    observation_id INTEGER NOT NULL,
-    file_path TEXT NOT NULL,
-    uploaded_url TEXT,
-    order_index INTEGER DEFAULT 0,
-    FOREIGN KEY (observation_id) REFERENCES observations(id) ON DELETE CASCADE
+/*order_index : позволяет воссоздать исходную последовательность */
+CREATE TABLE photos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  observation_id INTEGER NOT NULL,
+  file_path TEXT,
+  uploaded_url TEXT,
+  remote_attachment_id INTEGER,
+  order_index INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+
+  FOREIGN KEY (observation_id)
+    REFERENCES observations(id)
+    ON DELETE CASCADE
 );

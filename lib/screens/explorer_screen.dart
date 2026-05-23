@@ -3,7 +3,8 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
-import '../services/explorer_service.dart';
+import '../data/database_helper.dart';
+import '../services/explorer_service.dart' as explorer;
 import '../services/session_manager.dart';
 
 enum ExplorerMode { user, area }
@@ -25,7 +26,7 @@ class ExplorerScreen extends StatefulWidget {
 class ExplorerScreenState extends State<ExplorerScreen> {
   static const LatLng _fallbackCenter = LatLng(68.9707, 33.0749);
 
-  final ExplorerService _service = ExplorerService.instance;
+  final explorer.ExplorerService _service = explorer.ExplorerService.instance;
   final MapController _mapController = MapController();
   final TextEditingController _radiusController =
   TextEditingController(text: '1000');
@@ -34,8 +35,8 @@ class ExplorerScreenState extends State<ExplorerScreen> {
   UserSession? _session;
   ExplorerMode _mode = ExplorerMode.user;
   bool _isLoading = false;
-  List<ExplorerUserStat> _users = const [];
-  List<ExplorerPoint> _points = const [];
+  List<explorer.ExplorerUserStat> _users = const [];
+  List<explorer.ExplorerPoint> _points = const [];
   String? _selectedUser;
   LatLng? _areaCenter;
   double _radiusMeters = 1000;
@@ -89,8 +90,9 @@ class ExplorerScreenState extends State<ExplorerScreen> {
     try {
       final users = await _service.loadUserStats(session: session);
 
-      ExplorerUserStat? selected;
+      explorer.ExplorerUserStat? selected;
       final wanted = _selectedUser?.trim().toLowerCase();
+
       if (wanted != null && wanted.isNotEmpty) {
         for (final user in users) {
           if (user.userLogin == wanted) {
@@ -103,7 +105,7 @@ class ExplorerScreenState extends State<ExplorerScreen> {
       selected ??= users.isNotEmpty ? users.first : null;
 
       final points = selected == null
-          ? const <ExplorerPoint>[]
+          ? const <explorer.ExplorerPoint>[]
           : await _service.loadPointsByUser(
         session: session,
         userLogin: selected.userLogin,
@@ -111,6 +113,7 @@ class ExplorerScreenState extends State<ExplorerScreen> {
       );
 
       if (!mounted) return;
+
       setState(() {
         _users = users;
         _selectedUser = selected?.userLogin;
@@ -153,6 +156,7 @@ class ExplorerScreenState extends State<ExplorerScreen> {
       );
 
       if (!mounted) return;
+
       setState(() {
         _points = points;
         _isLoading = false;
@@ -169,10 +173,12 @@ class ExplorerScreenState extends State<ExplorerScreen> {
   double? _readRadiusMeters() {
     final raw = _radiusController.text.trim().replaceAll(',', '.');
     final value = double.tryParse(raw);
+
     if (value == null || !value.isFinite || value <= 0) {
       _showMessage('Введите корректный радиус в метрах');
       return null;
     }
+
     return value;
   }
 
@@ -181,8 +187,8 @@ class ExplorerScreenState extends State<ExplorerScreen> {
     if (radius == null) return;
 
     if (!mounted) return;
-    setState(() => _radiusMeters = radius);
 
+    setState(() => _radiusMeters = radius);
     FocusScope.of(context).unfocus();
 
     if (_mode == ExplorerMode.area && _areaCenter != null) {
@@ -220,6 +226,7 @@ class ExplorerScreenState extends State<ExplorerScreen> {
       if (lastKnown != null &&
           _isValidLatLon(lastKnown.latitude, lastKnown.longitude)) {
         final cached = LatLng(lastKnown.latitude, lastKnown.longitude);
+
         if (mounted) {
           setState(() => _areaCenter = cached);
           _moveMap(cached, _zoomForRadius(_radiusMeters));
@@ -241,7 +248,9 @@ class ExplorerScreenState extends State<ExplorerScreen> {
       }
 
       final point = LatLng(position.latitude, position.longitude);
+
       if (!mounted) return;
+
       setState(() => _areaCenter = point);
       _moveMap(point, _zoomForRadius(_radiusMeters));
 
@@ -256,8 +265,10 @@ class ExplorerScreenState extends State<ExplorerScreen> {
   }
 
   void _moveMapToRelevantTarget() {
-    if (_mode == ExplorerMode.area && _areaCenter != null) {
-      _moveMap(_areaCenter!, _zoomForRadius(_radiusMeters));
+    final center = _areaCenter;
+
+    if (_mode == ExplorerMode.area && center != null) {
+      _moveMap(center, _zoomForRadius(_radiusMeters));
       return;
     }
 
@@ -364,6 +375,7 @@ class ExplorerScreenState extends State<ExplorerScreen> {
                       separatorBuilder: (_, __) => const SizedBox(height: 8),
                       itemBuilder: (context, index) {
                         final point = _points[index];
+
                         return Card(
                           margin: EdgeInsets.zero,
                           elevation: 0,
@@ -410,7 +422,7 @@ class ExplorerScreenState extends State<ExplorerScreen> {
     );
   }
 
-  void _showPointDetails(ExplorerPoint point) {
+  void _showPointDetails(explorer.ExplorerPoint point) {
     final authHeaders = (_session?.accessToken != null)
         ? <String, String>{'Authorization': _session!.accessToken!}
         : const <String, String>{};
@@ -430,9 +442,9 @@ class ExplorerScreenState extends State<ExplorerScreen> {
       builder: (context) {
         return SafeArea(
           child: FractionallySizedBox(
-            heightFactor: 0.82,
+            heightFactor: 0.86,
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -447,12 +459,42 @@ class ExplorerScreenState extends State<ExplorerScreen> {
                       ),
                     ),
                   ),
-                  Text(
-                    point.name,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          point.name,
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF131D1C),
+                          ),
+                        ),
+                      ),
+                      FutureBuilder<List<String>>(
+                        future: photoFuture,
+                        builder: (context, snapshot) {
+                          final count = (snapshot.data?.isNotEmpty ?? false)
+                              ? snapshot.data!.length
+                              : point.photoCount;
+
+                          return Builder(
+                            builder: (buttonContext) {
+                              return IconButton(
+                                tooltip: 'Техническая информация',
+                                onPressed: () => _showTechnicalInfoPopup(
+                                  buttonContext: buttonContext,
+                                  point: point,
+                                  photoCount: count,
+                                ),
+                                icon: const Icon(Icons.info_outline),
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 6),
                   Wrap(
@@ -488,7 +530,7 @@ class ExplorerScreenState extends State<ExplorerScreen> {
 
                       if (urls.isEmpty) {
                         return Container(
-                          height: 160,
+                          height: 150,
                           width: double.infinity,
                           decoration: BoxDecoration(
                             color: Colors.grey.shade100,
@@ -501,11 +543,12 @@ class ExplorerScreenState extends State<ExplorerScreen> {
                       }
 
                       return SizedBox(
-                        height: 240,
+                        height: 230,
                         child: PageView.builder(
                           itemCount: urls.length,
                           itemBuilder: (context, index) {
                             final imageUrl = urls[index];
+
                             return Padding(
                               padding: const EdgeInsets.only(right: 4),
                               child: ClipRRect(
@@ -534,39 +577,45 @@ class ExplorerScreenState extends State<ExplorerScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  _buildDetailRow(
-                    'Описание',
-                    point.description?.trim().isNotEmpty == true
-                        ? point.description!.trim()
-                        : '—',
+                  _buildDescriptionCard(point),
+                  const SizedBox(height: 12),
+                  _buildAttributeSection(
+                    title: 'Среда произрастания',
+                    point: point,
+                    keys: const [
+                      PlantAttributeKeys.habitat,
+                      PlantAttributeKeys.soilType,
+                      PlantAttributeKeys.moisture,
+                      PlantAttributeKeys.lightCondition,
+                    ],
                   ),
-                  _buildDetailRow(
-                    'Широта, долгота',
-                    '${point.latitude.toStringAsFixed(6)}, ${point.longitude.toStringAsFixed(6)}',
+                  _buildAttributeSection(
+                    title: 'Состояние растения',
+                    point: point,
+                    keys: const [
+                      PlantAttributeKeys.identificationStatus,
+                      PlantAttributeKeys.lifeStage,
+                      PlantAttributeKeys.phenophase,
+                      PlantAttributeKeys.plantCondition,
+                    ],
                   ),
-                  _buildDetailRow(
-                    'Точность',
-                    point.accuracy == null
-                        ? '—'
-                        : '±${point.accuracy!.toStringAsFixed(1)} м',
+                  _buildAttributeSection(
+                    title: 'Численность и участок',
+                    point: point,
+                    keys: const [
+                      PlantAttributeKeys.abundanceCategory,
+                      PlantAttributeKeys.individualCount,
+                      PlantAttributeKeys.areaOccupied,
+                    ],
                   ),
-                  _buildDetailRow(
-                    'Гаусс X / Y',
-                    (point.gaussX == null || point.gaussY == null)
-                        ? '—'
-                        : '${point.gaussX!.toStringAsFixed(2)} / ${point.gaussY!.toStringAsFixed(2)}',
-                  ),
-                  FutureBuilder<List<String>>(
-                    future: photoFuture,
-                    builder: (context, snapshot) {
-                      final count = (snapshot.data?.isNotEmpty ?? false)
-                          ? snapshot.data!.length
-                          : point.photoCount;
-                      return _buildDetailRow(
-                        'Количество фото',
-                        count.toString(),
-                      );
-                    },
+                  _buildAttributeSection(
+                    title: 'Воздействие и охрана',
+                    point: point,
+                    keys: const [
+                      PlantAttributeKeys.anthropogenicImpact,
+                      PlantAttributeKeys.threatFactor,
+                      PlantAttributeKeys.protectionStatus,
+                    ],
                   ),
                 ],
               ),
@@ -574,6 +623,295 @@ class ExplorerScreenState extends State<ExplorerScreen> {
           ),
         );
       },
+    );
+  }
+
+
+  static const Map<String, String> _attributeLabels = {
+    PlantAttributeKeys.identificationStatus: 'Статус определения',
+    PlantAttributeKeys.habitat: 'Местообитание',
+    PlantAttributeKeys.soilType: 'Тип почвы',
+    PlantAttributeKeys.moisture: 'Увлажнение',
+    PlantAttributeKeys.lightCondition: 'Освещенность',
+    PlantAttributeKeys.lifeStage: 'Жизненная стадия',
+    PlantAttributeKeys.phenophase: 'Фенологическая фаза',
+    PlantAttributeKeys.plantCondition: 'Состояние растения',
+    PlantAttributeKeys.abundanceCategory: 'Категория численности',
+    PlantAttributeKeys.individualCount: 'Количество особей',
+    PlantAttributeKeys.areaOccupied: 'Площадь участка, м²',
+    PlantAttributeKeys.anthropogenicImpact: 'Антропогенное воздействие',
+    PlantAttributeKeys.threatFactor: 'Угрожающий фактор',
+    PlantAttributeKeys.protectionStatus: 'Охранный статус',
+  };
+
+  String _formatAttributeValue(dynamic value) {
+    if (value == null) return '';
+
+    if (value is Iterable) {
+      return value
+          .map((item) => item.toString().trim())
+          .where((item) => item.isNotEmpty && item != 'null')
+          .join(', ');
+    }
+
+    if (value is num) {
+      final asDouble = value.toDouble();
+      if (asDouble.truncateToDouble() == asDouble) {
+        return asDouble.toStringAsFixed(0);
+      }
+      return asDouble.toString();
+    }
+
+    final text = value.toString().trim();
+    if (text == 'null') return '';
+
+    if (text.startsWith('[') && text.endsWith(']')) {
+      final withoutBrackets = text.substring(1, text.length - 1).trim();
+      if (withoutBrackets.isEmpty) return '';
+      return withoutBrackets
+          .split(',')
+          .map((item) => item.trim())
+          .where((item) => item.isNotEmpty)
+          .join(', ');
+    }
+
+    return text;
+  }
+
+  List<MapEntry<String, String>> _attributeRowsFor(
+      explorer.ExplorerPoint point,
+      List<String> keys,
+      ) {
+    final rows = <MapEntry<String, String>>[];
+
+    for (final key in keys) {
+      final value = _formatAttributeValue(point.attributes[key]);
+      if (value.isEmpty) continue;
+
+      rows.add(
+        MapEntry(_attributeLabels[key] ?? key, value),
+      );
+    }
+
+    return rows;
+  }
+
+  Widget _buildDescriptionCard(explorer.ExplorerPoint point) {
+    final description = point.description?.trim();
+
+    if (description == null || description.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7F7F2),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Описание',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.black54,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            description,
+            style: const TextStyle(
+              fontSize: 15,
+              height: 1.25,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAttributeSection({
+    required String title,
+    required explorer.ExplorerPoint point,
+    required List<String> keys,
+  }) {
+    final rows = _attributeRowsFor(point, keys);
+    if (rows.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade300),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF131D1C),
+              ),
+            ),
+            const SizedBox(height: 10),
+            ...rows.map(
+                  (row) => Padding(
+                padding: const EdgeInsets.only(bottom: 9),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 4,
+                      child: Text(
+                        row.key,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.black54,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 5,
+                      child: Text(
+                        row.value,
+                        textAlign: TextAlign.right,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF131D1C),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showTechnicalInfoPopup({
+    required BuildContext buttonContext,
+    required explorer.ExplorerPoint point,
+    required int photoCount,
+  }) async {
+    final buttonBox = buttonContext.findRenderObject() as RenderBox?;
+    final overlay = Navigator.of(buttonContext).overlay?.context.findRenderObject()
+    as RenderBox?;
+
+    if (buttonBox == null || overlay == null) return;
+
+    final buttonRect = Rect.fromPoints(
+      buttonBox.localToGlobal(Offset.zero, ancestor: overlay),
+      buttonBox.localToGlobal(
+        buttonBox.size.bottomRight(Offset.zero),
+        ancestor: overlay,
+      ),
+    );
+
+    final position = RelativeRect.fromRect(
+      buttonRect,
+      Offset.zero & overlay.size,
+    );
+
+    await showMenu<void>(
+      context: buttonContext,
+      position: position,
+      color: Colors.white,
+      elevation: 8,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      items: [
+        PopupMenuItem<void>(
+          enabled: false,
+          padding: const EdgeInsets.all(14),
+          child: SizedBox(
+            width: 280,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Техническая информация',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF131D1C),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                _buildPopupRow(
+                  'Широта, долгота',
+                  '${point.latitude.toStringAsFixed(6)}, ${point.longitude.toStringAsFixed(6)}',
+                ),
+                _buildPopupRow(
+                  'Точность',
+                  point.accuracy == null
+                      ? '—'
+                      : '±${point.accuracy!.toStringAsFixed(1)} м',
+                ),
+                _buildPopupRow(
+                  'Гаусс X / Y',
+                  (point.gaussX == null || point.gaussY == null)
+                      ? '—'
+                      : '${point.gaussX!.toStringAsFixed(2)} / ${point.gaussY!.toStringAsFixed(2)}',
+                ),
+                _buildPopupRow('Фото', photoCount.toString()),
+                _buildPopupRow(
+                  'ID объекта',
+                  point.remoteFeatureId > 0 ? point.remoteFeatureId.toString() : '—',
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPopupRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 7),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                color: Colors.black54,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: const TextStyle(
+                fontSize: 12,
+                color: Color(0xFF131D1C),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -648,6 +986,7 @@ class ExplorerScreenState extends State<ExplorerScreen> {
 
   void _showMessage(String text) {
     if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(text)),
     );
@@ -671,8 +1010,9 @@ class ExplorerScreenState extends State<ExplorerScreen> {
     }
 
     final radiusValid = _radiusMeters.isFinite && _radiusMeters > 0;
-    final areaCenterValid = _areaCenter != null &&
-        _isValidLatLon(_areaCenter!.latitude, _areaCenter!.longitude);
+    final areaCenter = _areaCenter;
+    final areaCenterValid = areaCenter != null &&
+        _isValidLatLon(areaCenter.latitude, areaCenter.longitude);
 
     return SafeArea(
       child: Column(
@@ -759,6 +1099,7 @@ class ExplorerScreenState extends State<ExplorerScreen> {
                         if (!_isValidLatLon(point.latitude, point.longitude)) {
                           return;
                         }
+
                         setState(() => _areaCenter = point);
                         await _searchByArea();
                       },
@@ -775,7 +1116,7 @@ class ExplorerScreenState extends State<ExplorerScreen> {
                         CircleLayer(
                           circles: [
                             CircleMarker(
-                              point: _areaCenter!,
+                              point: areaCenter,
                               radius: _radiusMeters,
                               useRadiusInMeter: true,
                               color: const Color(0x335D7B79),
@@ -788,7 +1129,7 @@ class ExplorerScreenState extends State<ExplorerScreen> {
                         markers: [
                           if (_mode == ExplorerMode.area && areaCenterValid)
                             Marker(
-                              point: _areaCenter!,
+                              point: areaCenter,
                               width: 34,
                               height: 34,
                               child: const Icon(
@@ -842,6 +1183,7 @@ class ExplorerScreenState extends State<ExplorerScreen> {
               itemBuilder: (context, index) {
                 final user = _users[index];
                 final selected = user.userLogin == _selectedUser;
+
                 return ChoiceChip(
                   label: Text('${user.userLogin} (${user.pointsCount})'),
                   selected: selected,
@@ -849,6 +1191,7 @@ class ExplorerScreenState extends State<ExplorerScreen> {
                     setState(() {
                       _selectedUser = user.userLogin;
                     });
+
                     await _loadUserMode();
                   },
                 );
@@ -862,13 +1205,19 @@ class ExplorerScreenState extends State<ExplorerScreen> {
   }
 
   Widget _buildAreaModeContent() {
+    final center = _areaCenter;
+
+    final radiusText = _radiusMeters.toStringAsFixed(
+      _radiusMeters.truncateToDouble() == _radiusMeters ? 0 : 1,
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          _areaCenter == null
+          center == null
               ? 'Выберите центр поиска кнопкой или тапом по карте'
-              : 'Центр: ${_areaCenter!.latitude.toStringAsFixed(5)}, ${_areaCenter!.longitude.toStringAsFixed(5)} • радиус: ${_radiusMeters.toStringAsFixed(_radiusMeters.truncateToDouble() == _radiusMeters ? 0 : 1)} м • найдено: ${_points.length}',
+              : 'Центр: ${center.latitude.toStringAsFixed(5)}, ${center.longitude.toStringAsFixed(5)} • радиус: $radiusText м • найдено: ${_points.length}',
           style: const TextStyle(
             fontWeight: FontWeight.w600,
             color: Colors.black87,
@@ -920,7 +1269,7 @@ class ExplorerScreenState extends State<ExplorerScreen> {
     );
   }
 
-  Marker _buildMarker(ExplorerPoint point) {
+  Marker _buildMarker(explorer.ExplorerPoint point) {
     return Marker(
       point: point.latLng,
       width: 44,

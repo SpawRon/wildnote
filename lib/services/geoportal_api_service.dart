@@ -103,8 +103,8 @@ class GeoportalApiService {
   }
 
   String _folderKey(String login) => 'user_${login.toLowerCase()}';
-  String _layerKey(String login) => 'plants_${login.toLowerCase()}';
-  String _styleKey(String login) => 'style_plants_${login.toLowerCase()}';
+  String _layerKey(String login) => 'plants_${login.toLowerCase()}_v4';
+  String _styleKey(String login) => 'style_plants_${login.toLowerCase()}_v4';
 
   Future<GeoportalLoginResult> login({
     required String login,
@@ -259,6 +259,11 @@ class GeoportalApiService {
   List<Map<String, dynamic>> _remoteLayerFields() {
     return [
       {
+        'keyname': 'local_uuid',
+        'display_name': 'Local UUID',
+        'datatype': 'STRING',
+      },
+      {
         'keyname': 'local_id',
         'display_name': 'Local ID',
         'datatype': 'INTEGER',
@@ -268,6 +273,7 @@ class GeoportalApiService {
         'display_name': 'Логин пользователя',
         'datatype': 'STRING',
       },
+
       {
         'keyname': 'name',
         'display_name': 'Название',
@@ -278,6 +284,7 @@ class GeoportalApiService {
         'display_name': 'Описание',
         'datatype': 'STRING',
       },
+
       {
         'keyname': 'latitude',
         'display_name': 'Широта',
@@ -304,6 +311,12 @@ class GeoportalApiService {
         'datatype': 'STRING',
       },
       {
+        'keyname': 'observed_at',
+        'display_name': 'Дата наблюдения',
+        'datatype': 'STRING',
+      },
+
+      {
         'keyname': 'gauss_x',
         'display_name': 'Gauss X',
         'datatype': 'REAL',
@@ -313,6 +326,23 @@ class GeoportalApiService {
         'display_name': 'Gauss Y',
         'datatype': 'REAL',
       },
+      {
+        'keyname': 'zone',
+        'display_name': 'Зона',
+        'datatype': 'INTEGER',
+      },
+
+      {
+        'keyname': 'attributes_json',
+        'display_name': 'Атрибуты JSON',
+        'datatype': 'STRING',
+      },
+      {
+        'keyname': 'attribute_schema_version',
+        'display_name': 'Версия схемы атрибутов',
+        'datatype': 'INTEGER',
+      },
+
       {
         'keyname': 'photo_url_main',
         'display_name': 'Основное фото URL',
@@ -329,6 +359,103 @@ class GeoportalApiService {
         'datatype': 'INTEGER',
       },
     ];
+  }
+
+  Map<String, dynamic> _buildRemoteFeatureFields({
+    required Map<String, dynamic> observation,
+    required Map<String, dynamic> attributes,
+    required List<String> photoUrls,
+  }) {
+    final cleanAttributes = <String, dynamic>{};
+
+    for (final entry in attributes.entries) {
+      final key = entry.key.trim();
+      final value = entry.value;
+      if (key.isEmpty || value == null) continue;
+
+      if (value is String) {
+        final text = value.trim();
+        if (text.isNotEmpty) {
+          cleanAttributes[key] = text;
+        }
+      } else {
+        cleanAttributes[key] = value;
+      }
+    }
+
+    final plantName =
+        _asString(cleanAttributes['plant_name']) ??
+            _asString(observation['name']);
+
+    final description =
+        _asString(cleanAttributes['description']) ??
+            _asString(observation['description']);
+
+    final observedAt =
+        _asString(observation['observed_at']) ??
+            _asString(observation['created_at']);
+
+    return {
+      'local_uuid': observation['local_uuid'],
+      'local_id': observation['id'],
+      'user_login': observation['user_login'],
+
+      'name': plantName ?? 'Без названия',
+      'description': description,
+
+      'latitude': observation['latitude'],
+      'longitude': observation['longitude'],
+      'is_manual': observation['is_manual'],
+      'accuracy': observation['accuracy'],
+      'created_at': observation['created_at'],
+      'observed_at': observedAt,
+
+      'gauss_x': observation['gauss_x'],
+      'gauss_y': observation['gauss_y'],
+      'zone': observation['zone'],
+
+      'attributes_json': jsonEncode(cleanAttributes),
+      'attribute_schema_version': 4,
+
+      'photo_url_main': photoUrls.isNotEmpty ? photoUrls.first : null,
+      'photo_urls_json': jsonEncode(photoUrls),
+      'photo_count': photoUrls.length,
+    };
+  }
+
+  Map<String, dynamic> _parseAttributesJson(dynamic raw) {
+    if (raw == null) return {};
+
+    if (raw is Map<String, dynamic>) {
+      return Map<String, dynamic>.from(raw);
+    }
+
+    if (raw is Map) {
+      return raw.map((key, value) => MapEntry(key.toString(), value));
+    }
+
+    if (raw is String && raw.trim().isNotEmpty) {
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is Map<String, dynamic>) {
+          return Map<String, dynamic>.from(decoded);
+        }
+
+        if (decoded is Map) {
+          return decoded.map((key, value) => MapEntry(key.toString(), value));
+        }
+      } catch (_) {
+        return {};
+      }
+    }
+
+    return {};
+  }
+
+  String? _asString(dynamic value) {
+    if (value == null) return null;
+    final text = value.toString().trim();
+    return text.isEmpty ? null : text;
   }
 
   Future<int> _createEmptyVectorLayer({
@@ -642,7 +769,7 @@ class GeoportalApiService {
       layerId = await _createEmptyVectorLayer(
         auth: auth,
         parentId: folderId,
-        displayName: 'plants_$login',
+        displayName: 'plants_${login}_v4',
         keyname: layerKey,
       );
     }
@@ -663,7 +790,7 @@ class GeoportalApiService {
       styleId = await _createMapServerStyle(
         auth: auth,
         layerId: layerId,
-        displayName: 'style_plants_$login',
+        displayName: 'style_plants_${login}_v4',
         keyname: styleKey,
       );
     }
@@ -673,7 +800,7 @@ class GeoportalApiService {
       webMapId: sharedWebMapId,
       layerId: layerId,
       styleId: styleId,
-      displayName: 'plants_$login',
+      displayName: 'plants_${login}_v4',
     );
 
     return UserWorkspaceResult(
@@ -686,6 +813,355 @@ class GeoportalApiService {
     );
   }
 
+
+  String _sharedOptionsGroupKey() => 'wildnote_shared_dictionaries';
+  String _sharedOptionsLayerKey() => 'wildnote_attribute_options_v1';
+
+  List<Map<String, dynamic>> _sharedOptionLayerFields() {
+    return [
+      {
+        'keyname': 'attribute_key',
+        'display_name': 'Ключ атрибута',
+        'datatype': 'STRING',
+      },
+      {
+        'keyname': 'value',
+        'display_name': 'Значение',
+        'datatype': 'STRING',
+      },
+      {
+        'keyname': 'normalized_value',
+        'display_name': 'Нормализованное значение',
+        'datatype': 'STRING',
+      },
+      {
+        'keyname': 'created_by',
+        'display_name': 'Автор',
+        'datatype': 'STRING',
+      },
+      {
+        'keyname': 'created_at',
+        'display_name': 'Дата создания',
+        'datatype': 'STRING',
+      },
+      {
+        'keyname': 'updated_at',
+        'display_name': 'Дата обновления',
+        'datatype': 'STRING',
+      },
+      {
+        'keyname': 'is_deleted',
+        'display_name': 'Удалено',
+        'datatype': 'INTEGER',
+      },
+    ];
+  }
+
+  Future<int> _createSharedOptionsLayer({
+    required String auth,
+    required int parentId,
+  }) async {
+    final payload = {
+      'resource': {
+        'cls': 'vector_layer',
+        'parent': {'id': parentId},
+        'display_name': 'WildNote attribute options',
+        'keyname': _sharedOptionsLayerKey(),
+        'description': 'Общий справочник вариантов для атрибутов WildNote',
+      },
+      'resmeta': {
+        'items': {},
+      },
+      'vector_layer': {
+        'srs': {'id': userLayerSrsId},
+        'geometry_type': 'POINT',
+        'fields': _sharedOptionLayerFields(),
+      }
+    };
+
+    final response = await http.post(
+      _uri('/resource/'),
+      headers: _headers(auth, json: true),
+      body: jsonEncode(payload),
+    );
+
+    if (response.statusCode != 201 && response.statusCode != 200) {
+      throw Exception(
+        'Не удалось создать общий слой справочников: ${response.statusCode} ${response.body}',
+      );
+    }
+
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    return data['id'] as int;
+  }
+
+  Future<int> _ensureSharedOptionsLayer({
+    required String auth,
+  }) async {
+    final existingLayer = await _searchOneByKeyname(
+      auth: auth,
+      keyname: _sharedOptionsLayerKey(),
+      cls: 'vector_layer',
+    );
+
+    if (existingLayer != null) {
+      return (existingLayer['resource'] as Map<String, dynamic>)['id'] as int;
+    }
+
+    int groupId;
+    final existingGroup = await _searchOneByKeyname(
+      auth: auth,
+      keyname: _sharedOptionsGroupKey(),
+      cls: 'resource_group',
+    );
+
+    if (existingGroup != null) {
+      groupId = (existingGroup['resource'] as Map<String, dynamic>)['id'] as int;
+    } else {
+      groupId = await _createResourceGroup(
+        auth: auth,
+        parentId: rootUsersGroupId,
+        displayName: 'WildNote dictionaries',
+        keyname: _sharedOptionsGroupKey(),
+      );
+    }
+
+    return _createSharedOptionsLayer(
+      auth: auth,
+      parentId: groupId,
+    );
+  }
+
+  String _normalizeSharedOptionValue(String value) {
+    return value.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+  }
+
+  Map<String, dynamic> _extractSharedOptionFields(Map<String, dynamic> row) {
+    final rawFields = row['fields'];
+
+    if (rawFields is Map<String, dynamic>) {
+      return rawFields;
+    }
+
+    if (rawFields is Map) {
+      return rawFields.map((key, value) => MapEntry(key.toString(), value));
+    }
+
+    final result = <String, dynamic>{};
+    for (final key in const [
+      'attribute_key',
+      'value',
+      'normalized_value',
+      'created_by',
+      'created_at',
+      'updated_at',
+      'is_deleted',
+    ]) {
+      if (row.containsKey(key)) {
+        result[key] = row[key];
+      }
+    }
+    return result;
+  }
+
+  Future<List<Map<String, dynamic>>> fetchSharedAttributeOptions({
+    required UserSession session,
+  }) async {
+    if (session.accessToken == null || session.accessToken!.isEmpty) {
+      return const [];
+    }
+
+    final auth = session.accessToken!;
+    final layerId = await _ensureSharedOptionsLayer(auth: auth);
+
+    final rows = await _getFeatures(
+      auth: auth,
+      layerId: layerId,
+      query: const {
+        'limit': '5000',
+        'offset': '0',
+        'srs': '4326',
+        'fields': 'attribute_key,value,normalized_value,created_by,created_at,updated_at,is_deleted',
+      },
+    );
+
+    final result = <Map<String, dynamic>>[];
+
+    for (final row in rows) {
+      final fields = _extractSharedOptionFields(row);
+      final key = _asTrimmedString(fields['attribute_key']);
+      final value = _asTrimmedString(fields['value']);
+      final isDeleted = _toInt(fields['is_deleted']) == 1;
+
+      if (key == null || value == null) continue;
+
+      result.add({
+        'remote_id': _toInt(row['id']),
+        'attribute_key': key,
+        'value': value,
+        'normalized_value':
+        _asTrimmedString(fields['normalized_value']) ??
+            _normalizeSharedOptionValue(value),
+        'created_by': _asTrimmedString(fields['created_by']),
+        'is_deleted': isDeleted ? 1 : 0,
+      });
+    }
+
+    return result;
+  }
+
+  Future<int?> _findSharedAttributeOption({
+    required String auth,
+    required int layerId,
+    required String attributeKey,
+    required String normalizedValue,
+  }) async {
+    final rows = await _getFeatures(
+      auth: auth,
+      layerId: layerId,
+      query: {
+        'limit': '100',
+        'offset': '0',
+        'srs': '4326',
+        'fields': 'attribute_key,value,normalized_value,is_deleted',
+        'fld_attribute_key__eq': attributeKey,
+      },
+    );
+
+    for (final row in rows) {
+      final fields = _extractSharedOptionFields(row);
+      final remoteNormalized =
+          _asTrimmedString(fields['normalized_value']) ??
+              _normalizeSharedOptionValue(
+                _asTrimmedString(fields['value']) ?? '',
+              );
+
+      if (remoteNormalized == normalizedValue &&
+          _toInt(fields['is_deleted']) != 1) {
+        return _toInt(row['id']);
+      }
+    }
+
+    return null;
+  }
+
+  Future<int> publishSharedAttributeOption({
+    required UserSession session,
+    required String attributeKey,
+    required String value,
+  }) async {
+    if (session.accessToken == null || session.accessToken!.isEmpty) {
+      throw Exception('Нет авторизации для отправки общего справочника');
+    }
+
+    final trimmed = value.trim();
+    if (attributeKey.trim().isEmpty || trimmed.isEmpty) {
+      throw Exception('Пустое значение справочника');
+    }
+
+    final auth = session.accessToken!;
+    final layerId = await _ensureSharedOptionsLayer(auth: auth);
+    final normalized = _normalizeSharedOptionValue(trimmed);
+
+    final existing = await _findSharedAttributeOption(
+      auth: auth,
+      layerId: layerId,
+      attributeKey: attributeKey,
+      normalizedValue: normalized,
+    );
+
+    if (existing != null) {
+      return existing;
+    }
+
+    final now = DateTime.now().toIso8601String();
+
+    final payload = {
+      'fields': {
+        'attribute_key': attributeKey,
+        'value': trimmed,
+        'normalized_value': normalized,
+        'created_by': session.userLogin,
+        'created_at': now,
+        'updated_at': now,
+        'is_deleted': 0,
+      },
+      'geom': 'POINT(0 0)',
+    };
+
+    final response = await http.post(
+      _uri('/resource/$layerId/feature/', {'srs': '4326'}),
+      headers: _headers(auth, json: true),
+      body: jsonEncode(payload),
+    );
+
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw Exception(
+        'Не удалось сохранить вариант в общем справочнике: ${response.statusCode} ${response.body}',
+      );
+    }
+
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    return data['id'] as int;
+  }
+
+
+  Future<void> deleteSharedAttributeOption({
+    required UserSession session,
+    required String attributeKey,
+    required String value,
+  }) async {
+    if (session.accessToken == null || session.accessToken!.isEmpty) {
+      throw Exception('Нет авторизации для удаления варианта справочника');
+    }
+
+    final trimmed = value.trim();
+    if (attributeKey.trim().isEmpty || trimmed.isEmpty) {
+      return;
+    }
+
+    final auth = session.accessToken!;
+    final layerId = await _ensureSharedOptionsLayer(auth: auth);
+    final normalized = _normalizeSharedOptionValue(trimmed);
+
+    final featureId = await _findSharedAttributeOption(
+      auth: auth,
+      layerId: layerId,
+      attributeKey: attributeKey,
+      normalizedValue: normalized,
+    );
+
+    if (featureId == null) {
+      return;
+    }
+
+    final now = DateTime.now().toIso8601String();
+    final payload = {
+      'id': featureId,
+      'fields': {
+        'attribute_key': attributeKey,
+        'value': trimmed,
+        'normalized_value': normalized,
+        'created_by': session.userLogin,
+        'updated_at': now,
+        'is_deleted': 1,
+      },
+      'geom': 'POINT(0 0)',
+    };
+
+    final response = await http.put(
+      _uri('/resource/$layerId/feature/$featureId', {'srs': '4326'}),
+      headers: _headers(auth, json: true),
+      body: jsonEncode(payload),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Не удалось удалить вариант из общего справочника: ${response.statusCode} ${response.body}',
+      );
+    }
+  }
+
   Future<int> _createFeature({
     required String auth,
     required int layerId,
@@ -694,23 +1170,18 @@ class GeoportalApiService {
     final lon = (observation['longitude'] as num).toDouble();
     final lat = (observation['latitude'] as num).toDouble();
 
+    final attributes = observation['attributes'] is Map
+        ? Map<String, dynamic>.from(observation['attributes'] as Map)
+        : <String, dynamic>{};
+
+    final fields = _buildRemoteFeatureFields(
+      observation: observation,
+      attributes: attributes,
+      photoUrls: const [],
+    );
+
     final payload = {
-      'fields': {
-        'local_id': observation['id'],
-        'user_login': observation['user_login'],
-        'name': observation['name'],
-        'description': observation['description'],
-        'latitude': observation['latitude'],
-        'longitude': observation['longitude'],
-        'is_manual': observation['is_manual'],
-        'accuracy': observation['accuracy'],
-        'created_at': observation['created_at'],
-        'gauss_x': observation['gauss_x'],
-        'gauss_y': observation['gauss_y'],
-        'photo_url_main': null,
-        'photo_urls_json': jsonEncode(<String>[]),
-        'photo_count': 0,
-      },
+      'fields': fields,
       'geom': 'POINT($lon $lat)',
     };
 
@@ -721,21 +1192,15 @@ class GeoportalApiService {
     );
 
     if (response.statusCode != 200 && response.statusCode != 201) {
-      debugPrint('CREATE FEATURE ERROR: ${response.statusCode} ${response.body}');
       throw Exception(
         'Не удалось создать точку: ${response.statusCode} ${response.body}',
       );
     }
 
     final data = jsonDecode(response.body) as Map<String, dynamic>;
-    final featureId = data['id'];
-
-    if (featureId is! int) {
-      throw Exception('Геопортал не вернул ID созданной точки');
-    }
-
-    return featureId;
+    return data['id'] as int;
   }
+
 
   Future<void> _updateFeaturePhotoFields({
     required String auth,
@@ -747,24 +1212,19 @@ class GeoportalApiService {
     final lon = (observation['longitude'] as num).toDouble();
     final lat = (observation['latitude'] as num).toDouble();
 
+    final attributes = observation['attributes'] is Map
+        ? Map<String, dynamic>.from(observation['attributes'] as Map)
+        : <String, dynamic>{};
+
+    final fields = _buildRemoteFeatureFields(
+      observation: observation,
+      attributes: attributes,
+      photoUrls: photoUrls,
+    );
+
     final payload = {
       'id': featureId,
-      'fields': {
-        'local_id': observation['id'],
-        'user_login': observation['user_login'],
-        'name': observation['name'],
-        'description': observation['description'],
-        'latitude': observation['latitude'],
-        'longitude': observation['longitude'],
-        'is_manual': observation['is_manual'],
-        'accuracy': observation['accuracy'],
-        'created_at': observation['created_at'],
-        'gauss_x': observation['gauss_x'],
-        'gauss_y': observation['gauss_y'],
-        'photo_url_main': photoUrls.isNotEmpty ? photoUrls.first : null,
-        'photo_urls_json': jsonEncode(photoUrls),
-        'photo_count': photoUrls.length,
-      },
+      'fields': fields,
       'geom': 'POINT($lon $lat)',
     };
 
@@ -775,7 +1235,6 @@ class GeoportalApiService {
     );
 
     if (response.statusCode != 200) {
-      debugPrint('UPDATE FEATURE ERROR: ${response.statusCode} ${response.body}');
       throw Exception(
         'Не удалось обновить поля фото: ${response.statusCode} ${response.body}',
       );
@@ -1236,6 +1695,7 @@ class GeoportalApiService {
 
     void addKnownFlatFields(Map<String, dynamic> source) {
       const keys = <String>[
+        'local_uuid',
         'local_id',
         'user_login',
         'name',
@@ -1245,8 +1705,12 @@ class GeoportalApiService {
         'is_manual',
         'accuracy',
         'created_at',
+        'observed_at',
         'gauss_x',
         'gauss_y',
+        'zone',
+        'attributes_json',
+        'attribute_schema_version',
         'photo_url_main',
         'photo_urls_json',
         'photo_count',
@@ -1354,8 +1818,12 @@ class GeoportalApiService {
     addAlias('is_manual', const ['Ручной ввод', 'manual']);
     addAlias('accuracy', const ['Точность', 'accuracy_m']);
     addAlias('created_at', const ['Дата создания', 'Дата', 'created', 'createdAt', 'datetime']);
+    addAlias('observed_at', const ['Дата наблюдения', 'observed', 'observedAt']);
     addAlias('gauss_x', const ['Gauss X', 'Гаусс X']);
     addAlias('gauss_y', const ['Gauss Y', 'Гаусс Y']);
+    addAlias('zone', const ['Зона']);
+    addAlias('attributes_json', const ['Атрибуты JSON', 'attributes']);
+    addAlias('attribute_schema_version', const ['Версия схемы атрибутов']);
     addAlias('photo_url_main', const ['Основное фото URL', 'photo_url']);
     addAlias('photo_urls_json', const ['Список фото URL', 'photo_urls']);
     addAlias('photo_count', const ['Количество фото', 'photos_count']);
@@ -1827,6 +2295,7 @@ class GeoportalApiService {
         'offset': '0',
         'srs': '4326',
         'fields': const [
+          'local_uuid',
           'local_id',
           'user_login',
           'name',
@@ -1836,8 +2305,12 @@ class GeoportalApiService {
           'is_manual',
           'accuracy',
           'created_at',
+          'observed_at',
           'gauss_x',
           'gauss_y',
+          'zone',
+          'attributes_json',
+          'attribute_schema_version',
           'photo_url_main',
           'photo_urls_json',
           'photo_count',
@@ -1870,6 +2343,15 @@ class GeoportalApiService {
       }
 
       final latLon = _extractLatLonFromFeature(rowForParsing, fields);
+      final attributes = _parseAttributesJson(fields['attributes_json']);
+      final displayName =
+          _asTrimmedString(attributes['plant_name']) ??
+              _asTrimmedString(fields['name']) ??
+              'Без названия';
+      final displayDescription =
+          _asTrimmedString(attributes['description']) ??
+              _asTrimmedString(fields['description']);
+
       final photoUrls = _photoUrlsFromHistoryFields(fields);
       if (photoUrls.isEmpty) {
         photoUrls.addAll(
@@ -1885,19 +2367,23 @@ class GeoportalApiService {
         'id': -featureId,
         '_remote_only': true,
         '_source_layer_id': layerId,
+        'local_uuid': _asTrimmedString(fields['local_uuid']),
         'local_id': _toInt(fields['local_id']),
         'remote_feature_id': featureId,
         'remote_folder': session.remoteFolder,
         'user_login': _asTrimmedString(fields['user_login']) ?? session.userLogin,
-        'name': _asTrimmedString(fields['name']) ?? 'Без названия',
-        'description': _asTrimmedString(fields['description']),
+        'name': displayName,
+        'description': displayDescription,
+        'attributes': attributes,
         'latitude': latLon?.$1,
         'longitude': latLon?.$2,
         'is_manual': _toInt(fields['is_manual']) ?? 0,
         'accuracy': _finiteDouble(fields['accuracy']),
         'created_at': _asTrimmedString(fields['created_at']),
+        'observed_at': _asTrimmedString(fields['observed_at']),
         'gauss_x': _finiteDouble(fields['gauss_x']),
         'gauss_y': _finiteDouble(fields['gauss_y']),
+        'zone': _toInt(fields['zone']),
         'sync_error': null,
         'synced_at': _asTrimmedString(fields['created_at']),
         'photo_count': _toInt(fields['photo_count']) ?? photoUrls.length,

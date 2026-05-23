@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
+import '../data/database_helper.dart';
 import 'geoportal_api_service.dart';
 import 'session_manager.dart';
 
@@ -37,6 +38,7 @@ class ExplorerPoint {
   final String? photoUrlMain;
   final List<String> photoUrls;
   final int photoCount;
+  final Map<String, dynamic> attributes;
 
   const ExplorerPoint({
     required this.remoteFeatureId,
@@ -56,6 +58,7 @@ class ExplorerPoint {
     this.gaussX,
     this.gaussY,
     this.photoUrlMain,
+    this.attributes = const {},
   });
 
   LatLng get latLng => LatLng(latitude, longitude);
@@ -101,12 +104,13 @@ class ExplorerService {
         final rows = await _fetchLayerFeatures(
           auth: session.accessToken!,
           layerId: layer.id,
-          query: {
+          query: const {
             'limit': '5000',
             'offset': '0',
-            'fields': 'id',
+            'srs': '4326',
           },
         );
+
         return ExplorerUserStat(
           userLogin: layer.userLogin,
           pointsCount: rows.length,
@@ -130,10 +134,12 @@ class ExplorerService {
     int? knownLayerId,
   }) async {
     if (session.isGuest || session.accessToken == null) return const [];
+
     final login = userLogin.trim().toLowerCase();
     if (login.isEmpty) return const [];
 
     int? layerId = knownLayerId;
+
     if (layerId == null) {
       final layers = await _discoverUserLayers(session);
       for (final layer in layers) {
@@ -164,6 +170,7 @@ class ExplorerService {
       sourceLayerId: layerId,
     );
   }
+
   Future<List<ExplorerPoint>> loadPointsByRadius({
     required UserSession session,
     required double centerLatitude,
@@ -248,9 +255,7 @@ class ExplorerService {
 
     try {
       final response = await http.get(
-        _uri(
-          '/resource/${point.sourceLayerId}/feature/$featureId/attachment/',
-        ),
+        _uri('/resource/${point.sourceLayerId}/feature/$featureId/attachment/'),
         headers: _headers(session.accessToken!),
       );
 
@@ -276,18 +281,31 @@ class ExplorerService {
             }
           }
         }
+      } else if (decoded is Map) {
+        final map = decoded.map((k, v) => MapEntry(k.toString(), v));
+        final value = map['items'] ?? map['attachments'];
+        if (value is List) {
+          for (final item in value) {
+            if (item is Map) {
+              items.add(item.map((k, v) => MapEntry(k.toString(), v)));
+            }
+          }
+        }
       }
 
       final urls = <String>[];
+
       for (final item in items) {
         final id = _toInt(item['id']);
         if (id == null) continue;
+
         urls.add(
           _normalizeAttachmentImageUrl(
             '${GeoportalApiService.apiBaseUrl}/resource/${point.sourceLayerId}/feature/$featureId/attachment/$id',
           ),
         );
       }
+
       return urls;
     } catch (_) {
       return const [];
@@ -296,10 +314,12 @@ class ExplorerService {
 
   String formatDate(String? raw) {
     if (raw == null || raw.trim().isEmpty) return '—';
+
     final dt = DateTime.tryParse(raw);
     if (dt == null) return raw;
 
     String two(int value) => value.toString().padLeft(2, '0');
+
     return '${two(dt.day)}.${two(dt.month)}.${dt.year} ${two(dt.hour)}:${two(dt.minute)}';
   }
 
@@ -323,12 +343,15 @@ class ExplorerService {
 
     final folders = await _discoverUserFolders(auth);
     if (folders.isEmpty) return const [];
+
     final folderById = <int, _UserFolderRef>{
       for (final item in folders) item.id: item,
     };
 
     final resources = await _searchResources(auth: auth, cls: 'vector_layer');
-    final layers = <_UserLayerRef>[];
+
+    final v4Layers = <_UserLayerRef>[];
+    final legacyLayers = <_UserLayerRef>[];
 
     for (final row in resources) {
       final resource = _extractResource(row);
@@ -337,22 +360,36 @@ class ExplorerService {
       final keyname = _asTrimmedString(resource['keyname']);
 
       if (layerId == null || parentId == null || keyname == null) continue;
+
       final folder = folderById[parentId];
       if (folder == null) continue;
 
-      final expectedKey = 'plants_${folder.userLogin.toLowerCase()}';
-      if (keyname.toLowerCase() != expectedKey) continue;
+      final login = folder.userLogin.toLowerCase();
+      final key = keyname.toLowerCase();
 
-      layers.add(
-        _UserLayerRef(
-          id: layerId,
-          userLogin: folder.userLogin,
-        ),
-      );
+      final expectedV4 = 'plants_${login}_v4';
+      final expectedLegacy = 'plants_$login';
+
+      if (key == expectedV4) {
+        v4Layers.add(
+          _UserLayerRef(
+            id: layerId,
+            userLogin: folder.userLogin,
+          ),
+        );
+      } else if (key == expectedLegacy) {
+        legacyLayers.add(
+          _UserLayerRef(
+            id: layerId,
+            userLogin: folder.userLogin,
+          ),
+        );
+      }
     }
 
-    layers.sort((a, b) => a.userLogin.compareTo(b.userLogin));
-    return layers;
+    final result = v4Layers.isNotEmpty ? v4Layers : legacyLayers;
+    result.sort((a, b) => a.userLogin.compareTo(b.userLogin));
+    return result;
   }
 
   Future<List<_UserFolderRef>> _discoverUserFolders(String auth) async {
@@ -430,6 +467,7 @@ class ExplorerService {
     }
 
     final decoded = jsonDecode(response.body);
+
     if (decoded is List) {
       return decoded
           .whereType<Map>()
@@ -445,10 +483,20 @@ class ExplorerService {
             .map((item) => item.map((k, v) => MapEntry(k.toString(), v)))
             .toList();
       }
+    } else if (decoded is Map) {
+      final map = decoded.map((k, v) => MapEntry(k.toString(), v));
+      final value = map['features'] ?? map['items'];
+      if (value is List) {
+        return value
+            .whereType<Map>()
+            .map((item) => item.map((k, v) => MapEntry(k.toString(), v)))
+            .toList();
+      }
     }
 
     return const [];
   }
+
   Future<Map<String, dynamic>?> _fetchSingleFeature({
     required String auth,
     required int layerId,
@@ -457,18 +505,12 @@ class ExplorerService {
     final response = await http.get(
       _uri(
         '/resource/$layerId/feature/$featureId',
-        {
-          'srs': '4326',
-        },
+        {'srs': '4326', 'geom_format': 'geojson'},
       ),
       headers: _headers(auth),
     );
 
     if (response.statusCode != 200) {
-      print(
-        'FEATURE LOAD FAILED: layer=$layerId feature=$featureId '
-            'status=${response.statusCode} body=${response.body}',
-      );
       return null;
     }
 
@@ -507,13 +549,13 @@ class ExplorerService {
 
     return fullRows;
   }
+
   Map<String, String> _defaultFeatureQuery() {
-    return {
+    return const {
       'limit': '5000',
       'offset': '0',
       'srs': '4326',
       'geom_format': 'geojson',
-      'extensions': '',
     };
   }
 
@@ -523,16 +565,19 @@ class ExplorerService {
         required int sourceLayerId,
       }) {
     final result = <ExplorerPoint>[];
+
     for (final row in rows) {
       final point = _parsePoint(
         row,
         defaultUserLogin: defaultUserLogin,
         sourceLayerId: sourceLayerId,
       );
+
       if (point != null) {
         result.add(point);
       }
     }
+
     return result;
   }
 
@@ -542,21 +587,38 @@ class ExplorerService {
         required int sourceLayerId,
       }) {
     final fields = _extractFields(row);
-    dynamic pick(String key) => fields.containsKey(key) ? fields[key] : row[key];
+
+    dynamic pick(String key) {
+      if (fields.containsKey(key)) return fields[key];
+      return row[key];
+    }
 
     final coords = _extractLatLon(row, fields);
     final latitude = coords?.$1;
     final longitude = coords?.$2;
+
     if (latitude == null || longitude == null) {
       return null;
     }
 
+    final attributes = _parseAttributesJson(pick('attributes_json'));
+
     final userLogin = _asTrimmedString(pick('user_login')) ?? defaultUserLogin;
-    final name = (_asTrimmedString(pick('name'))?.isNotEmpty == true)
-        ? _asTrimmedString(pick('name'))!
-        : 'Без названия';
-    final description = _asTrimmedString(pick('description'));
-    final createdAt = _asTrimmedString(pick('created_at'));
+
+    final name =
+        _asTrimmedString(attributes[PlantAttributeKeys.plantName]) ??
+            _asTrimmedString(pick('name')) ??
+            _asTrimmedString(pick('plant_name')) ??
+            'Без названия';
+
+    final description =
+        _asTrimmedString(attributes[PlantAttributeKeys.description]) ??
+            _asTrimmedString(pick('description'));
+
+    final createdAt =
+        _asTrimmedString(pick('observed_at')) ??
+            _asTrimmedString(pick('created_at'));
+
     final accuracy = _finiteDouble(pick('accuracy'));
     final gaussX = _finiteDouble(pick('gauss_x'));
     final gaussY = _finiteDouble(pick('gauss_y'));
@@ -570,11 +632,12 @@ class ExplorerService {
     final mainUrl = _normalizeAttachmentImageUrl(
       _asTrimmedString(pick('photo_url_main')) ?? '',
     );
+
     final photoUrls = _parsePhotoUrls(pick('photo_urls_json'), mainUrl);
 
     final explicitPhotoCount = _toInt(pick('photo_count'));
     final resolvedPhotoCount =
-    (explicitPhotoCount != null && explicitPhotoCount > 0)
+    explicitPhotoCount != null && explicitPhotoCount > 0
         ? explicitPhotoCount
         : photoUrls.length;
 
@@ -596,7 +659,31 @@ class ExplorerService {
       photoUrlMain: mainUrl.isEmpty ? null : mainUrl,
       photoUrls: photoUrls,
       photoCount: resolvedPhotoCount,
+      attributes: attributes,
     );
+  }
+
+  Map<String, dynamic> _parseAttributesJson(dynamic raw) {
+    if (raw == null) return {};
+
+    if (raw is Map) {
+      return raw.map((key, value) => MapEntry(key.toString(), value));
+    }
+
+    if (raw is String && raw.trim().isNotEmpty) {
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is Map) {
+          return decoded.map(
+                (key, value) => MapEntry(key.toString(), value),
+          );
+        }
+      } catch (_) {
+        return {};
+      }
+    }
+
+    return {};
   }
 
   (double, double)? _extractLatLon(
@@ -605,18 +692,26 @@ class ExplorerService {
       ) {
     final lat = _finiteDouble(fields['latitude']);
     final lon = _finiteDouble(fields['longitude']);
+
     if (lat != null && lon != null && _isValidLatLon(lat, lon)) {
       return (lat, lon);
     }
 
     final geom = row['geom'] ?? row['geometry'];
+
     if (geom is String) {
-      final match = RegExp(r'POINT\s*\(?\s*([-0-9\.]+)\s+([-0-9\.]+)\s*\)?', caseSensitive: false)
-          .firstMatch(geom);
+      final match = RegExp(
+        r'POINT\s*\(?\s*([-0-9\.]+)\s+([-0-9\.]+)\s*\)?',
+        caseSensitive: false,
+      ).firstMatch(geom);
+
       if (match != null) {
         final lonValue = _finiteDouble(match.group(1));
         final latValue = _finiteDouble(match.group(2));
-        if (latValue != null && lonValue != null && _isValidLatLon(latValue, lonValue)) {
+
+        if (latValue != null &&
+            lonValue != null &&
+            _isValidLatLon(latValue, lonValue)) {
           return (latValue, lonValue);
         }
       }
@@ -625,10 +720,14 @@ class ExplorerService {
     if (geom is Map) {
       final geo = geom.map((k, v) => MapEntry(k.toString(), v));
       final coordinates = geo['coordinates'];
+
       if (coordinates is List && coordinates.length >= 2) {
         final lonValue = _finiteDouble(coordinates[0]);
         final latValue = _finiteDouble(coordinates[1]);
-        if (latValue != null && lonValue != null && _isValidLatLon(latValue, lonValue)) {
+
+        if (latValue != null &&
+            lonValue != null &&
+            _isValidLatLon(latValue, lonValue)) {
           return (latValue, lonValue);
         }
       }
@@ -678,6 +777,7 @@ class ExplorerService {
     if (value.isEmpty) return '';
 
     var normalized = value;
+
     if (normalized.startsWith('/api/')) {
       normalized = '${GeoportalApiService.portalBaseUrl}$normalized';
     } else if (normalized.startsWith('/resource/')) {
@@ -699,9 +799,11 @@ class ExplorerService {
 
   Map<String, dynamic> _extractResource(Map<String, dynamic> row) {
     final raw = row['resource'];
+
     if (raw is Map) {
       return raw.map((k, v) => MapEntry(k.toString(), v));
     }
+
     return row;
   }
 
@@ -711,48 +813,64 @@ class ExplorerService {
     if (rawFields is Map<String, dynamic> && rawFields.isNotEmpty) {
       return rawFields;
     }
+
     if (rawFields is Map && rawFields.isNotEmpty) {
       return rawFields.map((key, value) => MapEntry(key.toString(), value));
     }
 
     const fallbackKeys = <String>[
+      'local_uuid',
       'local_id',
       'user_login',
       'name',
+      'plant_name',
       'description',
       'latitude',
       'longitude',
       'is_manual',
       'accuracy',
       'created_at',
+      'observed_at',
       'gauss_x',
       'gauss_y',
+      'zone',
+      'attributes_json',
+      'attribute_schema_version',
       'photo_url_main',
       'photo_urls_json',
       'photo_count',
     ];
 
     final flat = <String, dynamic>{};
+
     for (final key in fallbackKeys) {
       if (row.containsKey(key)) {
         flat[key] = row[key];
       }
     }
+
     return flat;
   }
 
   int? _parentId(dynamic raw) {
+    if (raw is int) return raw;
+
+    if (raw is num) return raw.toInt();
+
     if (raw is Map) {
       final map = raw.map((k, v) => MapEntry(k.toString(), v));
       return _toInt(map['id']);
     }
+
     return null;
   }
 
   String? _asTrimmedString(dynamic value) {
     if (value == null) return null;
+
     final text = value.toString().trim();
     if (text.isEmpty) return null;
+
     return text;
   }
 
@@ -760,6 +878,7 @@ class ExplorerService {
     if (value == null) return null;
 
     double? parsed;
+
     if (value is double) {
       parsed = value;
     } else if (value is int) {
@@ -771,13 +890,16 @@ class ExplorerService {
     }
 
     if (parsed == null || !parsed.isFinite) return null;
+
     return parsed;
   }
 
   int? _toInt(dynamic value) {
     if (value == null) return null;
+
     if (value is int) return value;
     if (value is num) return value.toInt();
+
     return int.tryParse(value.toString());
   }
 
@@ -795,9 +917,11 @@ class ExplorerService {
     final lon = longitude.clamp(-180.0, 180.0);
 
     final x = lon * 20037508.34 / 180.0;
+
     var y = math.log(math.tan((90.0 + lat) * math.pi / 360.0)) /
         (math.pi / 180.0);
     y = y * 20037508.34 / 180.0;
+
     return (x, y);
   }
 

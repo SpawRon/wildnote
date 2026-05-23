@@ -38,6 +38,30 @@ class _AddPlantScreenState extends State<AddPlantScreen>
   final TextEditingController _latController = TextEditingController();
   final TextEditingController _lngController = TextEditingController();
 
+  final TextEditingController _identificationStatusController =
+  TextEditingController();
+  final TextEditingController _habitatController = TextEditingController();
+  final TextEditingController _soilTypeController = TextEditingController();
+  final TextEditingController _moistureController = TextEditingController();
+  final TextEditingController _lightConditionController =
+  TextEditingController();
+  final TextEditingController _lifeStageController = TextEditingController();
+  final TextEditingController _phenophaseController = TextEditingController();
+  final TextEditingController _plantConditionController =
+  TextEditingController();
+  final TextEditingController _abundanceCategoryController =
+  TextEditingController();
+  final TextEditingController _individualCountController =
+  TextEditingController();
+  final TextEditingController _areaOccupiedController = TextEditingController();
+  final TextEditingController _anthropogenicImpactController =
+  TextEditingController();
+  final TextEditingController _threatFactorController = TextEditingController();
+  final TextEditingController _protectionStatusController =
+  TextEditingController();
+
+  final Map<String, List<String>> _selectedAttributeTags = <String, List<String>>{};
+  final Map<String, Set<String>> _sharedAttributeTags = <String, Set<String>>{};
   final LocationCaptureService _locationService = LocationCaptureService();
   final GaussKrugerService _gaussKrugerService = GaussKrugerService();
   int _currentPhotoIndex = 0;
@@ -52,11 +76,21 @@ class _AddPlantScreenState extends State<AddPlantScreen>
   StreamSubscription<PreciseLocationProgress>? _locationSubscription;
   PreciseLocationProgress? _locationProgress;
   bool _isLocating = false;
+
+
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _startLocationCapture(reset: true);
+    if (!widget.isGuest) {
+      unawaited(
+        GeoportalSyncService.instance.syncAttributeOptions(
+          userLogin: widget.userLogin,
+        ),
+      );
+    }
   }
 
   @override
@@ -70,6 +104,21 @@ class _AddPlantScreenState extends State<AddPlantScreen>
     _descriptionController.dispose();
     _latController.dispose();
     _lngController.dispose();
+
+    _identificationStatusController.dispose();
+    _habitatController.dispose();
+    _soilTypeController.dispose();
+    _moistureController.dispose();
+    _lightConditionController.dispose();
+    _lifeStageController.dispose();
+    _phenophaseController.dispose();
+    _plantConditionController.dispose();
+    _abundanceCategoryController.dispose();
+    _individualCountController.dispose();
+    _areaOccupiedController.dispose();
+    _anthropogenicImpactController.dispose();
+    _threatFactorController.dispose();
+    _protectionStatusController.dispose();
     _pageController.dispose();
 
     super.dispose();
@@ -466,9 +515,12 @@ class _AddPlantScreenState extends State<AddPlantScreen>
         },
       );
 
+      final attributes = _collectAttributes();
+
       final observationId = await DatabaseHelper.instance.insertObservation(
         observation: observation,
         photoPaths: photoPaths,
+        attributes: attributes,
       );
 
       AppLogger.instance.info(
@@ -485,6 +537,8 @@ class _AddPlantScreenState extends State<AddPlantScreen>
           : 'Запись добавлена в очередь на отправку';
 
       if (!widget.isGuest) {
+        await _publishMarkedAttributeOptions();
+
         AppLogger.instance.info(
           'AddPlantScreen',
           'Starting sync after local save',
@@ -549,6 +603,23 @@ class _AddPlantScreenState extends State<AddPlantScreen>
       _descriptionController.clear();
       _latController.clear();
       _lngController.clear();
+
+      _identificationStatusController.clear();
+      _habitatController.clear();
+      _soilTypeController.clear();
+      _moistureController.clear();
+      _lightConditionController.clear();
+      _lifeStageController.clear();
+      _phenophaseController.clear();
+      _plantConditionController.clear();
+      _abundanceCategoryController.clear();
+      _individualCountController.clear();
+      _areaOccupiedController.clear();
+      _anthropogenicImpactController.clear();
+      _threatFactorController.clear();
+      _protectionStatusController.clear();
+      _selectedAttributeTags.clear();
+      _sharedAttributeTags.clear();
       _isManualEntry = false;
       _isLocationFixed = false;
       _coordinatesLabel = "Ожидание данных...";
@@ -557,6 +628,13 @@ class _AddPlantScreenState extends State<AddPlantScreen>
     });
 
     _startLocationCapture(reset: true);
+    if (!widget.isGuest) {
+      unawaited(
+        GeoportalSyncService.instance.syncAttributeOptions(
+          userLogin: widget.userLogin,
+        ),
+      );
+    }
   }
 
   void _removePhoto(int index) {
@@ -610,6 +688,254 @@ class _AddPlantScreenState extends State<AddPlantScreen>
     );
   }
 
+  Map<String, Object?> _collectAttributes() {
+    final result = <String, Object?>{};
+
+    void addText(String key, TextEditingController controller) {
+      final value = controller.text.trim();
+      if (value.isNotEmpty) {
+        result[key] = value;
+      }
+    }
+
+    void addTags(String key, TextEditingController controller) {
+      final values = <String>[];
+
+      for (final item in _selectedAttributeTags[key] ?? const <String>[]) {
+        final value = item.trim();
+        if (value.isNotEmpty && !values.contains(value)) {
+          values.add(value);
+        }
+      }
+
+      final typed = controller.text.trim();
+      if (typed.isNotEmpty && !values.contains(typed)) {
+        values.add(typed);
+      }
+
+      if (values.isEmpty) return;
+
+      result[key] = values.length == 1 ? values.first : values;
+    }
+
+    void addNumber(String key, TextEditingController controller) {
+      final raw = controller.text.trim().replaceAll(',', '.');
+      if (raw.isEmpty) return;
+
+      final value = double.tryParse(raw);
+      if (value != null && value.isFinite) {
+        result[key] = value;
+      } else {
+        result[key] = raw;
+      }
+    }
+
+    addText(PlantAttributeKeys.plantName, _nameController);
+    addText(PlantAttributeKeys.description, _descriptionController);
+
+    addTags(
+      PlantAttributeKeys.identificationStatus,
+      _identificationStatusController,
+    );
+    addTags(PlantAttributeKeys.habitat, _habitatController);
+    addTags(PlantAttributeKeys.soilType, _soilTypeController);
+    addTags(PlantAttributeKeys.moisture, _moistureController);
+    addTags(PlantAttributeKeys.lightCondition, _lightConditionController);
+    addTags(PlantAttributeKeys.lifeStage, _lifeStageController);
+    addTags(PlantAttributeKeys.phenophase, _phenophaseController);
+    addTags(PlantAttributeKeys.plantCondition, _plantConditionController);
+    addTags(PlantAttributeKeys.abundanceCategory, _abundanceCategoryController);
+    addNumber(PlantAttributeKeys.individualCount, _individualCountController);
+    addNumber(PlantAttributeKeys.areaOccupied, _areaOccupiedController);
+    addTags(
+      PlantAttributeKeys.anthropogenicImpact,
+      _anthropogenicImpactController,
+    );
+    addTags(PlantAttributeKeys.threatFactor, _threatFactorController);
+    addTags(PlantAttributeKeys.protectionStatus, _protectionStatusController);
+
+    return result;
+  }
+
+  Future<void> _publishMarkedAttributeOptions() async {
+    if (widget.isGuest || _sharedAttributeTags.isEmpty) return;
+
+    for (final entry in _sharedAttributeTags.entries) {
+      for (final value in entry.value) {
+        final trimmed = value.trim();
+        if (trimmed.isEmpty) continue;
+
+        await GeoportalSyncService.instance.publishAttributeOption(
+          attributeKey: entry.key,
+          value: trimmed,
+          createdBy: widget.userLogin,
+        );
+      }
+    }
+  }
+
+  void _setAttributeTags(String key, List<String> values) {
+    _selectedAttributeTags[key] = values;
+  }
+
+  void _setSharedAttributeTags(String key, Set<String> values) {
+    if (values.isEmpty) {
+      _sharedAttributeTags.remove(key);
+    } else {
+      _sharedAttributeTags[key] = values;
+    }
+  }
+
+  Widget _buildSectionTitle(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+          color: Color(0xFF131D1C),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTagAttributeField({
+    required String label,
+    required String attributeKey,
+    required TextEditingController controller,
+    String? hintText,
+    bool allowMultiple = false,
+  }) {
+    return _AttributeTagField(
+      label: label,
+      attributeKey: attributeKey,
+      controller: controller,
+      selectedValues: _selectedAttributeTags[attributeKey] ?? const <String>[],
+      sharedValues: _sharedAttributeTags[attributeKey] ?? const <String>{},
+      allowMultiple: allowMultiple,
+      userLogin: widget.userLogin,
+      hintText: hintText,
+      onChanged: (values) => _setAttributeTags(attributeKey, values),
+      onShareChanged: (values) => _setSharedAttributeTags(attributeKey, values),
+    );
+  }
+
+  Widget _buildNumberAttributeField({
+    required String label,
+    required TextEditingController controller,
+    String? hintText,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextField(
+        controller: controller,
+        textInputAction: TextInputAction.next,
+        keyboardType: const TextInputType.numberWithOptions(
+          decimal: true,
+          signed: false,
+        ),
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: hintText,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAttributesBlock() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionTitle('Характеристики растения'),
+          _buildTagAttributeField(
+            label: 'Статус определения',
+            attributeKey: PlantAttributeKeys.identificationStatus,
+            controller: _identificationStatusController,
+          ),
+          _buildTagAttributeField(
+            label: 'Местообитание',
+            attributeKey: PlantAttributeKeys.habitat,
+            controller: _habitatController,
+            allowMultiple: true,
+          ),
+          _buildTagAttributeField(
+            label: 'Тип почвы',
+            attributeKey: PlantAttributeKeys.soilType,
+            controller: _soilTypeController,
+            allowMultiple: true,
+          ),
+          _buildTagAttributeField(
+            label: 'Увлажнение',
+            attributeKey: PlantAttributeKeys.moisture,
+            controller: _moistureController,
+            allowMultiple: true,
+          ),
+          _buildTagAttributeField(
+            label: 'Освещенность',
+            attributeKey: PlantAttributeKeys.lightCondition,
+            controller: _lightConditionController,
+            allowMultiple: true,
+          ),
+          _buildTagAttributeField(
+            label: 'Жизненная стадия',
+            attributeKey: PlantAttributeKeys.lifeStage,
+            controller: _lifeStageController,
+          ),
+          _buildTagAttributeField(
+            label: 'Фенологическая фаза',
+            attributeKey: PlantAttributeKeys.phenophase,
+            controller: _phenophaseController,
+          ),
+          _buildTagAttributeField(
+            label: 'Состояние растения',
+            attributeKey: PlantAttributeKeys.plantCondition,
+            controller: _plantConditionController,
+          ),
+          _buildTagAttributeField(
+            label: 'Категория численности',
+            attributeKey: PlantAttributeKeys.abundanceCategory,
+            controller: _abundanceCategoryController,
+          ),
+          _buildNumberAttributeField(
+            label: 'Количество особей',
+            controller: _individualCountController,
+            hintText: 'Например: 1, 5, 20',
+          ),
+          _buildNumberAttributeField(
+            label: 'Площадь участка, м²',
+            controller: _areaOccupiedController,
+            hintText: 'Например: 0.5, 2, 10',
+          ),
+          _buildTagAttributeField(
+            label: 'Антропогенное воздействие',
+            attributeKey: PlantAttributeKeys.anthropogenicImpact,
+            controller: _anthropogenicImpactController,
+          ),
+          _buildTagAttributeField(
+            label: 'Угрожающий фактор',
+            attributeKey: PlantAttributeKeys.threatFactor,
+            controller: _threatFactorController,
+            allowMultiple: true,
+          ),
+          _buildTagAttributeField(
+            label: 'Охранный статус',
+            attributeKey: PlantAttributeKeys.protectionStatus,
+            controller: _protectionStatusController,
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool locationReady = _isManualEntry || _isLocationFixed;
@@ -617,263 +943,323 @@ class _AddPlantScreenState extends State<AddPlantScreen>
     return Scaffold(
       backgroundColor: const Color(0xFFEBEAE0),
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: ListView(
           padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "Новая запись",
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.manual,
+          children: [
+            const Text(
+              "Новая запись",
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
               ),
-              const SizedBox(height: 20),
+            ),
+            const SizedBox(height: 20),
 
-              _buildPhotoCarousel(),
+            _buildPhotoCarousel(),
 
-              const SizedBox(height: 25),
+            const SizedBox(height: 25),
 
-              const Text(
-                'Название',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w600,
-                ),
+            const Text(
+              'Название',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w600,
               ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  hintText: 'Введите название...',
-                ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _nameController,
+              decoration: const InputDecoration(
+                hintText: 'Введите название...',
               ),
+            ),
 
-              const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-              const Text(
-                'Описание',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w600,
-                ),
+            const Text(
+              'Описание',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w600,
               ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _descriptionController,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  hintText: 'Состояние, почва...',
-                ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _descriptionController,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                hintText: 'Свободное описание наблюдения...',
               ),
+            ),
 
-              const SizedBox(height: 20),
+            const SizedBox(height: 20),
 
-              _buildLocationBlock(),
+            _buildAttributesBlock(),
 
-              const SizedBox(height: 30),
+            const SizedBox(height: 20),
 
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF131D1C),
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: Colors.grey.shade500,
-                    disabledForegroundColor: Colors.white70,
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
+            _buildLocationBlock(),
+
+            const SizedBox(height: 30),
+
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF131D1C),
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: Colors.grey.shade500,
+                  disabledForegroundColor: Colors.white70,
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  onPressed: _isSaving
-                      ? null
-                      : () async {
-                    if (!_isManualEntry && !locationReady) {
-                      AppLogger.instance.warning(
-                        'AddPlantScreen',
-                        'Save button pressed before location is ready',
-                        data: {
-                          'isManual': _isManualEntry,
-                          'isLocationFixed': _isLocationFixed,
-                          'hasCurrentPosition': _currentPosition != null,
-                        },
-                      );
+                ),
+                onPressed: _isSaving
+                    ? null
+                    : () async {
+                  if (!_isManualEntry && !locationReady) {
+                    AppLogger.instance.warning(
+                      'AddPlantScreen',
+                      'Save button pressed before location is ready',
+                      data: {
+                        'isManual': _isManualEntry,
+                        'isLocationFixed': _isLocationFixed,
+                        'hasCurrentPosition': _currentPosition != null,
+                      },
+                    );
 
-                      _showMessage('Дождитесь определения координат');
-                      return;
-                    }
+                    _showMessage('Дождитесь определения координат');
+                    return;
+                  }
 
-                    await _saveObservation();
-                  },
-                  child: _isSaving
-                      ? const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
+                  await _saveObservation();
+                },
+                child: _isSaving
+                    ? const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
                       ),
-                      SizedBox(width: 10),
-                      Text('Сохранение...'),
-                    ],
-                  )
-                      : Text(
-                    widget.isGuest
-                        ? 'Сохранить локально'
-                        : 'Сохранить и отправить',
-                  ),
+                    ),
+                    SizedBox(width: 10),
+                    Text('Сохранение...'),
+                  ],
+                )
+                    : Text(
+                  widget.isGuest
+                      ? 'Сохранить локально'
+                      : 'Сохранить и отправить',
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
   Widget _buildPhotoCarousel() {
-    return Column(
-      children: [
-        SizedBox(
-          height: 250,
-          child: _images.isEmpty
-              ? _buildCameraPlaceholder()
-              : Stack(
-            children: [
-              PageView.builder(
-                controller: _pageController,
-                itemCount: _images.length,
-                onPageChanged: (i) =>
-                    setState(() => _currentPhotoIndex = i),
-                itemBuilder: (context, index) {
-                  return Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 5),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(20),
-                      image: DecorationImage(
-                        image: FileImage(_images[index]),
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  );
-                },
-              ),
-              Positioned(
-                top: 10,
-                right: 15,
-                child: CircleAvatar(
-                  backgroundColor: Colors.red.withOpacity(0.8),
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.delete,
-                      color: Colors.white,
-                    ),
-                    onPressed: () => _removePhoto(_currentPhotoIndex),
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: 15,
-                left: 0,
-                right: 0,
-                child: Center(
-                  child: Text(
-                    "${_currentPhotoIndex + 1} / ${_images.length}",
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      shadows: [Shadow(blurRadius: 4)],
-                    ),
-                  ),
-                ),
-              ),
-            ],
+    final hasImages = _images.isNotEmpty;
+
+    return Container(
+      width: double.infinity,
+      height: 330,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
           ),
-        ),
-        const SizedBox(height: 10),
-        SizedBox(
-          height: 80,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            children: [
-              GestureDetector(
-                onTap: () => _showImageSourceActionSheet(context),
-                child: Container(
-                  width: 80,
-                  margin: const EdgeInsets.only(right: 8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF5D7B79),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.camera_alt,
-                    color: Colors.white,
-                  ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          Expanded(
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: hasImages
+                      ? PageView.builder(
+                    controller: _pageController,
+                    itemCount: _images.length,
+                    onPageChanged: (i) =>
+                        setState(() => _currentPhotoIndex = i),
+                    itemBuilder: (context, index) {
+                      return Image.file(
+                        _images[index],
+                        fit: BoxFit.cover,
+                        cacheWidth: 1200,
+                      );
+                    },
+                  )
+                      : _buildCameraPlaceholder(),
                 ),
+                if (hasImages)
+                  Positioned(
+                    right: 14,
+                    top: 14,
+                    child: _roundPhotoButton(
+                      icon: Icons.delete_outline,
+                      foregroundColor: Colors.redAccent,
+                      onTap: () => _removePhoto(_currentPhotoIndex),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Container(
+            height: 88,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: const BoxDecoration(
+              color: Color(0xFFF7F8F3),
+              border: Border(
+                top: BorderSide(color: Color(0xFFE1E5DC)),
               ),
-              ...List.generate(_images.length, (index) {
-                return GestureDetector(
-                  onTap: () {
-                    _pageController.jumpToPage(index);
-                    setState(() => _currentPhotoIndex = index);
-                  },
+            ),
+            child: Row(
+              children: [
+                GestureDetector(
+                  onTap: () => _showImageSourceActionSheet(context),
                   child: Container(
-                    width: 80,
-                    margin: const EdgeInsets.only(right: 8),
+                    width: 62,
+                    height: 62,
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: _currentPhotoIndex == index
-                            ? const Color(0xFF5D7B79)
-                            : Colors.grey.shade300,
-                        width: 2,
-                      ),
-                      image: DecorationImage(
-                        image: FileImage(_images[index]),
-                        fit: BoxFit.cover,
+                      color: const Color(0xFFEAF0E8),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: const Icon(
+                      Icons.camera_alt_outlined,
+                      color: Color(0xFF5D7B79),
+                      size: 32,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: hasImages
+                      ? ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _images.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (context, index) {
+                      final selected = index == _currentPhotoIndex;
+                      return GestureDetector(
+                        onTap: () {
+                          _pageController.jumpToPage(index);
+                          setState(() => _currentPhotoIndex = index);
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 160),
+                          width: 62,
+                          height: 62,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: selected
+                                  ? const Color(0xFF5D7B79)
+                                  : Colors.transparent,
+                              width: 2,
+                            ),
+                            image: DecorationImage(
+                              image: FileImage(_images[index]),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  )
+                      : const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Добавьте фотографии растения',
+                      style: TextStyle(
+                        color: Color(0xFF5D7B79),
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
-                );
-              }),
-            ],
+                ),
+                if (hasImages) ...[
+                  const SizedBox(width: 8),
+                  Text(
+                    '${_currentPhotoIndex + 1}/${_images.length}',
+                    style: const TextStyle(
+                      color: Color(0xFF5D7B79),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _roundPhotoButton({
+    required IconData icon,
+    required VoidCallback onTap,
+    Color foregroundColor = const Color(0xFF5D7B79),
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.9),
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-      ],
+        child: Icon(icon, color: foregroundColor),
+      ),
     );
   }
 
   Widget _buildCameraPlaceholder() {
     return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Colors.grey.shade300,
-          width: 2,
-        ),
-      ),
+      color: const Color(0xFFF1F2EC),
       child: const Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.photo_library_outlined,
-            size: 50,
-            color: Colors.grey,
+            Icons.photo_camera_back_outlined,
+            size: 56,
+            color: Color(0xFF8CA09D),
           ),
-          SizedBox(height: 10),
+          SizedBox(height: 12),
           Text(
-            "Добавьте фотографии растения",
-            style: TextStyle(color: Colors.grey),
+            'Фото наблюдения',
+            style: TextStyle(
+              color: Color(0xFF5D7B79),
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          SizedBox(height: 4),
+          Text(
+            'добавьте снимок снизу',
+            style: TextStyle(color: Colors.black45),
           ),
         ],
       ),
@@ -1105,6 +1491,474 @@ class _AddPlantScreenState extends State<AddPlantScreen>
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+
+
+class _AttributeOptionUi {
+  final String value;
+  final bool isBuiltin;
+  final bool isDeleted;
+  final String? createdBy;
+  final int? remoteId;
+
+  const _AttributeOptionUi({
+    required this.value,
+    required this.isBuiltin,
+    required this.isDeleted,
+    this.createdBy,
+    this.remoteId,
+  });
+
+  bool isOwn(String userLogin) {
+    final author = createdBy?.trim().toLowerCase();
+    return author != null && author == userLogin.trim().toLowerCase();
+  }
+
+  bool canDeleteFromCommon(String userLogin) {
+    return !isBuiltin && remoteId != null && isOwn(userLogin);
+  }
+}
+
+class _AttributeTagField extends StatefulWidget {
+  final String label;
+  final String attributeKey;
+  final TextEditingController controller;
+  final List<String> selectedValues;
+  final Set<String> sharedValues;
+  final bool allowMultiple;
+  final String userLogin;
+  final String? hintText;
+  final ValueChanged<List<String>> onChanged;
+  final ValueChanged<Set<String>> onShareChanged;
+
+  const _AttributeTagField({
+    required this.label,
+    required this.attributeKey,
+    required this.controller,
+    required this.selectedValues,
+    required this.sharedValues,
+    required this.allowMultiple,
+    required this.userLogin,
+    required this.onChanged,
+    required this.onShareChanged,
+    this.hintText,
+  });
+
+  @override
+  State<_AttributeTagField> createState() => _AttributeTagFieldState();
+}
+
+class _AttributeTagFieldState extends State<_AttributeTagField> {
+  final FocusNode _focusNode = FocusNode();
+  final List<_AttributeOptionUi> _options = <_AttributeOptionUi>[];
+  late List<String> _selected;
+  late Set<String> _sharedPending;
+  Timer? _debounce;
+  bool _isFocused = false;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = _cleanValues(widget.selectedValues);
+    _sharedPending = widget.sharedValues
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet();
+    widget.controller.addListener(_onTextChanged);
+    _focusNode.addListener(_onFocusChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant _AttributeTagField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.selectedValues != widget.selectedValues) {
+      _selected = _cleanValues(widget.selectedValues);
+    }
+
+    if (oldWidget.sharedValues != widget.sharedValues) {
+      _sharedPending = widget.sharedValues
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toSet();
+    }
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    widget.controller.removeListener(_onTextChanged);
+    _focusNode.removeListener(_onFocusChanged);
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  List<String> _cleanValues(Iterable<String> values) {
+    final result = <String>[];
+
+    for (final item in values) {
+      final value = item.trim();
+      if (value.isNotEmpty && !result.any((e) => _sameValue(e, value))) {
+        result.add(value);
+      }
+    }
+
+    return result;
+  }
+
+  bool _rowBool(Map<String, dynamic> row, String key) {
+    final value = row[key];
+    if (value == true || value == 1 || value == '1') return true;
+    return false;
+  }
+
+  int? _rowInt(Map<String, dynamic> row, String key) {
+    final value = row[key];
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '');
+  }
+
+  void _onTextChanged() {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 180), () {
+      unawaited(_loadOptions(search: widget.controller.text));
+    });
+
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  void _onFocusChanged() {
+    if (!mounted) return;
+    setState(() => _isFocused = _focusNode.hasFocus);
+
+    if (_focusNode.hasFocus) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        Scrollable.ensureVisible(
+          context,
+          duration: const Duration(milliseconds: 220),
+          alignment: 0.12,
+          curve: Curves.easeOutCubic,
+        );
+      });
+      unawaited(_loadOptions(search: widget.controller.text));
+    }
+  }
+
+  Future<void> _loadOptions({String? search}) async {
+    setState(() => _isLoading = true);
+
+    try {
+      final rows = await DatabaseHelper.instance.getAttributeOptions(
+        attributeKey: widget.attributeKey,
+        search: search,
+        limit: 18,
+      );
+
+      final options = <_AttributeOptionUi>[];
+      for (final row in rows) {
+        final value = row['value']?.toString().trim() ?? '';
+        if (value.isEmpty || value == 'Другое') continue;
+
+        options.add(
+          _AttributeOptionUi(
+            value: value,
+            isBuiltin: _rowBool(row, 'is_builtin'),
+            isDeleted: _rowBool(row, 'is_deleted'),
+            createdBy: row['created_by']?.toString().trim(),
+            remoteId: _rowInt(row, 'remote_id'),
+          ),
+        );
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        _options
+          ..clear()
+          ..addAll(_cleanOptions(options));
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+    }
+  }
+
+  List<_AttributeOptionUi> _cleanOptions(Iterable<_AttributeOptionUi> values) {
+    final result = <_AttributeOptionUi>[];
+
+    for (final item in values) {
+      if (item.value.trim().isEmpty || item.isDeleted) continue;
+      if (!result.any((e) => _sameValue(e.value, item.value))) {
+        result.add(item);
+      }
+    }
+
+    return result;
+  }
+
+  bool _sameValue(String a, String b) {
+    return DatabaseHelper.instance.normalizeOptionValue(a) ==
+        DatabaseHelper.instance.normalizeOptionValue(b);
+  }
+
+  bool _containsValue(Iterable<String> values, String value) {
+    return values.any((item) => _sameValue(item, value));
+  }
+
+  _AttributeOptionUi? _optionForValue(String value) {
+    for (final option in _options) {
+      if (_sameValue(option.value, value)) return option;
+    }
+    return null;
+  }
+
+  void _commitLocal(String raw) {
+    final value = raw.trim();
+    if (value.isEmpty) return;
+
+    setState(() {
+      if (widget.allowMultiple) {
+        if (!_containsValue(_selected, value)) {
+          _selected.add(value);
+        }
+      } else {
+        _selected = <String>[value];
+      }
+
+      widget.controller.clear();
+    });
+
+    widget.onChanged(List<String>.unmodifiable(_selected));
+  }
+
+  void _commitAndMarkForShare(String raw) {
+    final value = raw.trim();
+    if (value.isEmpty) return;
+
+    _commitLocal(value);
+
+    setState(() {
+      _sharedPending.add(value);
+    });
+
+    widget.onShareChanged(Set<String>.unmodifiable(_sharedPending));
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('«$value» будет добавлено в общий список при сохранении'),
+      ),
+    );
+  }
+
+  void _removeSelectedOnly(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return;
+
+    setState(() {
+      _selected.removeWhere((item) => _sameValue(item, trimmed));
+      _sharedPending.removeWhere((item) => _sameValue(item, trimmed));
+    });
+
+    widget.onChanged(List<String>.unmodifiable(_selected));
+    widget.onShareChanged(Set<String>.unmodifiable(_sharedPending));
+  }
+
+  Future<void> _deleteOwnPublishedOption(String value) async {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return;
+
+    setState(() {
+      _selected.removeWhere((item) => _sameValue(item, trimmed));
+      _sharedPending.removeWhere((item) => _sameValue(item, trimmed));
+      _options.removeWhere((item) => _sameValue(item.value, trimmed));
+    });
+
+    widget.onChanged(List<String>.unmodifiable(_selected));
+    widget.onShareChanged(Set<String>.unmodifiable(_sharedPending));
+
+    final result = await GeoportalSyncService.instance.deleteAttributeOption(
+      attributeKey: widget.attributeKey,
+      value: trimmed,
+    );
+
+    if (!mounted) return;
+
+    if (result.success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Вариант убран из общего списка')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result.message)),
+      );
+    }
+  }
+
+  void _handleSelectedDelete(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return;
+
+    if (_containsValue(_sharedPending, trimmed)) {
+      _removeSelectedOnly(trimmed);
+      return;
+    }
+
+    final option = _optionForValue(trimmed);
+    if (option != null && option.canDeleteFromCommon(widget.userLogin)) {
+      unawaited(_deleteOwnPublishedOption(trimmed));
+      return;
+    }
+
+    _removeSelectedOnly(trimmed);
+  }
+
+  List<_AttributeOptionUi> _visibleSuggestions() {
+    final query = widget.controller.text.trim();
+
+    final filtered = query.isEmpty
+        ? _options
+        : _options
+        .where(
+          (item) => item.value.toLowerCase().contains(query.toLowerCase()),
+    )
+        .toList();
+
+    return filtered
+        .where((item) => !_containsValue(_selected, item.value))
+        .take(12)
+        .toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final input = widget.controller.text.trim();
+    final suggestions = _visibleSuggestions();
+    final canShare = input.isNotEmpty &&
+        !_options.any((option) => _sameValue(option.value, input)) &&
+        !_containsValue(_sharedPending, input);
+    final isMarkedForShare =
+        input.isNotEmpty && _containsValue(_sharedPending, input);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: const Color(0xFFF7F7F2),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.grey.shade300),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                widget.label,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF131D1C),
+                ),
+              ),
+              const SizedBox(height: 8),
+              if (_selected.isNotEmpty) ...[
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: _selected
+                      .map(
+                        (value) => InputChip(
+                      label: Text(value),
+                      deleteIcon: const Icon(Icons.close, size: 17),
+                      onDeleted: () => _handleSelectedDelete(value),
+                      materialTapTargetSize:
+                      MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  )
+                      .toList(),
+                ),
+                const SizedBox(height: 8),
+              ],
+              TextField(
+                controller: widget.controller,
+                focusNode: _focusNode,
+                textInputAction: TextInputAction.done,
+                onSubmitted: _commitLocal,
+                decoration: InputDecoration(
+                  isDense: true,
+                  hintText: widget.hintText ??
+                      (widget.allowMultiple
+                          ? 'Выберите несколько вариантов или напишите свой'
+                          : 'Выберите вариант или напишите свой'),
+                  suffixIcon: IconButton(
+                    tooltip: 'Добавить в общий список при сохранении',
+                    onPressed:
+                    canShare ? () => _commitAndMarkForShare(input) : null,
+                    icon: Icon(
+                      isMarkedForShare
+                          ? Icons.add_circle
+                          : Icons.add_circle_outline,
+                      color: canShare || isMarkedForShare
+                          ? const Color(0xFF2E7D32)
+                          : Colors.grey,
+                    ),
+                  ),
+                ),
+              ),
+              if (_isFocused && (_isLoading || suggestions.isNotEmpty)) ...[
+                const SizedBox(height: 8),
+                if (_isLoading)
+                  const SizedBox(
+                    height: 22,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                  )
+                else
+                  SizedBox(
+                    height: 40,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.manual,
+                      itemCount: suggestions.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                      itemBuilder: (context, index) {
+                        final option = suggestions[index];
+                        final canDelete =
+                        option.canDeleteFromCommon(widget.userLogin);
+
+                        return InputChip(
+                          label: Text(option.value),
+                          onPressed: () => _commitLocal(option.value),
+                          onDeleted: canDelete
+                              ? () => _deleteOwnPublishedOption(option.value)
+                              : null,
+                          materialTapTargetSize:
+                          MaterialTapTargetSize.shrinkWrap,
+                        );
+                      },
+                    ),
+                  ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }

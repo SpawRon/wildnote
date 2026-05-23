@@ -425,6 +425,298 @@ class GeoportalSyncService {
     }
   }
 
+
+  Future<SyncResult> syncAttributeOptions({
+    required String userLogin,
+  }) async {
+    final session = await SessionManager.instance.getSession();
+
+    if (session == null || session.isGuest || session.accessToken == null) {
+      return const SyncResult(
+        success: false,
+        message: 'Для синхронизации справочников нужно войти в аккаунт',
+      );
+    }
+
+    try {
+      final workingSession = await _ensureWorkspace(
+        session,
+        refreshRemote: false,
+      );
+
+      final remoteOptions = await GeoportalApiService.instance
+          .fetchSharedAttributeOptions(session: workingSession);
+
+      for (final item in remoteOptions) {
+        final remoteId = item['remote_id'];
+        final key = item['attribute_key']?.toString();
+        final value = item['value']?.toString();
+
+        if (remoteId is! int || key == null || value == null) continue;
+
+        final isDeleted = item['is_deleted'] == 1 ||
+            item['is_deleted']?.toString() == '1' ||
+            item['is_deleted'] == true;
+
+        if (isDeleted) {
+          await DatabaseHelper.instance.markAttributeOptionDeleted(
+            attributeKey: key,
+            value: value,
+          );
+        } else {
+          await DatabaseHelper.instance.saveRemoteAttributeOption(
+            attributeKey: key,
+            value: value,
+            remoteId: remoteId,
+            createdBy: item['created_by']?.toString(),
+          );
+        }
+      }
+
+      final dirty = await DatabaseHelper.instance.getUnsyncedAttributeOptions();
+
+      int published = 0;
+      int failed = 0;
+
+      for (final item in dirty) {
+        final id = item['id'];
+        final key = item['attribute_key']?.toString();
+        final value = item['value']?.toString();
+
+        if (id is! int || key == null || value == null) continue;
+
+        try {
+          final remoteId = await GeoportalApiService.instance
+              .publishSharedAttributeOption(
+            session: workingSession,
+            attributeKey: key,
+            value: value,
+          );
+
+          await DatabaseHelper.instance.markAttributeOptionSynced(
+            id: id,
+            remoteId: remoteId,
+          );
+
+          published++;
+        } catch (e, st) {
+          failed++;
+          AppLogger.instance.warning(
+            'GeoportalSyncService',
+            'Attribute option publishing failed',
+            error: e,
+            stackTrace: st,
+            data: {
+              'attributeKey': key,
+              'value': value,
+            },
+          );
+        }
+      }
+
+      return SyncResult(
+        success: failed == 0,
+        message: 'Справочники обновлены. Получено: ${remoteOptions.length}. Отправлено: $published. Ошибок: $failed',
+        sentCount: published,
+        failedCount: failed,
+      );
+    } catch (e, st) {
+      AppLogger.instance.warning(
+        'GeoportalSyncService',
+        'Attribute options sync failed',
+        error: e,
+        stackTrace: st,
+        data: {'userLogin': userLogin},
+      );
+
+      return SyncResult(
+        success: false,
+        message: 'Не удалось синхронизировать справочники: $e',
+      );
+    }
+  }
+
+  Future<SyncResult> publishAttributeOption({
+    required String attributeKey,
+    required String value,
+    required String createdBy,
+  }) async {
+    await DatabaseHelper.instance.upsertAttributeOption(
+      attributeKey: attributeKey,
+      value: value,
+      createdBy: createdBy,
+      syncStatus: 1,
+    );
+
+    final session = await SessionManager.instance.getSession();
+
+    if (session == null || session.isGuest || session.accessToken == null) {
+      return const SyncResult(
+        success: true,
+        message: 'Вариант сохранён локально и будет отправлен после входа',
+      );
+    }
+
+    try {
+      final workingSession = await _ensureWorkspace(
+        session,
+        refreshRemote: false,
+      );
+
+      final remoteId = await GeoportalApiService.instance
+          .publishSharedAttributeOption(
+        session: workingSession,
+        attributeKey: attributeKey,
+        value: value,
+      );
+
+      final dirty = await DatabaseHelper.instance.getUnsyncedAttributeOptions();
+      for (final item in dirty) {
+        if (item['attribute_key']?.toString() == attributeKey &&
+            DatabaseHelper.instance.normalizeOptionValue(
+              item['value']?.toString() ?? '',
+            ) ==
+                DatabaseHelper.instance.normalizeOptionValue(value)) {
+          final id = item['id'];
+          if (id is int) {
+            await DatabaseHelper.instance.markAttributeOptionSynced(
+              id: id,
+              remoteId: remoteId,
+            );
+          }
+          break;
+        }
+      }
+
+      return const SyncResult(
+        success: true,
+        message: 'Вариант добавлен в общий справочник',
+      );
+    } catch (e, st) {
+      AppLogger.instance.warning(
+        'GeoportalSyncService',
+        'Immediate attribute option publish failed',
+        error: e,
+        stackTrace: st,
+        data: {
+          'attributeKey': attributeKey,
+          'value': value,
+        },
+      );
+
+      return SyncResult(
+        success: true,
+        message: 'Вариант сохранён локально и будет отправлен позже: $e',
+      );
+    }
+  }
+
+
+  Future<SyncResult> deleteAttributeOption({
+    required String attributeKey,
+    required String value,
+  }) async {
+    final trimmed = value.trim();
+    if (attributeKey.trim().isEmpty || trimmed.isEmpty) {
+      return const SyncResult(
+        success: false,
+        message: 'Пустой вариант удалить нельзя',
+      );
+    }
+
+    try {
+      final session = await SessionManager.instance.getSession();
+      final option = await DatabaseHelper.instance.getAttributeOption(
+        attributeKey: attributeKey,
+        value: trimmed,
+      );
+
+      if (option == null) {
+        return const SyncResult(
+          success: true,
+          message: 'Вариант убран из текущего выбора',
+        );
+      }
+
+      final isBuiltin = option['is_builtin'] == 1 ||
+          option['is_builtin'] == true ||
+          option['is_builtin']?.toString() == '1';
+      final createdBy = option['created_by']?.toString().trim().toLowerCase();
+      final sessionLogin = session?.userLogin.trim().toLowerCase();
+      final remoteId = option['remote_id'];
+      final hasRemoteId = remoteId != null && remoteId.toString().trim().isNotEmpty;
+      final isOwn = sessionLogin != null &&
+          sessionLogin.isNotEmpty &&
+          createdBy != null &&
+          createdBy == sessionLogin;
+
+      if (isBuiltin) {
+        return const SyncResult(
+          success: false,
+          message: 'Заготовленный вариант нельзя удалить из общего списка',
+        );
+      }
+
+      if (hasRemoteId && !isOwn) {
+        return const SyncResult(
+          success: false,
+          message: 'Чужой вариант нельзя удалить из общего списка',
+        );
+      }
+
+      await DatabaseHelper.instance.markAttributeOptionDeleted(
+        attributeKey: attributeKey,
+        value: trimmed,
+      );
+
+      if (!hasRemoteId) {
+        return const SyncResult(
+          success: true,
+          message: 'Вариант удалён локально',
+        );
+      }
+
+      if (session == null || session.isGuest || session.accessToken == null) {
+        return const SyncResult(
+          success: true,
+          message: 'Вариант удалён локально. На сервере он будет убран после входа',
+        );
+      }
+
+      final workingSession = await _ensureWorkspace(
+        session,
+        refreshRemote: false,
+      );
+
+      await GeoportalApiService.instance.deleteSharedAttributeOption(
+        session: workingSession,
+        attributeKey: attributeKey,
+        value: trimmed,
+      );
+
+      return const SyncResult(
+        success: true,
+        message: 'Вариант убран из общего списка',
+      );
+    } catch (e, st) {
+      AppLogger.instance.warning(
+        'GeoportalSyncService',
+        'Attribute option delete failed',
+        error: e,
+        stackTrace: st,
+        data: {
+          'attributeKey': attributeKey,
+          'value': trimmed,
+        },
+      );
+
+      return SyncResult(
+        success: false,
+        message: 'Не удалось удалить вариант: $e',
+      );
+    }
+  }
+
   Future<SyncResult> deleteObservationEverywhere(int observationId) async {
     AppLogger.instance.info(
       'GeoportalSyncService',
