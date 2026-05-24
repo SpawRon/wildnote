@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'dart:ui' show PlatformDispatcher;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'screens/login_screen.dart';
 import 'screens/main_home_screen.dart';
 import 'services/app_logger.dart';
 import 'services/session_manager.dart';
+import 'theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,7 +15,7 @@ Future<void> main() async {
   try {
     await AppLogger.instance.init().timeout(const Duration(seconds: 2));
   } catch (_) {
-    // логгер не должен блокировать запуск, возможно из за него зависало при перезаходе
+    // логгер не должен блокировать запуск
   }
 
   FlutterError.onError = (FlutterErrorDetails details) {
@@ -62,25 +62,7 @@ class WildNoteApp extends StatelessWidget {
     return MaterialApp(
       title: 'WildNote',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF5D7B79),
-          surface: const Color(0xFFEBEAE0),
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: Colors.white,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 16,
-          ),
-        ),
-      ),
+      theme: AppTheme.light,
       home: const _StartupGate(),
     );
   }

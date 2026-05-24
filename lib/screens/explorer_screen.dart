@@ -6,6 +6,9 @@ import 'package:latlong2/latlong.dart';
 import '../data/database_helper.dart';
 import '../services/explorer_service.dart' as explorer;
 import '../services/session_manager.dart';
+import '../theme/app_theme.dart';
+import 'observation_detail_screen.dart';
+import '../widgets/wild_page_header.dart';
 
 enum ExplorerMode { user, area }
 
@@ -370,45 +373,58 @@ class ExplorerScreenState extends State<ExplorerScreen> {
                   Expanded(
                     child: ListView.separated(
                       controller: scrollController,
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 108),
                       itemCount: _points.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      separatorBuilder: (context, index) => const SizedBox(height: 8),
                       itemBuilder: (context, index) {
                         final point = _points[index];
 
-                        return Card(
-                          margin: EdgeInsets.zero,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            side: BorderSide(color: Colors.grey.shade300),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: ListTile(
-                            onTap: () {
-                              Navigator.of(context).pop();
-                              _moveMap(point.latLng, 15.0);
-                              _showPointDetails(point);
-                            },
-                            leading: CircleAvatar(
-                              backgroundColor: point.isManual
-                                  ? Colors.redAccent
-                                  : const Color(0xFF2E7D32),
-                              child: Icon(
+                        return Column(
+                          children: [
+                            ListTile(
+                              onTap: () {
+                                Navigator.of(context).pop();
+                                _moveMap(point.latLng, 15.0);
+                                _showPointDetails(point);
+                              },
+                              contentPadding: EdgeInsets.zero,
+                              leading: Icon(
                                 point.isManual
-                                    ? Icons.edit_location_alt
+                                    ? Icons.edit_location_alt_rounded
                                     : Icons.eco_rounded,
-                                color: Colors.white,
+                                color: point.isManual
+                                    ? AppColors.danger
+                                    : AppColors.primary,
                               ),
+                              title: Text(
+                                point.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.primaryDark,
+                                ),
+                              ),
+                              subtitle: Text(
+                                '${point.userLogin}\n${_service.formatDate(point.createdAt)}',
+                              ),
+                              trailing: point.photoCount > 0
+                                  ? Text(
+                                '${point.photoCount} фото',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.muted,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              )
+                                  : const Icon(
+                                Icons.photo_outlined,
+                                color: AppColors.muted,
+                              ),
+                              isThreeLine: true,
                             ),
-                            title: Text(point.name),
-                            subtitle: Text(
-                              '${point.userLogin}\n${_service.formatDate(point.createdAt)}',
-                            ),
-                            trailing: point.photoCount > 0
-                                ? Chip(label: Text('${point.photoCount} фото'))
-                                : const Icon(Icons.photo_outlined),
-                            isThreeLine: true,
-                          ),
+                            const Divider(height: 1, color: AppColors.border),
+                          ],
                         );
                       },
                     ),
@@ -423,563 +439,123 @@ class ExplorerScreenState extends State<ExplorerScreen> {
   }
 
   void _showPointDetails(explorer.ExplorerPoint point) {
-    final authHeaders = (_session?.accessToken != null)
-        ? <String, String>{'Authorization': _session!.accessToken!}
-        : const <String, String>{};
-
-    final photoFuture = _service.resolvePhotoUrls(
+    final token = _session?.accessToken;
+    final photosFuture = _service.resolvePhotoUrls(
       session: _session,
       point: point,
     );
 
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return SafeArea(
-          child: FractionallySizedBox(
-            heightFactor: 0.86,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 42,
-                      height: 4,
-                      margin: const EdgeInsets.only(bottom: 14),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade400,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          point.name,
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF131D1C),
-                          ),
-                        ),
-                      ),
-                      FutureBuilder<List<String>>(
-                        future: photoFuture,
-                        builder: (context, snapshot) {
-                          final count = (snapshot.data?.isNotEmpty ?? false)
-                              ? snapshot.data!.length
-                              : point.photoCount;
-
-                          return Builder(
-                            builder: (buttonContext) {
-                              return IconButton(
-                                tooltip: 'Техническая информация',
-                                onPressed: () => _showTechnicalInfoPopup(
-                                  buttonContext: buttonContext,
-                                  point: point,
-                                  photoCount: count,
-                                ),
-                                icon: const Icon(Icons.info_outline),
-                              );
-                            },
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      Chip(label: Text('Логин: ${point.userLogin}')),
-                      Chip(label: Text(_service.formatDate(point.createdAt))),
-                      if (point.isManual)
-                        const Chip(label: Text('Введено вручную')),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  FutureBuilder<List<String>>(
-                    future: photoFuture,
-                    builder: (context, snapshot) {
-                      final urls = snapshot.data ?? point.photoUrls;
-
-                      if (snapshot.connectionState == ConnectionState.waiting &&
-                          urls.isEmpty) {
-                        return Container(
-                          height: 160,
-                          width: double.infinity,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.grey.shade300),
-                          ),
-                          child: const CircularProgressIndicator(),
-                        );
-                      }
-
-                      if (urls.isEmpty) {
-                        return Container(
-                          height: 150,
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.grey.shade300),
-                          ),
-                          alignment: Alignment.center,
-                          child: const Text('Фотография не прикреплена'),
-                        );
-                      }
-
-                      return SizedBox(
-                        height: 230,
-                        child: PageView.builder(
-                          itemCount: urls.length,
-                          itemBuilder: (context, index) {
-                            final imageUrl = urls[index];
-
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 4),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(16),
-                                child: Image.network(
-                                  imageUrl,
-                                  headers: authHeaders,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Container(
-                                      color: Colors.grey.shade200,
-                                      alignment: Alignment.center,
-                                      child: const Icon(
-                                        Icons.broken_image_outlined,
-                                        size: 40,
-                                        color: Colors.grey,
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  _buildDescriptionCard(point),
-                  const SizedBox(height: 12),
-                  _buildAttributeSection(
-                    title: 'Среда произрастания',
-                    point: point,
-                    keys: const [
-                      PlantAttributeKeys.habitat,
-                      PlantAttributeKeys.soilType,
-                      PlantAttributeKeys.moisture,
-                      PlantAttributeKeys.lightCondition,
-                    ],
-                  ),
-                  _buildAttributeSection(
-                    title: 'Состояние растения',
-                    point: point,
-                    keys: const [
-                      PlantAttributeKeys.identificationStatus,
-                      PlantAttributeKeys.lifeStage,
-                      PlantAttributeKeys.phenophase,
-                      PlantAttributeKeys.plantCondition,
-                    ],
-                  ),
-                  _buildAttributeSection(
-                    title: 'Численность и участок',
-                    point: point,
-                    keys: const [
-                      PlantAttributeKeys.abundanceCategory,
-                      PlantAttributeKeys.individualCount,
-                      PlantAttributeKeys.areaOccupied,
-                    ],
-                  ),
-                  _buildAttributeSection(
-                    title: 'Воздействие и охрана',
-                    point: point,
-                    keys: const [
-                      PlantAttributeKeys.anthropogenicImpact,
-                      PlantAttributeKeys.threatFactor,
-                      PlantAttributeKeys.protectionStatus,
-                    ],
-                  ),
-                ],
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => ObservationDetailScreen(
+          data: ObservationDetailData(
+            title: point.name,
+            description: point.description,
+            photos: point.photoUrls,
+            photosFuture: photosFuture,
+            attributes: point.attributes,
+            imageHeaders: token == null || token.isEmpty
+                ? null
+                : <String, String>{'Authorization': token},
+            badges: [
+              ObservationDetailBadge(
+                icon: Icons.person_outline_rounded,
+                text: point.userLogin,
               ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-
-  static const Map<String, String> _attributeLabels = {
-    PlantAttributeKeys.identificationStatus: 'Статус определения',
-    PlantAttributeKeys.habitat: 'Местообитание',
-    PlantAttributeKeys.soilType: 'Тип почвы',
-    PlantAttributeKeys.moisture: 'Увлажнение',
-    PlantAttributeKeys.lightCondition: 'Освещенность',
-    PlantAttributeKeys.lifeStage: 'Жизненная стадия',
-    PlantAttributeKeys.phenophase: 'Фенологическая фаза',
-    PlantAttributeKeys.plantCondition: 'Состояние растения',
-    PlantAttributeKeys.abundanceCategory: 'Категория численности',
-    PlantAttributeKeys.individualCount: 'Количество особей',
-    PlantAttributeKeys.areaOccupied: 'Площадь участка, м²',
-    PlantAttributeKeys.anthropogenicImpact: 'Антропогенное воздействие',
-    PlantAttributeKeys.threatFactor: 'Угрожающий фактор',
-    PlantAttributeKeys.protectionStatus: 'Охранный статус',
-  };
-
-  String _formatAttributeValue(dynamic value) {
-    if (value == null) return '';
-
-    if (value is Iterable) {
-      return value
-          .map((item) => item.toString().trim())
-          .where((item) => item.isNotEmpty && item != 'null')
-          .join(', ');
-    }
-
-    if (value is num) {
-      final asDouble = value.toDouble();
-      if (asDouble.truncateToDouble() == asDouble) {
-        return asDouble.toStringAsFixed(0);
-      }
-      return asDouble.toString();
-    }
-
-    final text = value.toString().trim();
-    if (text == 'null') return '';
-
-    if (text.startsWith('[') && text.endsWith(']')) {
-      final withoutBrackets = text.substring(1, text.length - 1).trim();
-      if (withoutBrackets.isEmpty) return '';
-      return withoutBrackets
-          .split(',')
-          .map((item) => item.trim())
-          .where((item) => item.isNotEmpty)
-          .join(', ');
-    }
-
-    return text;
-  }
-
-  List<MapEntry<String, String>> _attributeRowsFor(
-      explorer.ExplorerPoint point,
-      List<String> keys,
-      ) {
-    final rows = <MapEntry<String, String>>[];
-
-    for (final key in keys) {
-      final value = _formatAttributeValue(point.attributes[key]);
-      if (value.isEmpty) continue;
-
-      rows.add(
-        MapEntry(_attributeLabels[key] ?? key, value),
-      );
-    }
-
-    return rows;
-  }
-
-  Widget _buildDescriptionCard(explorer.ExplorerPoint point) {
-    final description = point.description?.trim();
-
-    if (description == null || description.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF7F7F2),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Описание',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.black54,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            description,
-            style: const TextStyle(
-              fontSize: 15,
-              height: 1.25,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAttributeSection({
-    required String title,
-    required explorer.ExplorerPoint point,
-    required List<String> keys,
-  }) {
-    final rows = _attributeRowsFor(point, keys);
-    if (rows.isEmpty) return const SizedBox.shrink();
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade300),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF131D1C),
+              ObservationDetailBadge(
+                icon: Icons.calendar_month_outlined,
+                text: _service.formatDate(point.createdAt),
               ),
-            ),
-            const SizedBox(height: 10),
-            ...rows.map(
-                  (row) => Padding(
-                padding: const EdgeInsets.only(bottom: 9),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      flex: 4,
-                      child: Text(
-                        row.key,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.black54,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      flex: 5,
-                      child: Text(
-                        row.value,
-                        textAlign: TextAlign.right,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF131D1C),
-                        ),
-                      ),
-                    ),
-                  ],
+              if (point.isManual)
+                const ObservationDetailBadge(
+                  icon: Icons.edit_location_alt_outlined,
+                  text: 'Ручной ввод',
                 ),
+            ],
+            technicalRows: [
+              MapEntry(
+                'Координаты',
+                '${point.latitude.toStringAsFixed(6)}, ${point.longitude.toStringAsFixed(6)}',
               ),
-            ),
-          ],
+              MapEntry(
+                'Точность',
+                point.accuracy == null
+                    ? '—'
+                    : '±${point.accuracy!.toStringAsFixed(1)} м',
+              ),
+              MapEntry(
+                'Гаусс X / Y',
+                point.gaussX == null || point.gaussY == null
+                    ? '—'
+                    : '${point.gaussX!.toStringAsFixed(2)} / ${point.gaussY!.toStringAsFixed(2)}',
+              ),
+              MapEntry('Фото', point.photoCount.toString()),
+              MapEntry(
+                'ID объекта',
+                point.remoteFeatureId > 0 ? point.remoteFeatureId.toString() : '—',
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Future<void> _showTechnicalInfoPopup({
-    required BuildContext buttonContext,
-    required explorer.ExplorerPoint point,
-    required int photoCount,
-  }) async {
-    final buttonBox = buttonContext.findRenderObject() as RenderBox?;
-    final overlay = Navigator.of(buttonContext).overlay?.context.findRenderObject()
-    as RenderBox?;
-
-    if (buttonBox == null || overlay == null) return;
-
-    final buttonRect = Rect.fromPoints(
-      buttonBox.localToGlobal(Offset.zero, ancestor: overlay),
-      buttonBox.localToGlobal(
-        buttonBox.size.bottomRight(Offset.zero),
-        ancestor: overlay,
-      ),
-    );
-
-    final position = RelativeRect.fromRect(
-      buttonRect,
-      Offset.zero & overlay.size,
-    );
-
-    await showMenu<void>(
-      context: buttonContext,
-      position: position,
-      color: Colors.white,
-      elevation: 8,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      items: [
-        PopupMenuItem<void>(
-          enabled: false,
-          padding: const EdgeInsets.all(14),
-          child: SizedBox(
-            width: 280,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Техническая информация',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF131D1C),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                _buildPopupRow(
-                  'Широта, долгота',
-                  '${point.latitude.toStringAsFixed(6)}, ${point.longitude.toStringAsFixed(6)}',
-                ),
-                _buildPopupRow(
-                  'Точность',
-                  point.accuracy == null
-                      ? '—'
-                      : '±${point.accuracy!.toStringAsFixed(1)} м',
-                ),
-                _buildPopupRow(
-                  'Гаусс X / Y',
-                  (point.gaussX == null || point.gaussY == null)
-                      ? '—'
-                      : '${point.gaussX!.toStringAsFixed(2)} / ${point.gaussY!.toStringAsFixed(2)}',
-                ),
-                _buildPopupRow('Фото', photoCount.toString()),
-                _buildPopupRow(
-                  'ID объекта',
-                  point.remoteFeatureId > 0 ? point.remoteFeatureId.toString() : '—',
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPopupRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 7),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.black54,
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFF131D1C),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.black54,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildPointsLauncherCard() {
     if (_isLoading) {
       return Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.grey.shade300),
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(color: AppColors.border),
         ),
         child: const Center(child: CircularProgressIndicator()),
       );
     }
 
-    if (_points.isEmpty) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.grey.shade300),
-        ),
-        child: const Text('Ничего не найдено'),
-      );
-    }
+    final title = _points.isEmpty
+        ? 'Ничего не найдено'
+        : 'Найдено точек: ${_points.length}';
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade300),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(color: AppColors.border),
       ),
-      child: OutlinedButton.icon(
-        onPressed: _openPointsPicker,
-        icon: const Icon(Icons.format_list_bulleted),
-        label: Text('Найдено точек: ${_points.length}'),
+      child: InkWell(
+        onTap: _points.isEmpty ? null : _openPointsPicker,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
+          child: Row(
+            children: [
+              Icon(
+                _points.isEmpty
+                    ? Icons.search_off_rounded
+                    : Icons.format_list_bulleted_rounded,
+                color: _points.isEmpty ? AppColors.muted : AppColors.primary,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primaryDark,
+                  ),
+                ),
+              ),
+              if (_points.isNotEmpty)
+                const Icon(Icons.chevron_right_rounded, color: AppColors.muted),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1015,141 +591,99 @@ class ExplorerScreenState extends State<ExplorerScreen> {
         _isValidLatLon(areaCenter.latitude, areaCenter.longitude);
 
     return SafeArea(
-      child: Column(
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.screen,
+          20,
+          AppSpacing.screen,
+          116,
+        ),
         children: [
-          Expanded(
-            flex: 5,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Expanded(
-                        child: Text(
-                          'Обзор данных',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: _isLoading ? null : reload,
-                        icon: const Icon(Icons.refresh),
-                        tooltip: 'Обновить',
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 10,
-                    children: [
-                      ChoiceChip(
-                        label: const Text('По пользователю'),
-                        selected: _mode == ExplorerMode.user,
-                        onSelected: (selected) async {
-                          if (!selected) return;
-                          setState(() => _mode = ExplorerMode.user);
-                          await _loadUserMode();
-                        },
-                      ),
-                      ChoiceChip(
-                        label: const Text('По области'),
-                        selected: _mode == ExplorerMode.area,
-                        onSelected: (selected) async {
-                          if (!selected) return;
-                          setState(() => _mode = ExplorerMode.area);
-                          await _searchByArea();
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: _mode == ExplorerMode.user
-                          ? _buildUserModeContent()
-                          : _buildAreaModeContent(),
-                    ),
-                  ),
-                ],
-              ),
+          WildPageHeader(
+            title: 'Обзор данных',
+            padding: EdgeInsets.zero,
+            trailing: IconButton(
+              onPressed: _isLoading ? null : reload,
+              icon: const Icon(Icons.refresh_rounded),
+              tooltip: 'Обновить',
             ),
           ),
-          Expanded(
-            flex: 6,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(18),
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.shade300),
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: FlutterMap(
-                    mapController: _mapController,
-                    options: MapOptions(
-                      initialCenter: _fallbackCenter,
-                      initialZoom: 10.5,
-                      onTap: (tapPosition, point) async {
-                        if (_mode != ExplorerMode.area) return;
-                        if (!_isValidLatLon(point.latitude, point.longitude)) {
-                          return;
-                        }
+          const SizedBox(height: 14),
+          _buildModeSelector(),
+          const SizedBox(height: 14),
+          _mode == ExplorerMode.user
+              ? _buildUserModeContent()
+              : _buildAreaModeContent(),
+          const SizedBox(height: 14),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(22),
+            child: SizedBox(
+              height: MediaQuery.sizeOf(context).height * 0.48,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  border: Border.all(color: AppColors.border),
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                child: FlutterMap(
+                  mapController: _mapController,
+                  options: MapOptions(
+                    initialCenter: _fallbackCenter,
+                    initialZoom: 10.5,
+                    onTap: (tapPosition, point) async {
+                      if (_mode != ExplorerMode.area) return;
+                      if (!_isValidLatLon(point.latitude, point.longitude)) {
+                        return;
+                      }
 
-                        setState(() => _areaCenter = point);
-                        await _searchByArea();
-                      },
+                      setState(() => _areaCenter = point);
+                      await _searchByArea();
+                    },
+                  ),
+                  children: [
+                    TileLayer(
+                      urlTemplate:
+                      'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'ru.mauniver.wildnote',
                     ),
-                    children: [
-                      TileLayer(
-                        urlTemplate:
-                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                        userAgentPackageName: 'ru.mauniver.wildnote',
-                      ),
-                      if (_mode == ExplorerMode.area &&
-                          areaCenterValid &&
-                          radiusValid)
-                        CircleLayer(
-                          circles: [
-                            CircleMarker(
-                              point: areaCenter,
-                              radius: _radiusMeters,
-                              useRadiusInMeter: true,
-                              color: const Color(0x335D7B79),
-                              borderColor: const Color(0xFF5D7B79),
-                              borderStrokeWidth: 2,
-                            ),
-                          ],
-                        ),
-                      MarkerLayer(
-                        markers: [
-                          if (_mode == ExplorerMode.area && areaCenterValid)
-                            Marker(
-                              point: areaCenter,
-                              width: 34,
-                              height: 34,
-                              child: const Icon(
-                                Icons.my_location,
-                                color: Color(0xFF1E88E5),
-                                size: 28,
-                              ),
-                            ),
-                          ..._points
-                              .where(
-                                (point) => _isValidLatLon(
-                              point.latitude,
-                              point.longitude,
-                            ),
-                          )
-                              .map(_buildMarker),
+                    if (_mode == ExplorerMode.area &&
+                        areaCenterValid &&
+                        radiusValid)
+                      CircleLayer(
+                        circles: [
+                          CircleMarker(
+                            point: areaCenter,
+                            radius: _radiusMeters,
+                            useRadiusInMeter: true,
+                            color: const Color(0x335D7B79),
+                            borderColor: AppColors.primary,
+                            borderStrokeWidth: 2,
+                          ),
                         ],
                       ),
-                    ],
-                  ),
+                    MarkerLayer(
+                      markers: [
+                        if (_mode == ExplorerMode.area && areaCenterValid)
+                          Marker(
+                            point: areaCenter,
+                            width: 34,
+                            height: 34,
+                            child: const Icon(
+                              Icons.my_location,
+                              color: Color(0xFF1E88E5),
+                              size: 28,
+                            ),
+                          ),
+                        ..._points
+                            .where(
+                              (point) => _isValidLatLon(
+                            point.latitude,
+                            point.longitude,
+                          ),
+                        )
+                            .map(_buildMarker),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -1159,48 +693,156 @@ class ExplorerScreenState extends State<ExplorerScreen> {
     );
   }
 
-  Widget _buildUserModeContent() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Пользователи',
-          style: TextStyle(fontWeight: FontWeight.w600),
+  Widget _buildModeSelector() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          _modeButton(
+            title: 'Пользователь',
+            icon: Icons.person_outline_rounded,
+            selected: _mode == ExplorerMode.user,
+            onTap: () async {
+              if (_mode == ExplorerMode.user) return;
+              setState(() => _mode = ExplorerMode.user);
+              await _loadUserMode();
+            },
+          ),
+          _modeButton(
+            title: 'Область',
+            icon: Icons.radar_rounded,
+            selected: _mode == ExplorerMode.area,
+            onTap: () async {
+              if (_mode == ExplorerMode.area) return;
+              setState(() => _mode = ExplorerMode.area);
+              await _searchByArea();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _modeButton({
+    required String title,
+    required IconData icon,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(15),
+        child: Container(
+          height: 42,
+          decoration: BoxDecoration(
+            color: selected ? AppColors.softGreen : Colors.transparent,
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 19,
+                color: selected ? AppColors.primary : AppColors.muted,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: selected ? AppColors.primaryDark : AppColors.muted,
+                ),
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 8),
-        if (_users.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
-            child: Text('Пользовательские слои не найдены'),
-          )
-        else
-          SizedBox(
-            height: 52,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: _users.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (context, index) {
-                final user = _users[index];
-                final selected = user.userLogin == _selectedUser;
+      ),
+    );
+  }
 
-                return ChoiceChip(
-                  label: Text('${user.userLogin} (${user.pointsCount})'),
-                  selected: selected,
-                  onSelected: (_) async {
-                    setState(() {
-                      _selectedUser = user.userLogin;
-                    });
-
-                    await _loadUserMode();
-                  },
-                );
-              },
+  Widget _buildUserModeContent() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Пользователи',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+              color: AppColors.primaryDark,
             ),
           ),
-        const SizedBox(height: 8),
-        _buildPointsLauncherCard(),
-      ],
+          const SizedBox(height: 10),
+          if (_users.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 10),
+              child: Text(
+                'Пользовательские слои не найдены',
+                style: TextStyle(color: AppColors.muted),
+              ),
+            )
+          else
+            SizedBox(
+              height: 38,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: _users.length,
+                separatorBuilder: (context, index) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  final user = _users[index];
+                  final selected = user.userLogin == _selectedUser;
+
+                  return InkWell(
+                    onTap: () async {
+                      setState(() => _selectedUser = user.userLogin);
+                      await _loadUserMode();
+                    },
+                    borderRadius: BorderRadius.circular(999),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 13),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: selected ? AppColors.softGreen : AppColors.surfaceSoft,
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: selected ? AppColors.primary : AppColors.border,
+                        ),
+                      ),
+                      child: Text(
+                        '${user.userLogin} · ${user.pointsCount}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: selected ? AppColors.primaryDark : AppColors.muted,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          const SizedBox(height: 12),
+          const Divider(height: 1, color: AppColors.border),
+          const SizedBox(height: 12),
+          _buildPointsLauncherCard(),
+        ],
+      ),
     );
   }
 
@@ -1211,61 +853,76 @@ class ExplorerScreenState extends State<ExplorerScreen> {
       _radiusMeters.truncateToDouble() == _radiusMeters ? 0 : 1,
     );
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          center == null
-              ? 'Выберите центр поиска кнопкой или тапом по карте'
-              : 'Центр: ${center.latitude.toStringAsFixed(5)}, ${center.longitude.toStringAsFixed(5)} • радиус: $radiusText м • найдено: ${_points.length}',
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Поиск по области',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+              color: AppColors.primaryDark,
+            ),
           ),
-        ),
-        const SizedBox(height: 10),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _radiusController,
-                focusNode: _radiusFocusNode,
-                textInputAction: TextInputAction.done,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                onSubmitted: (_) => _applyRadiusInput(),
-                onTapOutside: (_) => _applyRadiusInput(),
-                decoration: InputDecoration(
-                  hintText: 'Радиус, м',
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 12,
+          const SizedBox(height: 8),
+          Text(
+            center == null
+                ? 'Выберите центр поиска кнопкой или нажатием на карту'
+                : 'Центр: ${center.latitude.toStringAsFixed(5)}, ${center.longitude.toStringAsFixed(5)}\nРадиус: $radiusText м · найдено: ${_points.length}',
+            style: const TextStyle(
+              fontSize: 13,
+              height: 1.3,
+              color: AppColors.muted,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Divider(height: 1, color: AppColors.border),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _radiusController,
+                  focusNode: _radiusFocusNode,
+                  textInputAction: TextInputAction.done,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
                   ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                  onSubmitted: (_) => _applyRadiusInput(),
+                  onTapOutside: (_) => _applyRadiusInput(),
+                  decoration: const InputDecoration(
+                    hintText: 'Радиус, м',
+                    isDense: true,
                   ),
                 ),
               ),
-            ),
-            const SizedBox(width: 8),
-            IconButton(
-              tooltip: 'Моё местоположение',
-              onPressed: _isLoading ? null : _useCurrentLocation,
-              icon: const Icon(Icons.not_listed_location_sharp),
-            ),
-            IconButton(
-              tooltip: 'Искать',
-              onPressed: _isLoading ? null : _searchByArea,
-              icon: const Icon(Icons.search),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        _buildPointsLauncherCard(),
-      ],
+              const SizedBox(width: 8),
+              IconButton(
+                tooltip: 'Моё местоположение',
+                onPressed: _isLoading ? null : _useCurrentLocation,
+                icon: const Icon(Icons.my_location_rounded),
+              ),
+              IconButton(
+                tooltip: 'Искать',
+                onPressed: _isLoading ? null : _searchByArea,
+                icon: const Icon(Icons.search_rounded),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildPointsLauncherCard(),
+        ],
+      ),
     );
   }
 

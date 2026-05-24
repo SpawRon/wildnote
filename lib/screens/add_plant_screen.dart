@@ -1,6 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:flutter_map/flutter_map.dart';
+//noinspection SpellCheckingInspection
+import 'package:latlong2/latlong.dart';
 import 'package:image_picker/image_picker.dart';
 import '../data/database_helper.dart';
 import '../services/geoportal_sync_service.dart';
@@ -8,6 +11,8 @@ import 'dart:async';
 import '../services/location_capture_service.dart';
 import '../services/gauss_kruger_service.dart';
 import '../services/app_logger.dart';
+import '../theme/app_theme.dart';
+import '../widgets/wild_page_header.dart';
 
 class AddPlantScreen extends StatefulWidget {
   final bool isGuest;
@@ -64,6 +69,9 @@ class _AddPlantScreenState extends State<AddPlantScreen>
   final Map<String, Set<String>> _sharedAttributeTags = <String, Set<String>>{};
   final LocationCaptureService _locationService = LocationCaptureService();
   final GaussKrugerService _gaussKrugerService = GaussKrugerService();
+  final MapController _manualMapController = MapController();
+  LatLng? _manualPoint;
+  bool _updatingManualControllers = false;
   int _currentPhotoIndex = 0;
 
   String _geoStatus = "Инициализация ГЛОНАСС...";
@@ -76,6 +84,7 @@ class _AddPlantScreenState extends State<AddPlantScreen>
   StreamSubscription<PreciseLocationProgress>? _locationSubscription;
   PreciseLocationProgress? _locationProgress;
   bool _isLocating = false;
+  DateTime? _lastLocationUiUpdate;
 
 
 
@@ -83,6 +92,8 @@ class _AddPlantScreenState extends State<AddPlantScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _latController.addListener(_syncManualPointFromText);
+    _lngController.addListener(_syncManualPointFromText);
     _startLocationCapture(reset: true);
     if (!widget.isGuest) {
       unawaited(
@@ -99,6 +110,8 @@ class _AddPlantScreenState extends State<AddPlantScreen>
 
     _locationSubscription?.cancel();
     unawaited(_locationService.dispose());
+    _latController.removeListener(_syncManualPointFromText);
+    _lngController.removeListener(_syncManualPointFromText);
 
     _nameController.dispose();
     _descriptionController.dispose();
@@ -129,6 +142,74 @@ class _AddPlantScreenState extends State<AddPlantScreen>
       _startLocationCapture(reset: false);
     }
   }
+
+  LatLng? _manualPointFromControllers() {
+    final lat = double.tryParse(_latController.text.replaceAll(',', '.'));
+    final lng = double.tryParse(_lngController.text.replaceAll(',', '.'));
+
+    if (lat == null || lng == null) return null;
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+
+    return LatLng(lat, lng);
+  }
+
+  void _moveManualMap(LatLng point) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        _manualMapController.move(point, 15);
+      } catch (_) {
+        // карта может быть ещё не готова
+      }
+    });
+  }
+
+  void _syncManualPointFromText() {
+    if (!_isManualEntry || _updatingManualControllers) return;
+
+    final point = _manualPointFromControllers();
+    if (point == null) return;
+
+    final current = _manualPoint;
+    if (current != null &&
+        (current.latitude - point.latitude).abs() < 0.0000001 &&
+        (current.longitude - point.longitude).abs() < 0.0000001) {
+      return;
+    }
+
+    if (!mounted) return;
+
+    setState(() => _manualPoint = point);
+    _moveManualMap(point);
+  }
+
+  void _setManualPointFromMap(LatLng point) {
+    if (!_isValidManualPoint(point)) return;
+
+    _updatingManualControllers = true;
+    _latController.text = point.latitude.toStringAsFixed(7);
+    _lngController.text = point.longitude.toStringAsFixed(7);
+    _updatingManualControllers = false;
+
+    setState(() {
+      _manualPoint = point;
+      _isLocationFixed = true;
+      _coordinatesLabel =
+      'Шир: ${point.latitude.toStringAsFixed(7)}, Долг: ${point.longitude.toStringAsFixed(7)}';
+      _geoStatus = 'Координаты выбраны на карте';
+    });
+
+    _moveManualMap(point);
+  }
+
+  bool _isValidManualPoint(LatLng point) {
+    return point.latitude.isFinite &&
+        point.longitude.isFinite &&
+        point.latitude >= -90 &&
+        point.latitude <= 90 &&
+        point.longitude >= -180 &&
+        point.longitude <= 180;
+  }
+
   void _showMessage(String text) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -140,7 +221,9 @@ class _AddPlantScreenState extends State<AddPlantScreen>
     try {
       final XFile? pickedFile = await _picker.pickImage(
         source: source,
-        imageQuality: 80,
+        imageQuality: 70,
+        maxWidth: 1600,
+        maxHeight: 1600,
       );
 
       if (pickedFile == null || !mounted) return;
@@ -197,9 +280,19 @@ class _AddPlantScreenState extends State<AddPlantScreen>
         if (_currentPosition != null) {
           _latController.text = _currentPosition!.latitude.toStringAsFixed(7);
           _lngController.text = _currentPosition!.longitude.toStringAsFixed(7);
+          _manualPoint = LatLng(
+            _currentPosition!.latitude,
+            _currentPosition!.longitude,
+          );
+        } else {
+          _manualPoint ??= const LatLng(68.9707, 33.0749);
         }
       }
     });
+
+    if (_isManualEntry && _manualPoint != null) {
+      _moveManualMap(_manualPoint!);
+    }
 
     if (!value) {
       await _startLocationCapture(reset: false);
@@ -236,7 +329,7 @@ class _AddPlantScreenState extends State<AddPlantScreen>
     _locationSubscription = _locationService.progressStream.listen((progress) {
       if (!mounted) return;
 
-      setState(() {
+      void applyProgress() {
         _locationProgress = progress;
         _isLocating = progress.isRunning;
         _geoStatus = progress.message;
@@ -266,7 +359,23 @@ class _AddPlantScreenState extends State<AddPlantScreen>
         }
 
         _isLocationFixed = progress.isUsable;
-      });
+      }
+
+      final now = DateTime.now();
+      final previousLocationReady = _isLocationFixed;
+      final previousRunning = _isLocating;
+      final shouldRebuild =
+          _lastLocationUiUpdate == null ||
+              now.difference(_lastLocationUiUpdate!).inMilliseconds >= 900 ||
+              progress.isUsable != previousLocationReady ||
+              progress.isRunning != previousRunning;
+
+      if (shouldRebuild) {
+        _lastLocationUiUpdate = now;
+        setState(applyProgress);
+      } else {
+        applyProgress();
+      }
     });
 
     try {
@@ -423,8 +532,7 @@ class _AddPlantScreenState extends State<AddPlantScreen>
         accuracy = _currentPosition!.accuracy;
       }
 
-      if (!_isManualEntry &&
-          (_currentPosition == null || _currentPosition!.accuracy > 35)) {
+      if (!_isManualEntry && accuracy != null && accuracy > 35) {
         AppLogger.instance.warning(
           'AddPlantScreen',
           'Save blocked: accuracy is not enough',
@@ -444,36 +552,34 @@ class _AddPlantScreenState extends State<AddPlantScreen>
       double? gaussY;
       int? zone;
 
-      if (latitude != null && longitude != null) {
-        try {
-          final gk = await _gaussKrugerService.transform(
-            latitude: latitude,
-            longitude: longitude,
-          );
+      try {
+        final gk = await _gaussKrugerService.transform(
+          latitude: latitude,
+          longitude: longitude,
+        );
 
-          gaussX = gk.x;
-          gaussY = gk.y;
-          zone = gk.zone;
+        gaussX = gk.x;
+        gaussY = gk.y;
+        zone = gk.zone;
 
-          AppLogger.instance.info(
-            'AddPlantScreen',
-            'Gauss-Kruger transform completed',
-            data: {
-              'zone': zone,
-              'hasGaussX': gaussX != null,
-              'hasGaussY': gaussY != null,
-            },
-          );
-        } catch (e, st) {
-          debugPrint('Ошибка преобразования Гаусса–Крюгера: $e');
+        AppLogger.instance.info(
+          'AddPlantScreen',
+          'Gauss-Kruger transform completed',
+          data: {
+            'zone': zone,
+            'gaussX': gaussX,
+            'gaussY': gaussY,
+          },
+        );
+      } catch (e, st) {
+        debugPrint('Ошибка преобразования Гаусса–Крюгера: $e');
 
-          AppLogger.instance.warning(
-            'AddPlantScreen',
-            'Gauss-Kruger transform failed',
-            error: e,
-            stackTrace: st,
-          );
-        }
+        AppLogger.instance.warning(
+          'AddPlantScreen',
+          'Gauss-Kruger transform failed',
+          error: e,
+          stackTrace: st,
+        );
       }
 
       final createdAt = DateTime.now().toIso8601String();
@@ -625,6 +731,7 @@ class _AddPlantScreenState extends State<AddPlantScreen>
       _coordinatesLabel = "Ожидание данных...";
       _geoStatus = "Инициализация ГЛОНАСС...";
       _currentPosition = null;
+      _manualPoint = null;
     });
 
     _startLocationCapture(reset: true);
@@ -775,7 +882,14 @@ class _AddPlantScreenState extends State<AddPlantScreen>
   }
 
   void _setAttributeTags(String key, List<String> values) {
-    _selectedAttributeTags[key] = values;
+    if (!mounted) return;
+    setState(() {
+      if (values.isEmpty) {
+        _selectedAttributeTags.remove(key);
+      } else {
+        _selectedAttributeTags[key] = values;
+      }
+    });
   }
 
   void _setSharedAttributeTags(String key, Set<String> values) {
@@ -806,6 +920,7 @@ class _AddPlantScreenState extends State<AddPlantScreen>
     required TextEditingController controller,
     String? hintText,
     bool allowMultiple = false,
+    bool showLabel = true,
   }) {
     return _AttributeTagField(
       label: label,
@@ -814,10 +929,68 @@ class _AddPlantScreenState extends State<AddPlantScreen>
       selectedValues: _selectedAttributeTags[attributeKey] ?? const <String>[],
       sharedValues: _sharedAttributeTags[attributeKey] ?? const <String>{},
       allowMultiple: allowMultiple,
+      showLabel: showLabel,
       userLogin: widget.userLogin,
       hintText: hintText,
       onChanged: (values) => _setAttributeTags(attributeKey, values),
       onShareChanged: (values) => _setSharedAttributeTags(attributeKey, values),
+    );
+  }
+
+  String _attributeSummary({
+    required String attributeKey,
+    required TextEditingController controller,
+  }) {
+    final selected = _selectedAttributeTags[attributeKey] ?? const <String>[];
+    if (selected.isNotEmpty) return selected.join(', ');
+
+    final text = controller.text.trim();
+    if (text.isNotEmpty) return text;
+
+    return 'Не заполнено';
+  }
+
+  Widget _buildTagAttributeTile({
+    required String label,
+    required String attributeKey,
+    required TextEditingController controller,
+    String? hintText,
+    bool allowMultiple = false,
+  }) {
+    return _LazyAttributeTile(
+      title: label,
+      summary: _attributeSummary(
+        attributeKey: attributeKey,
+        controller: controller,
+      ),
+      icon: allowMultiple ? Icons.sell_outlined : Icons.label_outline_rounded,
+      builder: (context) => _buildTagAttributeField(
+        label: label,
+        attributeKey: attributeKey,
+        controller: controller,
+        hintText: hintText,
+        allowMultiple: allowMultiple,
+        showLabel: false,
+      ),
+    );
+  }
+
+  Widget _buildNumberAttributeTile({
+    required String label,
+    required TextEditingController controller,
+    String? hintText,
+  }) {
+    final value = controller.text.trim();
+
+    return _LazyAttributeTile(
+      title: label,
+      summary: value.isEmpty ? 'Не заполнено' : value,
+      icon: Icons.pin_outlined,
+      builder: (context) => _buildNumberAttributeField(
+        label: label,
+        controller: controller,
+        hintText: hintText,
+      ),
     );
   }
 
@@ -846,87 +1019,86 @@ class _AddPlantScreenState extends State<AddPlantScreen>
   Widget _buildAttributesBlock() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.grey.shade300),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.card),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSectionTitle('Характеристики растения'),
-          _buildTagAttributeField(
+          _buildTagAttributeTile(
             label: 'Статус определения',
             attributeKey: PlantAttributeKeys.identificationStatus,
             controller: _identificationStatusController,
           ),
-          _buildTagAttributeField(
+          _buildTagAttributeTile(
             label: 'Местообитание',
             attributeKey: PlantAttributeKeys.habitat,
             controller: _habitatController,
             allowMultiple: true,
           ),
-          _buildTagAttributeField(
+          _buildTagAttributeTile(
             label: 'Тип почвы',
             attributeKey: PlantAttributeKeys.soilType,
             controller: _soilTypeController,
             allowMultiple: true,
           ),
-          _buildTagAttributeField(
+          _buildTagAttributeTile(
             label: 'Увлажнение',
             attributeKey: PlantAttributeKeys.moisture,
             controller: _moistureController,
             allowMultiple: true,
           ),
-          _buildTagAttributeField(
+          _buildTagAttributeTile(
             label: 'Освещенность',
             attributeKey: PlantAttributeKeys.lightCondition,
             controller: _lightConditionController,
             allowMultiple: true,
           ),
-          _buildTagAttributeField(
+          _buildTagAttributeTile(
             label: 'Жизненная стадия',
             attributeKey: PlantAttributeKeys.lifeStage,
             controller: _lifeStageController,
           ),
-          _buildTagAttributeField(
+          _buildTagAttributeTile(
             label: 'Фенологическая фаза',
             attributeKey: PlantAttributeKeys.phenophase,
             controller: _phenophaseController,
           ),
-          _buildTagAttributeField(
+          _buildTagAttributeTile(
             label: 'Состояние растения',
             attributeKey: PlantAttributeKeys.plantCondition,
             controller: _plantConditionController,
           ),
-          _buildTagAttributeField(
+          _buildTagAttributeTile(
             label: 'Категория численности',
             attributeKey: PlantAttributeKeys.abundanceCategory,
             controller: _abundanceCategoryController,
           ),
-          _buildNumberAttributeField(
+          _buildNumberAttributeTile(
             label: 'Количество особей',
             controller: _individualCountController,
             hintText: 'Например: 1, 5, 20',
           ),
-          _buildNumberAttributeField(
+          _buildNumberAttributeTile(
             label: 'Площадь участка, м²',
             controller: _areaOccupiedController,
             hintText: 'Например: 0.5, 2, 10',
           ),
-          _buildTagAttributeField(
+          _buildTagAttributeTile(
             label: 'Антропогенное воздействие',
             attributeKey: PlantAttributeKeys.anthropogenicImpact,
             controller: _anthropogenicImpactController,
           ),
-          _buildTagAttributeField(
+          _buildTagAttributeTile(
             label: 'Угрожающий фактор',
             attributeKey: PlantAttributeKeys.threatFactor,
             controller: _threatFactorController,
             allowMultiple: true,
           ),
-          _buildTagAttributeField(
+          _buildTagAttributeTile(
             label: 'Охранный статус',
             attributeKey: PlantAttributeKeys.protectionStatus,
             controller: _protectionStatusController,
@@ -941,20 +1113,17 @@ class _AddPlantScreenState extends State<AddPlantScreen>
     final bool locationReady = _isManualEntry || _isLocationFixed;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFEBEAE0),
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(20.0),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 112),
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.manual,
           children: [
-            const Text(
-              "Новая запись",
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+            const WildPageHeader(
+              title: 'Новая запись',
+              padding: EdgeInsets.zero,
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 18),
 
             _buildPhotoCarousel(),
 
@@ -1073,15 +1242,8 @@ class _AddPlantScreenState extends State<AddPlantScreen>
       width: double.infinity,
       height: 330,
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(30),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -1094,13 +1256,14 @@ class _AddPlantScreenState extends State<AddPlantScreen>
                       ? PageView.builder(
                     controller: _pageController,
                     itemCount: _images.length,
-                    onPageChanged: (i) =>
-                        setState(() => _currentPhotoIndex = i),
+                    onPageChanged: (index) {
+                      setState(() => _currentPhotoIndex = index);
+                    },
                     itemBuilder: (context, index) {
                       return Image.file(
                         _images[index],
                         fit: BoxFit.cover,
-                        cacheWidth: 1200,
+                        cacheWidth: 900,
                       );
                     },
                   )
@@ -1124,9 +1287,6 @@ class _AddPlantScreenState extends State<AddPlantScreen>
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: const BoxDecoration(
               color: Color(0xFFF7F8F3),
-              border: Border(
-                top: BorderSide(color: Color(0xFFE1E5DC)),
-              ),
             ),
             child: Row(
               children: [
@@ -1152,9 +1312,9 @@ class _AddPlantScreenState extends State<AddPlantScreen>
                       ? ListView.separated(
                     scrollDirection: Axis.horizontal,
                     itemCount: _images.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    separatorBuilder: (context, index) =>
+                    const SizedBox(width: 8),
                     itemBuilder: (context, index) {
-                      final selected = index == _currentPhotoIndex;
                       return GestureDetector(
                         onTap: () {
                           _pageController.jumpToPage(index);
@@ -1166,12 +1326,6 @@ class _AddPlantScreenState extends State<AddPlantScreen>
                           height: 62,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: selected
-                                  ? const Color(0xFF5D7B79)
-                                  : Colors.transparent,
-                              width: 2,
-                            ),
                             image: DecorationImage(
                               image: FileImage(_images[index]),
                               fit: BoxFit.cover,
@@ -1221,15 +1375,8 @@ class _AddPlantScreenState extends State<AddPlantScreen>
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.9),
+          color: Colors.white.withValues(alpha: 0.9),
           shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
         ),
         child: Icon(icon, color: foregroundColor),
       ),
@@ -1238,12 +1385,12 @@ class _AddPlantScreenState extends State<AddPlantScreen>
 
   Widget _buildCameraPlaceholder() {
     return Container(
-      color: const Color(0xFFF1F2EC),
+      color: AppColors.surfaceSoft,
       child: const Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.photo_camera_back_outlined,
+            Icons.add_photo_alternate_outlined,
             size: 56,
             color: Color(0xFF8CA09D),
           ),
@@ -1256,23 +1403,76 @@ class _AddPlantScreenState extends State<AddPlantScreen>
               fontWeight: FontWeight.w700,
             ),
           ),
-          SizedBox(height: 4),
-          Text(
-            'добавьте снимок снизу',
-            style: TextStyle(color: Colors.black45),
-          ),
         ],
       ),
+    );
+  }
+
+
+  Widget _buildManualMapSelector() {
+    final point = _manualPoint ??
+        _manualPointFromControllers() ??
+        (_currentPosition == null
+            ? const LatLng(68.9707, 33.0749)
+            : LatLng(_currentPosition!.latitude, _currentPosition!.longitude));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 12),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: SizedBox(
+            height: 190,
+            child: FlutterMap(
+              mapController: _manualMapController,
+              options: MapOptions(
+                initialCenter: point,
+                initialZoom: 15,
+                onTap: (_, tappedPoint) => _setManualPointFromMap(tappedPoint),
+              ),
+              children: [
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  //noinspection SpellCheckingInspection
+                  userAgentPackageName: 'ru.mauniver.wildnote',
+                ),
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: point,
+                      width: 38,
+                      height: 38,
+                      child: const Icon(
+                        Icons.location_on_rounded,
+                        color: AppColors.danger,
+                        size: 34,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Нажмите на карту или введите широту и долготу вручную',
+          style: TextStyle(
+            fontSize: 12,
+            color: AppColors.muted,
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildLocationBlock() {
     final bool locationReady = _isManualEntry || _isLocationFixed;
 
-    final String smallCoords = _currentPosition != null
-        ? 'Ш: ${_currentPosition!.latitude.toStringAsFixed(5)}'
-        ' · Д: ${_currentPosition!.longitude.toStringAsFixed(5)}'
-        : 'Координаты появятся после фиксации';
+    final String coordinatesText = _coordinatesLabel.trim().isEmpty
+        ? 'Координаты появятся после фиксации'
+        : _coordinatesLabel;
 
     final String finalAccuracyText = _locationProgress?.accuracy != null
         ? 'Итоговая: ±${_locationProgress!.accuracy!.toStringAsFixed(1)} м'
@@ -1319,7 +1519,7 @@ class _AddPlantScreenState extends State<AddPlantScreen>
                   Switch(
                     value: _isManualEntry,
                     onChanged: (value) => _toggleManualEntry(value),
-                    activeColor: const Color(0xFF5D7B79),
+                    activeThumbColor: const Color(0xFF5D7B79),
                   ),
                 ],
               ),
@@ -1327,35 +1527,44 @@ class _AddPlantScreenState extends State<AddPlantScreen>
           ),
           const Divider(),
           if (_isManualEntry) ...[
-            TextField(
-              controller: _latController,
-              decoration: const InputDecoration(
-                labelText: "Ш:",
-                isDense: true,
-              ),
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-                signed: true,
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _latController,
+                    decoration: const InputDecoration(
+                      labelText: 'Широта',
+                      isDense: true,
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                      signed: true,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: _lngController,
+                    decoration: const InputDecoration(
+                      labelText: 'Долгота',
+                      isDense: true,
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                      signed: true,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _lngController,
-              decoration: const InputDecoration(
-                labelText: "Д:",
-                isDense: true,
-              ),
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-                signed: true,
-              ),
-            ),
+            _buildManualMapSelector(),
             const SizedBox(height: 10),
             const Text(
               'Точка будет помечена как введённая вручную',
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.blueGrey,
+                color: AppColors.muted,
                 fontStyle: FontStyle.italic,
               ),
             ),
@@ -1404,7 +1613,7 @@ class _AddPlantScreenState extends State<AddPlantScreen>
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      smallCoords,
+                      coordinatesText,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -1498,6 +1707,103 @@ class _AddPlantScreenState extends State<AddPlantScreen>
 
 
 
+
+class _LazyAttributeTile extends StatefulWidget {
+  final String title;
+  final String summary;
+  final IconData icon;
+  final WidgetBuilder builder;
+
+  const _LazyAttributeTile({
+    required this.title,
+    required this.summary,
+    required this.icon,
+    required this.builder,
+  });
+
+  @override
+  State<_LazyAttributeTile> createState() => _LazyAttributeTileState();
+}
+
+class _LazyAttributeTileState extends State<_LazyAttributeTile> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final filled = widget.summary != 'Не заполнено';
+
+    return Column(
+      children: [
+        InkWell(
+          onTap: () => setState(() => _expanded = !_expanded),
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 10),
+            child: Row(
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: AppColors.softGreen,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(widget.icon, size: 19, color: AppColors.primary),
+                ),
+                const SizedBox(width: 11),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.primaryDark,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        widget.summary,
+                        maxLines: _expanded ? 2 : 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12,
+                          height: 1.12,
+                          fontWeight: filled ? FontWeight.w700 : FontWeight.w500,
+                          color: filled ? AppColors.primary : AppColors.muted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                AnimatedRotation(
+                  turns: _expanded ? 0.5 : 0,
+                  duration: const Duration(milliseconds: 150),
+                  curve: Curves.easeOutCubic,
+                  child: const Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: AppColors.muted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (_expanded)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(0, 0, 0, 10),
+            child: widget.builder(context),
+          ),
+        const Divider(height: 1, color: AppColors.border),
+      ],
+    );
+  }
+}
+
 class _AttributeOptionUi {
   final String value;
   final bool isBuiltin;
@@ -1530,6 +1836,7 @@ class _AttributeTagField extends StatefulWidget {
   final List<String> selectedValues;
   final Set<String> sharedValues;
   final bool allowMultiple;
+  final bool showLabel;
   final String userLogin;
   final String? hintText;
   final ValueChanged<List<String>> onChanged;
@@ -1542,6 +1849,7 @@ class _AttributeTagField extends StatefulWidget {
     required this.selectedValues,
     required this.sharedValues,
     required this.allowMultiple,
+    required this.showLabel,
     required this.userLogin,
     required this.onChanged,
     required this.onShareChanged,
@@ -1853,24 +2161,25 @@ class _AttributeTagFieldState extends State<_AttributeTagField> {
       padding: const EdgeInsets.only(bottom: 14),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: const Color(0xFFF7F7F2),
+          color: Colors.transparent,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.grey.shade300),
         ),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                widget.label,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF131D1C),
+              if (widget.showLabel) ...[
+                Text(
+                  widget.label,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF131D1C),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
+                const SizedBox(height: 8),
+              ],
               if (_selected.isNotEmpty) ...[
                 Wrap(
                   spacing: 8,
@@ -1915,6 +2224,19 @@ class _AttributeTagFieldState extends State<_AttributeTagField> {
                   ),
                 ),
               ),
+              if (canShare || isMarkedForShare) ...[
+                const SizedBox(height: 6),
+                Text(
+                  isMarkedForShare
+                      ? 'Будет добавлено в общий словарь при сохранении'
+                      : 'Нажмите +, чтобы добавить вариант в общий словарь',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isMarkedForShare ? AppColors.success : AppColors.muted,
+                    fontWeight: isMarkedForShare ? FontWeight.w700 : FontWeight.w500,
+                  ),
+                ),
+              ],
               if (_isFocused && (_isLoading || suggestions.isNotEmpty)) ...[
                 const SizedBox(height: 8),
                 if (_isLoading)
@@ -1937,7 +2259,7 @@ class _AttributeTagFieldState extends State<_AttributeTagField> {
                       keyboardDismissBehavior:
                       ScrollViewKeyboardDismissBehavior.manual,
                       itemCount: suggestions.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                      separatorBuilder: (context, index) => const SizedBox(width: 8),
                       itemBuilder: (context, index) {
                         final option = suggestions[index];
                         final canDelete =
