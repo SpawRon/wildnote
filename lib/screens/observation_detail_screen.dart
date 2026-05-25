@@ -54,8 +54,15 @@ class ObservationDetailScreen extends StatefulWidget {
 
 class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
   final PageController _pageController = PageController();
+  final DraggableScrollableController _sheetController =
+  DraggableScrollableController();
+
+  static const double _sheetMinSize = 0.24;
+  static const double _sheetInitialSize = 0.58;
+  static const double _sheetMaxSize = 0.94;
+
   int _currentPhotoIndex = 0;
-  double _photoDragDx = 0;
+  double _sheetSize = _sheetInitialSize;
 
   static const Map<String, String> _attributeLabels = {
     PlantAttributeKeys.identificationStatus: 'Статус определения',
@@ -75,7 +82,26 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
   };
 
   @override
+  void initState() {
+    super.initState();
+    _sheetController.addListener(_handleSheetChanged);
+  }
+
+  void _handleSheetChanged() {
+    if (!_sheetController.isAttached) return;
+
+    final nextSize = _sheetController.size;
+    if ((nextSize - _sheetSize).abs() < 0.0015) return;
+
+    if (mounted) {
+      setState(() => _sheetSize = nextSize);
+    }
+  }
+
+  @override
   void dispose() {
+    _sheetController.removeListener(_handleSheetChanged);
+    _sheetController.dispose();
     _pageController.dispose();
     super.dispose();
   }
@@ -91,6 +117,7 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
         double? width,
         double? height,
         BoxFit fit = BoxFit.cover,
+        Alignment alignment = Alignment.center,
         IconData placeholderIcon = Icons.image_outlined,
       }) {
     final placeholder = Container(
@@ -133,7 +160,7 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
             width: resolvedWidth,
             height: resolvedHeight,
             fit: fit,
-            alignment: Alignment.center,
+            alignment: alignment,
             cacheWidth: cacheWidth,
             filterQuality: FilterQuality.low,
             gaplessPlayback: true,
@@ -146,7 +173,7 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
           width: resolvedWidth,
           height: resolvedHeight,
           fit: fit,
-          alignment: Alignment.center,
+          alignment: alignment,
           cacheWidth: cacheWidth,
           filterQuality: FilterQuality.low,
           gaplessPlayback: true,
@@ -223,7 +250,11 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
     );
   }
 
-  Widget _mainPhoto(List<String> photos) {
+  Widget _mainPhoto(
+      List<String> photos, {
+        BoxFit fit = BoxFit.cover,
+        Alignment alignment = Alignment.center,
+      }) {
     if (photos.isEmpty) {
       return Container(
         color: AppColors.surfaceSoft,
@@ -248,14 +279,17 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
 
           return PageView.builder(
             controller: _pageController,
-            physics: const NeverScrollableScrollPhysics(),
+            physics: const PageScrollPhysics(),
+            pageSnapping: true,
+            allowImplicitScrolling: true,
             itemCount: photos.length,
             onPageChanged: (index) => setState(() => _currentPhotoIndex = index),
             itemBuilder: (context, index) => _image(
               photos[index],
               width: width,
               height: height,
-              fit: BoxFit.cover,
+              fit: fit,
+              alignment: alignment,
             ),
           );
         },
@@ -274,50 +308,6 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
       duration: const Duration(milliseconds: 220),
       curve: Curves.easeOutCubic,
     );
-  }
-
-  void _showPreviousPhoto(List<String> photos) {
-    if (photos.length <= 1) return;
-
-    final nextIndex = _currentPhotoIndex == 0
-        ? photos.length - 1
-        : _currentPhotoIndex - 1;
-
-    _goToPhoto(nextIndex, photos.length);
-  }
-
-  void _showNextPhoto(List<String> photos) {
-    if (photos.length <= 1) return;
-
-    final nextIndex = _currentPhotoIndex == photos.length - 1
-        ? 0
-        : _currentPhotoIndex + 1;
-
-    _goToPhoto(nextIndex, photos.length);
-  }
-
-  void _handlePhotoSwipeEnd(
-      DragEndDetails details,
-      List<String> photos,
-      ) {
-    if (photos.length <= 1) return;
-
-    final velocity = details.primaryVelocity ?? 0;
-    final movedEnough = _photoDragDx.abs() > 48;
-    final fastEnough = velocity.abs() > 260;
-
-    if (!movedEnough && !fastEnough) {
-      _photoDragDx = 0;
-      return;
-    }
-
-    if (_photoDragDx < 0 || velocity < 0) {
-      _showNextPhoto(photos);
-    } else {
-      _showPreviousPhoto(photos);
-    }
-
-    _photoDragDx = 0;
   }
 
   Widget _photoDots(List<String> photos) {
@@ -600,8 +590,19 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
   Widget _contentBody(ScrollController controller) {
     return ListView(
       controller: controller,
-      padding: const EdgeInsets.fromLTRB(18, 22, 18, 28),
+      padding: const EdgeInsets.fromLTRB(18, 10, 18, 28),
       children: [
+        Center(
+          child: Container(
+            width: 44,
+            height: 4,
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: AppColors.border.withValues(alpha: 0.75),
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+        ),
         _panelHeader(),
         _section(
           icon: Icons.terrain_rounded,
@@ -652,13 +653,30 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
             ? constraints.maxHeight
             : MediaQuery.sizeOf(context).height;
 
-        const sheetInitialSize = 0.62;
-        const sheetMinSize = 0.62;
-        const sheetMaxSize = 0.94;
+        final safeTop = MediaQuery.paddingOf(context).top;
+        final sheetTop = screenHeight * (1 - _sheetSize);
 
-        final imageHeight =
-        (screenHeight * 0.52).clamp(320.0, 470.0).toDouble();
-        final sheetTop = screenHeight * (1 - sheetInitialSize);
+        final initialTop = screenHeight * (1 - _sheetInitialSize);
+        final minTop = screenHeight * (1 - _sheetMinSize);
+        final openProgress = ((sheetTop - initialTop) / (minTop - initialTop))
+            .clamp(0.0, 1.0);
+
+        // Фото не лежит бесконечным фоном на весь экран.
+        // Это отдельное окно за плашкой: когда лист уходит вниз,
+        // окно плавно раскрывается и показывает больше фотографии.
+        final photoHeight = (sheetTop + 92 + openProgress * 78)
+            .clamp(300.0, screenHeight - 18.0)
+            .toDouble();
+
+        // Небольшое смещение кадра вниз при раскрытии,
+        // чтобы фото выглядело устойчиво и не прыгало.
+        final photoAlignmentY = (-0.14 + openProgress * 0.22)
+            .clamp(-1.0, 1.0)
+            .toDouble();
+
+        final dotsTop = (sheetTop - 34)
+            .clamp(safeTop + 78.0, photoHeight - 34.0)
+            .toDouble();
 
         return Stack(
           children: [
@@ -666,35 +684,35 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
               left: 0,
               right: 0,
               top: 0,
-              height: imageHeight,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  _mainPhoto(photos),
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.black.withValues(alpha: 0.24),
-                          Colors.transparent,
-                        ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.center,
-                      ),
-                    ),
+              height: photoHeight,
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(34),
+                ),
+                child: ColoredBox(
+                  color: AppColors.surfaceSoft,
+                  child: _mainPhoto(
+                    photos,
+                    fit: BoxFit.cover,
+                    alignment: Alignment(0, photoAlignmentY),
                   ),
-                  if (photos.length > 1)
-                    GestureDetector(
-                      behavior: HitTestBehavior.translucent,
-                      onHorizontalDragStart: (_) => _photoDragDx = 0,
-                      onHorizontalDragUpdate: (details) {
-                        _photoDragDx += details.primaryDelta ?? 0;
-                      },
-                      onHorizontalDragEnd: (details) {
-                        _handlePhotoSwipeEnd(details, photos);
-                      },
-                    ),
-                ],
+                ),
+              ),
+            ),
+
+            IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.black.withValues(alpha: 0.25),
+                      Colors.transparent,
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.center,
+                  ),
+                ),
+                child: const SizedBox.expand(),
               ),
             ),
 
@@ -702,16 +720,21 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
               Positioned(
                 left: 0,
                 right: 0,
-                top: sheetTop - 28,
-                child: Center(child: _photoDots(photos)),
+                top: dotsTop,
+                child: IgnorePointer(
+                  ignoring: _sheetSize > 0.86,
+                  child: Center(child: _photoDots(photos)),
+                ),
               ),
 
             Align(
               alignment: Alignment.bottomCenter,
               child: DraggableScrollableSheet(
-                initialChildSize: sheetInitialSize,
-                minChildSize: sheetMinSize,
-                maxChildSize: sheetMaxSize,
+                controller: _sheetController,
+                initialChildSize: _sheetInitialSize,
+                minChildSize: _sheetMinSize,
+                maxChildSize: _sheetMaxSize,
+                snap: false,
                 expand: false,
                 builder: (context, scrollController) {
                   return ClipRRect(
