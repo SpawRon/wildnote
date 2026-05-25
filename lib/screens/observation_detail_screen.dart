@@ -62,7 +62,7 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
   static const double _sheetMaxSize = 0.94;
 
   int _currentPhotoIndex = 0;
-  double _sheetSize = _sheetInitialSize;
+  final Set<String> _precachedPhotos = <String>{};
 
   static const Map<String, String> _attributeLabels = {
     PlantAttributeKeys.identificationStatus: 'Статус определения',
@@ -81,26 +81,53 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
     PlantAttributeKeys.protectionStatus: 'Охранный статус',
   };
 
-  @override
-  void initState() {
-    super.initState();
-    _sheetController.addListener(_handleSheetChanged);
+  double _currentSheetSize() {
+    if (!_sheetController.isAttached) {
+      return _sheetInitialSize;
+    }
+
+    return _sheetController.size
+        .clamp(_sheetMinSize, _sheetMaxSize)
+        .toDouble();
   }
 
-  void _handleSheetChanged() {
-    if (!_sheetController.isAttached) return;
 
-    final nextSize = _sheetController.size;
-    if ((nextSize - _sheetSize).abs() < 0.0015) return;
+  void _precacheVisiblePhotos(List<String> photos) {
+    if (!mounted || photos.isEmpty) return;
 
-    if (mounted) {
-      setState(() => _sheetSize = nextSize);
+    final cacheWidth = (MediaQuery.sizeOf(context).width *
+        MediaQuery.devicePixelRatioOf(context))
+        .clamp(180, 1200)
+        .round();
+
+    for (final path in photos.take(3)) {
+      final normalized = path.trim();
+      if (normalized.isEmpty || !_precachedPhotos.add(normalized)) {
+        continue;
+      }
+
+      final ImageProvider provider = _isRemotePath(normalized)
+          ? ResizeImage(
+        NetworkImage(
+          normalized,
+          headers: widget.data.imageHeaders,
+        ),
+        width: cacheWidth,
+      )
+          : ResizeImage(
+        FileImage(File(normalized)),
+        width: cacheWidth,
+      );
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        precacheImage(provider, context);
+      });
     }
   }
 
   @override
   void dispose() {
-    _sheetController.removeListener(_handleSheetChanged);
     _sheetController.dispose();
     _pageController.dispose();
     super.dispose();
@@ -150,7 +177,7 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
                 : null);
 
         final cacheWidth = (resolvedWidth * pixelRatio)
-            .clamp(180, 1600)
+            .clamp(180, 1200)
             .round();
 
         if (_isRemotePath(path)) {
@@ -363,10 +390,13 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
   Widget _thinDivider() {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 14),
-      child: Container(
-        height: 1,
-        margin: const EdgeInsets.only(left: 42),
-        color: AppColors.border,
+      child: Center(
+        child: Container(
+          height: 1,
+          width: double.infinity,
+          margin: const EdgeInsets.symmetric(horizontal: 18),
+          color: AppColors.border.withValues(alpha: 0.72),
+        ),
       ),
     );
   }
@@ -588,60 +618,133 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
   }
 
   Widget _contentBody(ScrollController controller) {
-    return ListView(
-      controller: controller,
-      padding: const EdgeInsets.fromLTRB(18, 10, 18, 28),
+    return ScrollConfiguration(
+      behavior: ScrollConfiguration.of(context).copyWith(
+        overscroll: false,
+        scrollbars: false,
+      ),
+      child: ListView(
+        controller: controller,
+        primary: false,
+        physics: const ClampingScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
+        children: [
+          _panelHeader(),
+          _section(
+            icon: Icons.terrain_rounded,
+            title: 'Среда произрастания',
+            rows: _rowsFor(const [
+              PlantAttributeKeys.habitat,
+              PlantAttributeKeys.soilType,
+              PlantAttributeKeys.moisture,
+              PlantAttributeKeys.lightCondition,
+            ]),
+          ),
+          _section(
+            icon: Icons.eco_rounded,
+            title: 'Состояние растения',
+            rows: _rowsFor(const [
+              PlantAttributeKeys.identificationStatus,
+              PlantAttributeKeys.lifeStage,
+              PlantAttributeKeys.phenophase,
+              PlantAttributeKeys.plantCondition,
+            ]),
+          ),
+          _section(
+            icon: Icons.scatter_plot_rounded,
+            title: 'Численность',
+            rows: _rowsFor(const [
+              PlantAttributeKeys.abundanceCategory,
+              PlantAttributeKeys.individualCount,
+              PlantAttributeKeys.areaOccupied,
+            ]),
+          ),
+          _section(
+            icon: Icons.shield_outlined,
+            title: 'Охрана и воздействие',
+            rows: _rowsFor(const [
+              PlantAttributeKeys.anthropogenicImpact,
+              PlantAttributeKeys.threatFactor,
+              PlantAttributeKeys.protectionStatus,
+            ]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _staticPhotoLayer(List<String> photos) {
+    return RepaintBoundary(
+      child: _mainPhoto(
+        photos,
+        fit: BoxFit.cover,
+        alignment: const Alignment(0, -0.06),
+      ),
+    );
+  }
+
+  Widget _photoLayer({
+    required Widget photoLayer,
+    required List<String> photos,
+    required double screenHeight,
+    required double safeTop,
+    required double sheetSize,
+  }) {
+    final sheetTop = screenHeight * (1 - sheetSize);
+
+    final initialTop = screenHeight * (1 - _sheetInitialSize);
+    final minTop = screenHeight * (1 - _sheetMinSize);
+    final openProgress = ((sheetTop - initialTop) / (minTop - initialTop))
+        .clamp(0.0, 1.0)
+        .toDouble();
+
+    // Визуальная часть сохранена: при движении листа фото будто раскрывается.
+    // Но само изображение не пересоздаётся и не меняет размер каждый кадр.
+    final photoShiftY = (openProgress * 34).toDouble();
+
+    final dotsTop = (sheetTop - 34)
+        .clamp(safeTop + 78.0, screenHeight - 92.0)
+        .toDouble();
+
+    return Stack(
       children: [
-        Center(
-          child: Container(
-            width: 44,
-            height: 4,
-            margin: const EdgeInsets.only(bottom: 16),
-            decoration: BoxDecoration(
-              color: AppColors.border.withValues(alpha: 0.75),
-              borderRadius: BorderRadius.circular(999),
-            ),
+        Positioned(
+          left: 0,
+          right: 0,
+          top: -48,
+          bottom: -48,
+          child: Transform.translate(
+            offset: Offset(0, photoShiftY),
+            child: photoLayer,
           ),
         ),
-        _panelHeader(),
-        _section(
-          icon: Icons.terrain_rounded,
-          title: 'Среда произрастания',
-          rows: _rowsFor(const [
-            PlantAttributeKeys.habitat,
-            PlantAttributeKeys.soilType,
-            PlantAttributeKeys.moisture,
-            PlantAttributeKeys.lightCondition,
-          ]),
+
+        IgnorePointer(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.black.withValues(alpha: 0.22),
+                  Colors.transparent,
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.center,
+              ),
+            ),
+            child: const SizedBox.expand(),
+          ),
         ),
-        _section(
-          icon: Icons.eco_rounded,
-          title: 'Состояние растения',
-          rows: _rowsFor(const [
-            PlantAttributeKeys.identificationStatus,
-            PlantAttributeKeys.lifeStage,
-            PlantAttributeKeys.phenophase,
-            PlantAttributeKeys.plantCondition,
-          ]),
-        ),
-        _section(
-          icon: Icons.scatter_plot_rounded,
-          title: 'Численность',
-          rows: _rowsFor(const [
-            PlantAttributeKeys.abundanceCategory,
-            PlantAttributeKeys.individualCount,
-            PlantAttributeKeys.areaOccupied,
-          ]),
-        ),
-        _section(
-          icon: Icons.shield_outlined,
-          title: 'Охрана и воздействие',
-          rows: _rowsFor(const [
-            PlantAttributeKeys.anthropogenicImpact,
-            PlantAttributeKeys.threatFactor,
-            PlantAttributeKeys.protectionStatus,
-          ]),
-        ),
+
+        if (photos.length > 1)
+          Positioned(
+            left: 0,
+            right: 0,
+            top: dotsTop,
+            child: IgnorePointer(
+              ignoring: sheetSize > 0.86,
+              child: Center(child: _photoDots(photos)),
+            ),
+          ),
       ],
     );
   }
@@ -654,78 +757,22 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
             : MediaQuery.sizeOf(context).height;
 
         final safeTop = MediaQuery.paddingOf(context).top;
-        final sheetTop = screenHeight * (1 - _sheetSize);
-
-        final initialTop = screenHeight * (1 - _sheetInitialSize);
-        final minTop = screenHeight * (1 - _sheetMinSize);
-        final openProgress = ((sheetTop - initialTop) / (minTop - initialTop))
-            .clamp(0.0, 1.0);
-
-        // Фото не лежит бесконечным фоном на весь экран.
-        // Это отдельное окно за плашкой: когда лист уходит вниз,
-        // окно плавно раскрывается и показывает больше фотографии.
-        final photoHeight = (sheetTop + 92 + openProgress * 78)
-            .clamp(300.0, screenHeight - 18.0)
-            .toDouble();
-
-        // Небольшое смещение кадра вниз при раскрытии,
-        // чтобы фото выглядело устойчиво и не прыгало.
-        final photoAlignmentY = (-0.14 + openProgress * 0.22)
-            .clamp(-1.0, 1.0)
-            .toDouble();
-
-        final dotsTop = (sheetTop - 34)
-            .clamp(safeTop + 78.0, photoHeight - 34.0)
-            .toDouble();
 
         return Stack(
           children: [
-            Positioned(
-              left: 0,
-              right: 0,
-              top: 0,
-              height: photoHeight,
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  bottom: Radius.circular(34),
-                ),
-                child: ColoredBox(
-                  color: AppColors.surfaceSoft,
-                  child: _mainPhoto(
-                    photos,
-                    fit: BoxFit.cover,
-                    alignment: Alignment(0, photoAlignmentY),
-                  ),
-                ),
-              ),
+            AnimatedBuilder(
+              animation: _sheetController,
+              child: _staticPhotoLayer(photos),
+              builder: (context, child) {
+                return _photoLayer(
+                  photoLayer: child!,
+                  photos: photos,
+                  screenHeight: screenHeight,
+                  safeTop: safeTop,
+                  sheetSize: _currentSheetSize(),
+                );
+              },
             ),
-
-            IgnorePointer(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.black.withValues(alpha: 0.25),
-                      Colors.transparent,
-                    ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.center,
-                  ),
-                ),
-                child: const SizedBox.expand(),
-              ),
-            ),
-
-            if (photos.length > 1)
-              Positioned(
-                left: 0,
-                right: 0,
-                top: dotsTop,
-                child: IgnorePointer(
-                  ignoring: _sheetSize > 0.86,
-                  child: Center(child: _photoDots(photos)),
-                ),
-              ),
 
             Align(
               alignment: Alignment.bottomCenter,
@@ -737,12 +784,14 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
                 snap: false,
                 expand: false,
                 builder: (context, scrollController) {
-                  return ClipRRect(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(34),
-                    ),
-                    child: Material(
-                      color: AppColors.surface,
+                  return RepaintBoundary(
+                    child: DecoratedBox(
+                      decoration: const BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(34),
+                        ),
+                      ),
                       child: SafeArea(
                         top: false,
                         child: _contentBody(scrollController),
@@ -786,6 +835,8 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
   @override
   Widget build(BuildContext context) {
     if (widget.data.photosFuture == null) {
+      _precacheVisiblePhotos(widget.data.photos);
+
       return Scaffold(
         backgroundColor: AppColors.background,
         body: _body(widget.data.photos),
@@ -797,6 +848,7 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
       initialData: widget.data.photos,
       builder: (context, snapshot) {
         final photos = snapshot.data ?? widget.data.photos;
+        _precacheVisiblePhotos(photos);
 
         if (_currentPhotoIndex >= photos.length && photos.isNotEmpty) {
           _currentPhotoIndex = photos.length - 1;

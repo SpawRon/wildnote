@@ -154,23 +154,25 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 42),
-              Align(
-                alignment: Alignment.centerLeft,
+              const SizedBox(height: 30),
+              Center(
                 child: Container(
-                  width: 78,
-                  height: 78,
+                  width: MediaQuery.of(context).size.width * 0.7,
+                  // 1. Уменьшили высоту до 15% от экрана, чтобы он не занимал полстраницы
+                  height: MediaQuery.of(context).size.height * 0.15,
                   decoration: BoxDecoration(
-                    color: AppColors.softGreen,
-                    borderRadius: BorderRadius.circular(24),
+                    color: Theme.of(context).scaffoldBackgroundColor,
                   ),
-                  alignment: Alignment.center,
-                  child: SvgPicture.asset(
-                    'assets/mlogo.svg',
-                    height: 46,
-                    colorFilter: const ColorFilter.mode(
-                      AppColors.primary,
-                      BlendMode.srcIn,
+                  // 2. Align прижимает рисунок к верхнему краю контейнера
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: SvgPicture.asset(
+                      'assets/mlogo.svg',
+                      fit: BoxFit.contain,
+                      colorFilter: const ColorFilter.mode(
+                        AppColors.primary,
+                        BlendMode.srcIn,
+                      ),
                     ),
                   ),
                 ),
@@ -236,7 +238,7 @@ class _LoginScreenState extends State<LoginScreen> {
               OutlinedButton.icon(
                 onPressed: _isLoading ? null : _loginAsGuest,
                 icon: const Icon(Icons.cloud_off_outlined),
-                label: const Text('Гость офлайн'),
+                label: const Text('Гостевой режим'),
               ),
             ],
           ),
