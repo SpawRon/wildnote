@@ -324,7 +324,7 @@ class ExplorerScreenState extends State<ExplorerScreen> {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: WildColors.of(context).surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -338,16 +338,16 @@ class ExplorerScreenState extends State<ExplorerScreen> {
             builder: (context, scrollController) {
               return Column(
                 children: [
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
                   Container(
                     width: 42,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade400,
+                      color: WildColors.of(context).border,
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Row(
@@ -355,7 +355,7 @@ class ExplorerScreenState extends State<ExplorerScreen> {
                         Expanded(
                           child: Text(
                             'Точки (${_points.length})',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),
@@ -363,18 +363,18 @@ class ExplorerScreenState extends State<ExplorerScreen> {
                         ),
                         IconButton(
                           onPressed: () => Navigator.of(context).pop(),
-                          icon: const Icon(Icons.close),
+                          icon: Icon(Icons.close),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   Expanded(
                     child: ListView.separated(
                       controller: scrollController,
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 108),
                       itemCount: _points.length,
-                      separatorBuilder: (context, index) => const SizedBox(height: 8),
+                      separatorBuilder: (context, index) => SizedBox(height: 8),
                       itemBuilder: (context, index) {
                         final point = _points[index];
 
@@ -393,15 +393,15 @@ class ExplorerScreenState extends State<ExplorerScreen> {
                                     : Icons.eco_rounded,
                                 color: point.isManual
                                     ? AppColors.danger
-                                    : AppColors.primary,
+                                    : WildColors.of(context).primary,
                               ),
                               title: Text(
                                 point.name,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontWeight: FontWeight.w800,
-                                  color: AppColors.primaryDark,
+                                  color: WildColors.of(context).primaryDark,
                                 ),
                               ),
                               subtitle: Text(
@@ -410,19 +410,19 @@ class ExplorerScreenState extends State<ExplorerScreen> {
                               trailing: point.photoCount > 0
                                   ? Text(
                                 '${point.photoCount} фото',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: AppColors.muted,
+                                  color: WildColors.of(context).muted,
                                   fontWeight: FontWeight.w700,
                                 ),
                               )
-                                  : const Icon(
+                                  : Icon(
                                 Icons.photo_outlined,
-                                color: AppColors.muted,
+                                color: WildColors.of(context).muted,
                               ),
                               isThreeLine: true,
                             ),
-                            const Divider(height: 1, color: AppColors.border),
+                            Divider(height: 1, color: WildColors.of(context).border),
                           ],
                         );
                       },
@@ -507,11 +507,11 @@ class ExplorerScreenState extends State<ExplorerScreen> {
         width: double.infinity,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: WildColors.of(context).surface,
           borderRadius: BorderRadius.circular(AppRadius.card),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: WildColors.of(context).border),
         ),
-        child: const Center(child: CircularProgressIndicator()),
+        child: Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -522,9 +522,9 @@ class ExplorerScreenState extends State<ExplorerScreen> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: WildColors.of(context).surface,
         borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: WildColors.of(context).border),
       ),
       child: InkWell(
         onTap: _points.isEmpty ? null : _openPointsPicker,
@@ -537,21 +537,21 @@ class ExplorerScreenState extends State<ExplorerScreen> {
                 _points.isEmpty
                     ? Icons.search_off_rounded
                     : Icons.format_list_bulleted_rounded,
-                color: _points.isEmpty ? AppColors.muted : AppColors.primary,
+                color: _points.isEmpty ? WildColors.of(context).muted : WildColors.of(context).primary,
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: 12),
               Expanded(
                 child: Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.primaryDark,
+                    color: WildColors.of(context).primaryDark,
                   ),
                 ),
               ),
               if (_points.isNotEmpty)
-                const Icon(Icons.chevron_right_rounded, color: AppColors.muted),
+                Icon(Icons.chevron_right_rounded, color: WildColors.of(context).muted),
             ],
           ),
         ),
@@ -603,24 +603,24 @@ class ExplorerScreenState extends State<ExplorerScreen> {
             padding: EdgeInsets.zero,
             trailing: IconButton(
               onPressed: _isLoading ? null : reload,
-              icon: const Icon(Icons.refresh_rounded),
+              icon: Icon(Icons.refresh_rounded),
               tooltip: 'Обновить',
             ),
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
           _buildModeSelector(),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
           _mode == ExplorerMode.user
               ? _buildUserModeContent()
               : _buildAreaModeContent(),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
           ClipRRect(
             borderRadius: BorderRadius.circular(22),
             child: SizedBox(
               height: MediaQuery.sizeOf(context).height * 0.48,
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  border: Border.all(color: AppColors.border),
+                  border: Border.all(color: WildColors.of(context).border),
                   borderRadius: BorderRadius.circular(22),
                 ),
                 child: FlutterMap(
@@ -654,7 +654,7 @@ class ExplorerScreenState extends State<ExplorerScreen> {
                             radius: _radiusMeters,
                             useRadiusInMeter: true,
                             color: const Color(0x335D7B79),
-                            borderColor: AppColors.primary,
+                            borderColor: WildColors.of(context).primary,
                             borderStrokeWidth: 2,
                           ),
                         ],
@@ -666,7 +666,7 @@ class ExplorerScreenState extends State<ExplorerScreen> {
                             point: areaCenter,
                             width: 34,
                             height: 34,
-                            child: const Icon(
+                            child: Icon(
                               Icons.my_location,
                               color: Color(0xFF1E88E5),
                               size: 28,
@@ -696,9 +696,9 @@ class ExplorerScreenState extends State<ExplorerScreen> {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: WildColors.of(context).surface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: WildColors.of(context).border),
       ),
       child: Row(
         children: [
@@ -740,7 +740,7 @@ class ExplorerScreenState extends State<ExplorerScreen> {
         child: Container(
           height: 42,
           decoration: BoxDecoration(
-            color: selected ? AppColors.softGreen : Colors.transparent,
+            color: selected ? WildColors.of(context).softGreen : Colors.transparent,
             borderRadius: BorderRadius.circular(15),
           ),
           child: Row(
@@ -749,15 +749,15 @@ class ExplorerScreenState extends State<ExplorerScreen> {
               Icon(
                 icon,
                 size: 19,
-                color: selected ? AppColors.primary : AppColors.muted,
+                color: selected ? WildColors.of(context).primary : WildColors.of(context).muted,
               ),
-              const SizedBox(width: 6),
+              SizedBox(width: 6),
               Text(
                 title,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
-                  color: selected ? AppColors.primaryDark : AppColors.muted,
+                  color: selected ? WildColors.of(context).primaryDark : WildColors.of(context).muted,
                 ),
               ),
             ],
@@ -772,28 +772,28 @@ class ExplorerScreenState extends State<ExplorerScreen> {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: WildColors.of(context).surface,
         borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: WildColors.of(context).border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Пользователи',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w900,
-              color: AppColors.primaryDark,
+              color: WildColors.of(context).primaryDark,
             ),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           if (_users.isEmpty)
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(vertical: 10),
               child: Text(
                 'Пользовательские слои не найдены',
-                style: TextStyle(color: AppColors.muted),
+                style: TextStyle(color: WildColors.of(context).muted),
               ),
             )
           else
@@ -802,7 +802,7 @@ class ExplorerScreenState extends State<ExplorerScreen> {
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: _users.length,
-                separatorBuilder: (context, index) => const SizedBox(width: 8),
+                separatorBuilder: (context, index) => SizedBox(width: 8),
                 itemBuilder: (context, index) {
                   final user = _users[index];
                   final selected = user.userLogin == _selectedUser;
@@ -817,10 +817,10 @@ class ExplorerScreenState extends State<ExplorerScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 13),
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
-                        color: selected ? AppColors.softGreen : AppColors.surfaceSoft,
+                        color: selected ? WildColors.of(context).softGreen : WildColors.of(context).surfaceSoft,
                         borderRadius: BorderRadius.circular(999),
                         border: Border.all(
-                          color: selected ? AppColors.primary : AppColors.border,
+                          color: selected ? WildColors.of(context).primary : WildColors.of(context).border,
                         ),
                       ),
                       child: Text(
@@ -828,7 +828,7 @@ class ExplorerScreenState extends State<ExplorerScreen> {
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w800,
-                          color: selected ? AppColors.primaryDark : AppColors.muted,
+                          color: selected ? WildColors.of(context).primaryDark : WildColors.of(context).muted,
                         ),
                       ),
                     ),
@@ -836,9 +836,9 @@ class ExplorerScreenState extends State<ExplorerScreen> {
                 },
               ),
             ),
-          const SizedBox(height: 12),
-          const Divider(height: 1, color: AppColors.border),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
+          Divider(height: 1, color: WildColors.of(context).border),
+          SizedBox(height: 12),
           _buildPointsLauncherCard(),
         ],
       ),
@@ -856,36 +856,36 @@ class ExplorerScreenState extends State<ExplorerScreen> {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: WildColors.of(context).surface,
         borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: WildColors.of(context).border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Поиск по области',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w900,
-              color: AppColors.primaryDark,
+              color: WildColors.of(context).primaryDark,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             center == null
                 ? 'Выберите центр поиска кнопкой или нажатием на карту'
                 : 'Центр: ${center.latitude.toStringAsFixed(5)}, ${center.longitude.toStringAsFixed(5)}\nРадиус: $radiusText м · найдено: ${_points.length}',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               height: 1.3,
-              color: AppColors.muted,
+              color: WildColors.of(context).muted,
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 12),
-          const Divider(height: 1, color: AppColors.border),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
+          Divider(height: 1, color: WildColors.of(context).border),
+          SizedBox(height: 12),
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -899,26 +899,26 @@ class ExplorerScreenState extends State<ExplorerScreen> {
                   ),
                   onSubmitted: (_) => _applyRadiusInput(),
                   onTapOutside: (_) => _applyRadiusInput(),
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     hintText: 'Радиус, м',
                     isDense: true,
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               IconButton(
                 tooltip: 'Моё местоположение',
                 onPressed: _isLoading ? null : _useCurrentLocation,
-                icon: const Icon(Icons.my_location_rounded),
+                icon: Icon(Icons.my_location_rounded),
               ),
               IconButton(
                 tooltip: 'Искать',
                 onPressed: _isLoading ? null : _searchByArea,
-                icon: const Icon(Icons.search_rounded),
+                icon: Icon(Icons.search_rounded),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           _buildPointsLauncherCard(),
         ],
       ),

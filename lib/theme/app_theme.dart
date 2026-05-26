@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class AppColors {
   static const Color background = Color(0xFFFAFAF3);
   static const Color surface = Color(0xFFFFFFFF);
-  static const Color surfaceSoft = Color(0xFFF5F7F0);
+  static const Color surfaceSoft = Color(0xFFF8F9F4);
   static const Color primary = Color(0xFF6F8F77);
   static const Color primaryDark = Color(0xFF17201D);
   static const Color muted = Color(0xFF6F7975);
@@ -29,35 +29,133 @@ class AppSpacing {
 
 class AppTheme {
   static ThemeData get light {
-    final scheme = ColorScheme.fromSeed(
-      seedColor: AppColors.primary,
+    return build(
       brightness: Brightness.light,
-      surface: AppColors.surface,
+      accent: AppColors.primary,
+    );
+  }
+
+  static ThemeData get dark {
+    return build(
+      brightness: Brightness.dark,
+      accent: AppColors.primary,
+    );
+  }
+
+  static ThemeData build({
+    required Brightness brightness,
+    required Color accent,
+    bool highContrast = false,
+  }) {
+    final isDark = brightness == Brightness.dark;
+    final contrast = highContrast && !isDark;
+
+    final background = isDark
+        ? Color.alphaBlend(
+      accent.withValues(alpha: 0.045),
+      const Color(0xFF09100C),
+    )
+        : Color.alphaBlend(
+      accent.withValues(alpha: contrast ? 0.010 : 0.025),
+      const Color(0xFFFFFEFA),
+    );
+
+    final surface = isDark
+        ? Color.alphaBlend(
+      accent.withValues(alpha: 0.035),
+      const Color(0xFF111A14),
+    )
+        : Colors.white;
+
+    final surfaceSoft = isDark
+        ? Color.alphaBlend(
+      accent.withValues(alpha: 0.075),
+      const Color(0xFF18231B),
+    )
+        : (contrast ? Colors.white : const Color(0xFFFBFCF8));
+
+    final primaryText =
+    isDark ? const Color(0xFFF4FBF4) : const Color(0xFF07110C);
+    final mutedText = isDark
+        ? const Color(0xFFB9C3BD)
+        : (contrast ? const Color(0xFF35413A) : const Color(0xFF5F6B64));
+
+    final border = isDark
+        ? Color.alphaBlend(
+      accent.withValues(alpha: 0.14),
+      const Color(0xFF263229),
+    )
+        : (contrast
+        ? const Color(0xFFD8DDD6)
+        : Color.alphaBlend(
+      accent.withValues(alpha: 0.07),
+      const Color(0xFFE7EAE2),
+    ));
+
+    final softAccent = Color.alphaBlend(
+      accent.withValues(alpha: isDark ? 0.23 : 0.14),
+      surface,
+    );
+
+    final fieldFill = surfaceSoft;
+
+    final scheme = ColorScheme.fromSeed(
+      seedColor: accent,
+      brightness: brightness,
+      primary: accent,
+      surface: surface,
+      error: AppColors.danger,
     );
 
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
-      scaffoldBackgroundColor: AppColors.background,
-      canvasColor: AppColors.background,
+      scaffoldBackgroundColor: background,
+      canvasColor: background,
       visualDensity: VisualDensity.standard,
-      appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.background,
+      brightness: brightness,
+      extensions: <ThemeExtension<dynamic>>[
+        WildColors(
+          background: background,
+          surface: surface,
+          surfaceSoft: surfaceSoft,
+          fieldFill: fieldFill,
+          primary: accent,
+          primaryDark: primaryText,
+          muted: mutedText,
+          border: border,
+          softGreen: softAccent,
+          danger: AppColors.danger,
+          success: AppColors.success,
+          warning: AppColors.warning,
+        ),
+      ],
+      appBarTheme: AppBarTheme(
+        backgroundColor: background,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
-        foregroundColor: AppColors.primaryDark,
+        foregroundColor: primaryText,
         titleTextStyle: TextStyle(
           fontSize: 26,
-          fontWeight: FontWeight.w800,
-          color: AppColors.primaryDark,
+          fontWeight: FontWeight.w900,
+          color: primaryText,
+        ),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: surface,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.card),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.surface,
-        hintStyle: const TextStyle(color: AppColors.muted),
-        labelStyle: const TextStyle(color: AppColors.muted),
+        fillColor: fieldFill,
+        hintStyle: TextStyle(color: mutedText, fontWeight: FontWeight.w500),
+        labelStyle: TextStyle(color: mutedText, fontWeight: FontWeight.w600),
+        prefixIconColor: accent,
+        suffixIconColor: mutedText,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.medium),
           borderSide: BorderSide.none,
@@ -68,7 +166,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.medium),
-          borderSide: BorderSide.none,
+          borderSide: BorderSide(color: accent.withValues(alpha: 0.36)),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.medium),
@@ -80,47 +178,63 @@ class AppTheme {
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
+      textTheme: ThemeData(brightness: brightness).textTheme.apply(
+        bodyColor: primaryText,
+        displayColor: primaryText,
+      ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           elevation: 0,
-          backgroundColor: AppColors.primaryDark,
+          backgroundColor: accent,
           foregroundColor: Colors.white,
-          disabledBackgroundColor: AppColors.muted.withValues(alpha: 0.4),
+          disabledBackgroundColor: mutedText.withValues(alpha: 0.36),
           disabledForegroundColor: Colors.white70,
           minimumSize: const Size.fromHeight(54),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.medium),
           ),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          elevation: 0,
+          backgroundColor: accent,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.medium),
+          ),
+          textStyle: const TextStyle(fontWeight: FontWeight.w900),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.primaryDark,
+          foregroundColor: accent,
           minimumSize: const Size.fromHeight(48),
+          side: BorderSide(color: accent.withValues(alpha: 0.55), width: 1.2),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.medium),
           ),
-          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: AppColors.primary,
-          textStyle: const TextStyle(fontWeight: FontWeight.w700),
+          foregroundColor: accent,
+          textStyle: const TextStyle(fontWeight: FontWeight.w800),
         ),
       ),
       iconButtonTheme: IconButtonThemeData(
         style: IconButton.styleFrom(
-          foregroundColor: AppColors.primaryDark,
+          foregroundColor: primaryText,
         ),
       ),
       chipTheme: ChipThemeData(
-        backgroundColor: AppColors.softGreen,
-        selectedColor: AppColors.primary,
-        labelStyle: const TextStyle(
-          color: AppColors.primaryDark,
-          fontWeight: FontWeight.w600,
+        backgroundColor: softAccent,
+        selectedColor: accent.withValues(alpha: isDark ? 0.36 : 0.20),
+        labelStyle: TextStyle(
+          color: primaryText,
+          fontWeight: FontWeight.w700,
         ),
         side: BorderSide.none,
         shape: RoundedRectangleBorder(
@@ -128,33 +242,160 @@ class AppTheme {
         ),
       ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: AppColors.primaryDark,
-        contentTextStyle: const TextStyle(color: Colors.white),
+        backgroundColor: primaryText,
+        contentTextStyle: TextStyle(
+          color: isDark ? const Color(0xFF101411) : Colors.white,
+          fontWeight: FontWeight.w700,
+        ),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.medium),
         ),
       ),
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.disabled)) {
+            return mutedText.withValues(alpha: 0.42);
+          }
+          if (states.contains(WidgetState.selected)) return accent;
+          return mutedText;
+        }),
+        trackColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.disabled)) {
+            return border.withValues(alpha: 0.56);
+          }
+          if (states.contains(WidgetState.selected)) {
+            return accent.withValues(alpha: 0.30);
+          }
+          return border;
+        }),
+      ),
+      sliderTheme: SliderThemeData(
+        activeTrackColor: accent,
+        thumbColor: accent,
+        inactiveTrackColor: border,
+      ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: Colors.transparent,
-        indicatorColor: AppColors.softGreen,
+        indicatorColor: softAccent,
         elevation: 0,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return TextStyle(
             fontSize: 12,
-            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-            color: selected ? AppColors.primaryDark : AppColors.muted,
+            fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+            color: selected ? primaryText : mutedText,
           );
         }),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return IconThemeData(
             size: selected ? 27 : 25,
-            color: selected ? AppColors.primary : AppColors.muted,
+            color: selected ? accent : mutedText,
           );
         }),
       ),
+    );
+  }
+}
+
+@immutable
+class WildColors extends ThemeExtension<WildColors> {
+  final Color background;
+  final Color surface;
+  final Color surfaceSoft;
+  final Color fieldFill;
+  final Color primary;
+  final Color primaryDark;
+  final Color muted;
+  final Color border;
+  final Color softGreen;
+  final Color danger;
+  final Color success;
+  final Color warning;
+
+  const WildColors({
+    required this.background,
+    required this.surface,
+    required this.surfaceSoft,
+    required this.fieldFill,
+    required this.primary,
+    required this.primaryDark,
+    required this.muted,
+    required this.border,
+    required this.softGreen,
+    required this.danger,
+    required this.success,
+    required this.warning,
+  });
+
+  static const WildColors fallback = WildColors(
+    background: AppColors.background,
+    surface: AppColors.surface,
+    surfaceSoft: AppColors.surfaceSoft,
+    fieldFill: AppColors.surfaceSoft,
+    primary: AppColors.primary,
+    primaryDark: AppColors.primaryDark,
+    muted: AppColors.muted,
+    border: AppColors.border,
+    softGreen: AppColors.softGreen,
+    danger: AppColors.danger,
+    success: AppColors.success,
+    warning: AppColors.warning,
+  );
+
+  static WildColors of(BuildContext context) {
+    return Theme.of(context).extension<WildColors>() ?? fallback;
+  }
+
+  @override
+  WildColors copyWith({
+    Color? background,
+    Color? surface,
+    Color? surfaceSoft,
+    Color? fieldFill,
+    Color? primary,
+    Color? primaryDark,
+    Color? muted,
+    Color? border,
+    Color? softGreen,
+    Color? danger,
+    Color? success,
+    Color? warning,
+  }) {
+    return WildColors(
+      background: background ?? this.background,
+      surface: surface ?? this.surface,
+      surfaceSoft: surfaceSoft ?? this.surfaceSoft,
+      fieldFill: fieldFill ?? this.fieldFill,
+      primary: primary ?? this.primary,
+      primaryDark: primaryDark ?? this.primaryDark,
+      muted: muted ?? this.muted,
+      border: border ?? this.border,
+      softGreen: softGreen ?? this.softGreen,
+      danger: danger ?? this.danger,
+      success: success ?? this.success,
+      warning: warning ?? this.warning,
+    );
+  }
+
+  @override
+  WildColors lerp(ThemeExtension<WildColors>? other, double t) {
+    if (other is! WildColors) return this;
+
+    return WildColors(
+      background: Color.lerp(background, other.background, t)!,
+      surface: Color.lerp(surface, other.surface, t)!,
+      surfaceSoft: Color.lerp(surfaceSoft, other.surfaceSoft, t)!,
+      fieldFill: Color.lerp(fieldFill, other.fieldFill, t)!,
+      primary: Color.lerp(primary, other.primary, t)!,
+      primaryDark: Color.lerp(primaryDark, other.primaryDark, t)!,
+      muted: Color.lerp(muted, other.muted, t)!,
+      border: Color.lerp(border, other.border, t)!,
+      softGreen: Color.lerp(softGreen, other.softGreen, t)!,
+      danger: Color.lerp(danger, other.danger, t)!,
+      success: Color.lerp(success, other.success, t)!,
+      warning: Color.lerp(warning, other.warning, t)!,
     );
   }
 }

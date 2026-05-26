@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../services/app_appearance_settings.dart';
+import '../services/device_brightness_service.dart';
 import '../services/location_accuracy_settings.dart';
 import '../services/session_manager.dart';
 import '../theme/app_theme.dart';
@@ -10,11 +13,13 @@ import 'login_screen.dart';
 class SettingsScreen extends StatefulWidget {
   final bool isGuest;
   final String userLogin;
+  final AppAppearanceController? appearanceController;
 
   const SettingsScreen({
     super.key,
     required this.isGuest,
     required this.userLogin,
+    this.appearanceController,
   });
 
   @override
@@ -22,20 +27,64 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  late final AppAppearanceController _appearanceController;
+  late final bool _ownsAppearanceController;
+
   bool _autoContrast = false;
   bool _autoBrightness = false;
   bool _darkTheme = false;
-  Color _selectedAccent = AppColors.primary;
+  Color _selectedAccent = AppAppearanceSettingsData.defaultAccent;
   double _targetAccuracyMeters =
       LocationAccuracySettings.defaultTargetAccuracyMeters;
 
   static const String _version = '0.1.0';
-  static const String _storeUrl = 'https://www.rustore.ru/catalog/app/mauniver.ivt.ponarin.wildnote';
+  static const String _storeUrl =
+      'https://www.rustore.ru/catalog/app/mauniver.ivt.ponarin.wildnote';
 
   @override
   void initState() {
     super.initState();
+
+    _appearanceController =
+        widget.appearanceController ?? AppAppearance.controller;
+    _ownsAppearanceController = false;
+
+    _appearanceController.addListener(_syncAppearanceFromController);
+    _syncAppearanceFromController();
+
+    if (!_appearanceController.loaded) {
+      _appearanceController.load();
+    }
+
     _loadLocationAccuracy();
+  }
+
+  @override
+  void dispose() {
+    _appearanceController.removeListener(_syncAppearanceFromController);
+
+    if (_ownsAppearanceController) {
+      _appearanceController.dispose();
+    }
+
+    super.dispose();
+  }
+
+  void _syncAppearanceFromController() {
+    final data = _appearanceController.data;
+
+    if (!mounted) return;
+
+    setState(() {
+      _darkTheme = data.darkTheme;
+      _autoContrast = data.autoContrast;
+      _autoBrightness = data.autoBrightness;
+      _selectedAccent = data.accentColor;
+    });
+  }
+
+  bool _sameColor(Color a, Color b) {
+    return a.toARGB32() == b.toARGB32();
   }
 
   Future<void> _loadLocationAccuracy() async {
@@ -65,7 +114,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     if (!opened && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ссылка на магазин будет доступна после публикации')),
+        const SnackBar(
+          content: Text('Ссылка на магазин будет доступна после публикации'),
+        ),
       );
     }
   }
@@ -76,6 +127,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final saved = await showDialog<double>(
       context: context,
       builder: (context) {
+        final colors = WildColors.of(context);
+
         return StatefulBuilder(
           builder: (context, setDialogState) {
             String label(double value) {
@@ -89,10 +142,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 label: Text(label(value)),
                 selected: isSelected,
                 showCheckmark: false,
-                selectedColor: AppColors.softGreen,
+                selectedColor: colors.softGreen,
                 labelStyle: TextStyle(
                   fontWeight: FontWeight.w800,
-                  color: isSelected ? AppColors.primary : AppColors.primaryDark,
+                  color: isSelected ? colors.primary : colors.primaryDark,
                 ),
                 side: BorderSide.none,
                 onSelected: (_) {
@@ -102,104 +155,106 @@ class _SettingsScreenState extends State<SettingsScreen> {
             }
 
             return Dialog(
-              backgroundColor: AppColors.surface,
+              backgroundColor: colors.surface,
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 18,
+                vertical: 24,
+              ),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppRadius.card),
               ),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(22, 22, 22, 16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Точность координат',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                        color: AppColors.primaryDark,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Чем меньше значение, тем дольше приложение будет уточнять координаты перед сохранением.',
-                      style: TextStyle(
-                        fontSize: 14,
-                        height: 1.35,
-                        color: AppColors.muted,
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    Center(
-                      child: Text(
-                        '±${label(selected)}',
-                        style: const TextStyle(
-                          fontSize: 30,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(22, 22, 22, 16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Точность координат',
+                        style: TextStyle(
+                          fontSize: 22,
                           fontWeight: FontWeight.w900,
-                          color: AppColors.primary,
+                          color: colors.primaryDark,
                         ),
                       ),
-                    ),
-                    Slider(
-                      value: selected,
-                      min: LocationAccuracySettings.minTargetAccuracyMeters,
-                      max: LocationAccuracySettings.maxTargetAccuracyMeters,
-                      divisions: 57,
-                      activeColor: AppColors.primary,
-                      inactiveColor: AppColors.border,
-                      label: label(selected),
-                      onChanged: (value) {
-                        setDialogState(() => selected = value.roundToDouble());
-                      },
-                    ),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        preset(5),
-                        preset(10),
-                        preset(15),
-                        preset(25),
-                        preset(35),
-                      ],
-                    ),
-                    const SizedBox(height: 18),
-                    Row(
-                      children: [
-                        TextButton(
-                          onPressed: () async {
-                            await LocationAccuracySettings
-                                .resetTargetAccuracyMeters();
-
-                            if (!context.mounted) return;
-
-                            Navigator.of(context).pop(
-                              LocationAccuracySettings
-                                  .defaultTargetAccuracyMeters,
-                            );
-                          },
-                          child: const Text('Сбросить'),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Чем меньше значение, тем дольше приложение будет уточнять координаты перед сохранением.',
+                        style: TextStyle(
+                          fontSize: 14,
+                          height: 1.35,
+                          color: colors.muted,
                         ),
-                        const Spacer(),
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          child: const Text('Отмена'),
-                        ),
-                        const SizedBox(width: 8),
-                        FilledButton(
-                          style: FilledButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: AppColors.surface,
+                      ),
+                      const SizedBox(height: 18),
+                      Center(
+                        child: Text(
+                          '±${label(selected)}',
+                          style: TextStyle(
+                            fontSize: 30,
+                            fontWeight: FontWeight.w900,
+                            color: colors.primary,
                           ),
-                          onPressed: () {
-                            Navigator.of(context).pop(selected);
-                          },
-                          child: const Text('Сохранить'),
                         ),
-                      ],
-                    ),
-                  ],
+                      ),
+                      Slider(
+                        value: selected,
+                        min: LocationAccuracySettings.minTargetAccuracyMeters,
+                        max: LocationAccuracySettings.maxTargetAccuracyMeters,
+                        divisions: 57,
+                        label: label(selected),
+                        onChanged: (value) {
+                          setDialogState(() => selected = value.roundToDouble());
+                        },
+                      ),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          preset(5),
+                          preset(10),
+                          preset(15),
+                          preset(25),
+                          preset(35),
+                        ],
+                      ),
+                      const SizedBox(height: 18),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        alignment: WrapAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: () async {
+                              await LocationAccuracySettings
+                                  .resetTargetAccuracyMeters();
+
+                              if (!context.mounted) return;
+
+                              Navigator.of(context).pop(
+                                LocationAccuracySettings
+                                    .defaultTargetAccuracyMeters,
+                              );
+                            },
+                            child: const Text('Сбросить'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Text('Отмена'),
+                          ),
+                          FilledButton(
+                            onPressed: () {
+                              Navigator.of(context).pop(selected);
+                            },
+                            child: const Text('Сохранить'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );
@@ -228,12 +283,270 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Future<void> _setDarkTheme(bool value) async {
+    await _appearanceController.setDarkTheme(value);
+  }
+
+  Future<void> _setAutoContrast(bool value) async {
+    if (_darkTheme) return;
+    await _appearanceController.setAutoContrast(value);
+  }
+
+  Future<void> _setAutoBrightness(bool value) async {
+    final ok = await DeviceBrightnessService.instance.applyAutoBrightness(value);
+
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Не удалось изменить яркость экрана на устройстве'),
+        ),
+      );
+      return;
+    }
+
+    await _appearanceController.setAutoBrightness(value);
+  }
+
+  Future<void> _setAccent(Color color) async {
+    final normalized = AppAppearanceSettings.normalizeAccent(color);
+    await _appearanceController.setAccentColor(normalized);
+
+    if (!mounted) return;
+
+    HapticFeedback.selectionClick();
+  }
+
+  int _channel(Color color, int shift) {
+    return (color.toARGB32() >> shift) & 0xFF;
+  }
+
+  Future<void> _showRgbAccentDialog() async {
+    final original = _appearanceController.accentColor;
+    var preview = original;
+
+    double red = _channel(original, 16).toDouble();
+    double green = _channel(original, 8).toDouble();
+    double blue = _channel(original, 0).toDouble();
+
+    Color fromChannels() {
+      return Color.fromARGB(
+        255,
+        red.round().clamp(0, 255),
+        green.round().clamp(0, 255),
+        blue.round().clamp(0, 255),
+      );
+    }
+
+    void applyPreview(StateSetter setDialogState) {
+      preview = AppAppearanceSettings.normalizeAccent(fromChannels());
+      _appearanceController.previewAccentColor(preview);
+      setDialogState(() {});
+    }
+
+    final saved = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final colors = WildColors.of(context);
+
+            Widget slider({
+              required String label,
+              required double value,
+              required Color color,
+              required ValueChanged<double> onChanged,
+            }) {
+              return Row(
+                children: [
+                  SizedBox(
+                    width: 22,
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        color: colors.muted,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: SliderTheme(
+                      data: SliderTheme.of(context).copyWith(
+                        activeTrackColor: color,
+                        thumbColor: color,
+                      ),
+                      child: Slider(
+                        value: value,
+                        min: 0,
+                        max: 255,
+                        divisions: 255,
+                        label: value.round().toString(),
+                        onChanged: (next) {
+                          onChanged(next);
+                          applyPreview(setDialogState);
+                        },
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: 38,
+                    child: Text(
+                      value.round().toString(),
+                      textAlign: TextAlign.right,
+                      style: TextStyle(
+                        color: colors.primaryDark,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }
+
+            return Dialog(
+              backgroundColor: colors.surface,
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 18,
+                vertical: 24,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadius.card),
+              ),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 430),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(22, 22, 22, 16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 54,
+                            height: 54,
+                            decoration: BoxDecoration(
+                              color: preview,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.tune_rounded,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Свой акцент',
+                                  style: TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w900,
+                                    color: colors.primaryDark,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Цвет меняется сразу при движении ползунков.',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    height: 1.25,
+                                    color: colors.muted,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      slider(
+                        label: 'R',
+                        value: red,
+                        color: Colors.red,
+                        onChanged: (value) => red = value,
+                      ),
+                      slider(
+                        label: 'G',
+                        value: green,
+                        color: Colors.green,
+                        onChanged: (value) => green = value,
+                      ),
+                      slider(
+                        label: 'B',
+                        value: blue,
+                        color: Colors.blue,
+                        onChanged: (value) => blue = value,
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        width: double.infinity,
+                        height: 44,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: Color.alphaBlend(
+                            preview.withValues(alpha: 0.16),
+                            colors.surface,
+                          ),
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: Text(
+                          '#${(preview.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase()}',
+                          style: TextStyle(
+                            color: colors.primaryDark,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        alignment: WrapAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: () {
+                              _appearanceController.previewAccentColor(original);
+                              Navigator.of(context).pop(false);
+                            },
+                            child: const Text('Отмена'),
+                          ),
+                          FilledButton(
+                            onPressed: () {
+                              Navigator.of(context).pop(true);
+                            },
+                            child: const Text('Сохранить'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (saved == true) {
+      await _appearanceController.setAccentColor(preview);
+      if (!mounted) return;
+      HapticFeedback.selectionClick();
+    } else {
+      _appearanceController.previewAccentColor(original);
+    }
+  }
+
   void _showAbout() {
     showDialog<void>(
       context: context,
       builder: (context) {
+        final colors = WildColors.of(context);
+
         return Dialog(
-          backgroundColor: AppColors.surface,
+          backgroundColor: colors.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.card),
           ),
@@ -243,27 +556,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'WildNote',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w900,
-                    color: AppColors.primaryDark,
+                    color: colors.primaryDark,
                   ),
                 ),
                 const SizedBox(height: 10),
-                const Text(
+                Text(
                   'Приложение для регистрации полевых наблюдений редких растений и отправки данных на геопортал.',
                   style: TextStyle(
                     fontSize: 15,
                     height: 1.35,
-                    color: AppColors.primaryDark,
+                    color: colors.primaryDark,
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
+                Text(
                   'Версия: $_version',
-                  style: TextStyle(color: AppColors.muted),
+                  style: TextStyle(color: colors.muted),
                 ),
                 const SizedBox(height: 18),
                 Align(
@@ -285,12 +598,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required String title,
     required List<Widget> children,
   }) {
+    final colors = WildColors.of(context);
+
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 18),
       padding: const EdgeInsets.fromLTRB(18, 14, 18, 4),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(AppRadius.card),
       ),
       child: Column(
@@ -298,10 +613,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w900,
-              color: AppColors.primaryDark,
+              color: colors.primaryDark,
             ),
           ),
           const SizedBox(height: 8),
@@ -312,7 +627,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _divider() {
-    return const Divider(height: 1, color: AppColors.border);
+    final colors = WildColors.of(context);
+    return Divider(height: 1, color: colors.border);
   }
 
   Widget _row({
@@ -323,7 +639,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     VoidCallback? onTap,
     Color? color,
   }) {
-    final effectiveColor = color ?? AppColors.primaryDark;
+    final colors = WildColors.of(context);
+    final effectiveColor = color ?? colors.primaryDark;
 
     return InkWell(
       onTap: onTap,
@@ -332,7 +649,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: Row(
           children: [
-            Icon(icon, size: 23, color: color ?? AppColors.primary),
+            Icon(icon, size: 23, color: color ?? colors.primary),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -350,17 +667,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(height: 3),
                     Text(
                       subtitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         height: 1.25,
-                        color: AppColors.muted,
+                        color: colors.muted,
                       ),
                     ),
                   ],
                 ],
               ),
             ),
-            ?trailing,
+            trailing ?? const SizedBox.shrink(),
           ],
         ),
       ),
@@ -372,7 +689,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required String title,
     required String subtitle,
     required bool value,
-    required ValueChanged<bool> onChanged,
+    required ValueChanged<bool>? onChanged,
   }) {
     return _row(
       icon: icon,
@@ -380,160 +697,195 @@ class _SettingsScreenState extends State<SettingsScreen> {
       subtitle: subtitle,
       trailing: Switch(
         value: value,
-        activeThumbColor: AppColors.primary,
         onChanged: onChanged,
       ),
     );
   }
 
   Widget _accentPicker() {
-    const colors = <Color>[
-      Color(0xFF5D7B79),
-      Color(0xFF2E7D32),
-      Color(0xFF1565C0),
-      Color(0xFF6D4C41),
-      Color(0xFF8E5A7A),
-    ];
+    final colors = WildColors.of(context);
+
+    final quickColors = AppAppearanceSettings.accentPalette;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(35, 2, 0, 12),
-      child: Row(
-        children: colors.map((color) {
-          final isSelected = color == _selectedAccent;
+      child: Wrap(
+        spacing: 10,
+        runSpacing: 10,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          ...quickColors.map((color) {
+            final isSelected = _sameColor(color, _selectedAccent);
 
-          return Padding(
-            padding: const EdgeInsets.only(right: 10),
-            child: Semantics(
-              selected: isSelected,
-              child: InkWell(
-                onTap: () => setState(() => _selectedAccent = color),
-                customBorder: const CircleBorder(),
-                child: Container(
-                  width: 31,
-                  height: 31,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: color,
-                  ),
+            return InkWell(
+              onTap: () => _setAccent(color),
+              customBorder: const CircleBorder(),
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: color,
                 ),
+                child: isSelected
+                    ? const Icon(
+                  Icons.check_rounded,
+                  color: Colors.white,
+                  size: 18,
+                )
+                    : null,
+              ),
+            );
+          }),
+          InkWell(
+            onTap: _showRgbAccentDialog,
+            customBorder: const CircleBorder(),
+            child: Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: colors.surfaceSoft,
+              ),
+              child: Icon(
+                Icons.tune_rounded,
+                size: 18,
+                color: colors.primary,
               ),
             ),
-          );
-        }).toList(),
+          ),
+        ],
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final colors = WildColors.of(context);
     final label = widget.isGuest ? 'Гость' : widget.userLogin;
 
-    return SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.screen,
-          20,
-          AppSpacing.screen,
-          116,
-        ),
-        children: [
-          const WildPageHeader(
-            title: 'Настройки',
-            padding: EdgeInsets.zero,
+    return ColoredBox(
+      color: colors.background,
+      child: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.screen,
+            20,
+            AppSpacing.screen,
+            116,
           ),
-          const SizedBox(height: 18),
-          _section(
-            title: 'Аккаунт',
-            children: [
-              _row(
-                icon: widget.isGuest
-                    ? Icons.cloud_off_rounded
-                    : Icons.cloud_done_outlined,
-                title: label,
-                subtitle: widget.isGuest
-                    ? 'Офлайн-режим'
-                    : 'Аккаунт геопортала',
-              ),
-              _divider(),
-              _row(
-                icon: Icons.logout_rounded,
-                title: 'Выйти',
-                color: AppColors.danger,
-                onTap: _logout,
-              ),
-            ],
-          ),
-          _section(
-            title: 'Внешний вид',
-            children: [
-              _switchRow(
-                icon: Icons.dark_mode_outlined,
-                title: 'Тёмная тема',
-                subtitle: 'Заготовка для будущего переключения темы',
-                value: _darkTheme,
-                onChanged: (value) => setState(() => _darkTheme = value),
-              ),
-              _divider(),
-              _row(
-                icon: Icons.palette_outlined,
-                title: 'Акцент приложения',
-                subtitle: 'Выбранный цвет будет использоваться после подключения общей темы',
-              ),
-              _accentPicker(),
-            ],
-          ),
-          _section(
-            title: 'Полевой режим',
-            children: [
-              _row(
-                icon: Icons.gps_fixed_rounded,
-                title: 'Точность координат',
-                subtitle:
-                'Сейчас: ±${LocationAccuracySettings.formatMeters(_targetAccuracyMeters)} м. Чем точнее, тем дольше ожидание.',
-                trailing: const Icon(
-                  Icons.chevron_right_rounded,
-                  color: AppColors.muted,
+          children: [
+            const WildPageHeader(
+              title: 'Настройки',
+              padding: EdgeInsets.zero,
+            ),
+            const SizedBox(height: 18),
+            _section(
+              title: 'Аккаунт',
+              children: [
+                _row(
+                  icon: widget.isGuest
+                      ? Icons.cloud_off_rounded
+                      : Icons.cloud_done_outlined,
+                  title: label,
+                  subtitle: widget.isGuest
+                      ? 'Офлайн-режим'
+                      : 'Аккаунт геопортала',
                 ),
-                onTap: _showLocationAccuracyDialog,
-              ),
-              _divider(),
-              _switchRow(
-                icon: Icons.contrast_rounded,
-                title: 'Автоконтрастность',
-                subtitle: 'Будет повышать читаемость интерфейса на ярком солнце',
-                value: _autoContrast,
-                onChanged: (value) => setState(() => _autoContrast = value),
-              ),
-              _divider(),
-              _switchRow(
-                icon: Icons.wb_sunny_outlined,
-                title: 'Автояркость',
-                subtitle: 'Заготовка для управления яркостью после реализации датчиков',
-                value: _autoBrightness,
-                onChanged: (value) => setState(() => _autoBrightness = value),
-              ),
-            ],
-          ),
-          _section(
-            title: 'Приложение',
-            children: [
-              _row(
-                icon: Icons.info_outline_rounded,
-                title: 'Справка и версия',
-                subtitle: 'Версия $_version',
-                trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.muted),
-                onTap: _showAbout,
-              ),
-              _divider(),
-              _row(
-                icon: Icons.star_outline_rounded,
-                title: 'Оценить приложение',
-                trailing: const Icon(Icons.open_in_new_rounded, color: AppColors.muted),
-                onTap: _rateApp,
-              ),
-            ],
-          ),
-        ],
+                _divider(),
+                _row(
+                  icon: Icons.logout_rounded,
+                  title: 'Выйти',
+                  color: colors.danger,
+                  onTap: _logout,
+                ),
+              ],
+            ),
+            _section(
+              title: 'Внешний вид',
+              children: [
+                _switchRow(
+                  icon: Icons.dark_mode_outlined,
+                  title: 'Тёмная тема',
+                  subtitle: 'Переключает светлое и тёмное оформление',
+                  value: _darkTheme,
+                  onChanged: _setDarkTheme,
+                ),
+                _divider(),
+                _row(
+                  icon: Icons.palette_outlined,
+                  title: 'Акцент приложения',
+                  subtitle: 'Цвет фона, кнопок, полей и нижнего меню',
+                  trailing: Icon(
+                    Icons.chevron_right_rounded,
+                    color: colors.muted,
+                  ),
+                  onTap: _showRgbAccentDialog,
+                ),
+                _accentPicker(),
+              ],
+            ),
+            _section(
+              title: 'Полевой режим',
+              children: [
+                _row(
+                  icon: Icons.gps_fixed_rounded,
+                  title: 'Точность координат',
+                  subtitle:
+                  'Сейчас: ±${LocationAccuracySettings.formatMeters(_targetAccuracyMeters)} м. Чем точнее, тем дольше ожидание.',
+                  trailing: Icon(
+                    Icons.chevron_right_rounded,
+                    color: colors.muted,
+                  ),
+                  onTap: _showLocationAccuracyDialog,
+                ),
+                _divider(),
+                _switchRow(
+                  icon: Icons.contrast_rounded,
+                  title: 'Автоконтрастность',
+                  subtitle: _darkTheme
+                      ? 'Недоступна в тёмной теме'
+                      : 'Делает белые части светлее, а основной и вторичный текст темнее',
+                  value: _darkTheme ? false : _autoContrast,
+                  onChanged: _darkTheme ? null : _setAutoContrast,
+                ),
+                _divider(),
+                _switchRow(
+                  icon: Icons.wb_sunny_outlined,
+                  title: 'Автояркость',
+                  subtitle: 'При включении поднимает яркость экрана приложения до максимума',
+                  value: _autoBrightness,
+                  onChanged: _setAutoBrightness,
+                ),
+              ],
+            ),
+            _section(
+              title: 'Приложение',
+              children: [
+                _row(
+                  icon: Icons.info_outline_rounded,
+                  title: 'Справка и версия',
+                  subtitle: 'Версия $_version',
+                  trailing: Icon(
+                    Icons.chevron_right_rounded,
+                    color: colors.muted,
+                  ),
+                  onTap: _showAbout,
+                ),
+                _divider(),
+                _row(
+                  icon: Icons.star_outline_rounded,
+                  title: 'Оценить приложение',
+                  trailing: Icon(
+                    Icons.open_in_new_rounded,
+                    color: colors.muted,
+                  ),
+                  onTap: _rateApp,
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

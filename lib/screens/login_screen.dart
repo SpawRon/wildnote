@@ -32,15 +32,15 @@ class _LoginScreenState extends State<LoginScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Доступ к системе'),
-        content: const Text(
+        title: Text('Доступ к системе'),
+        content: Text(
           'Авторизация происходит через единую систему геопортала МАУ.\n\n'
               'Для получения логина и пароля обратитесь к руководителю практики или администратору кафедры ИТ.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Понятно'),
+            child: Text('Понятно'),
           ),
         ],
       ),
@@ -147,14 +147,14 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: WildColors.of(context).background,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpacing.screen),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 30),
+              SizedBox(height: 30),
               Center(
                 child: Container(
                   width: MediaQuery.of(context).size.width * 0.7,
@@ -169,43 +169,43 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: SvgPicture.asset(
                       'assets/mlogo.svg',
                       fit: BoxFit.contain,
-                      colorFilter: const ColorFilter.mode(
-                        AppColors.primary,
+                      colorFilter: ColorFilter.mode(
+                        WildColors.of(context).primary,
                         BlendMode.srcIn,
                       ),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 28),
-              const Text(
+              SizedBox(height: 28),
+              Text(
                 'Добро\nпожаловать',
                 style: TextStyle(
                   fontSize: 38,
                   fontWeight: FontWeight.w900,
                   height: 1.05,
-                  color: AppColors.primaryDark,
+                  color: WildColors.of(context).primaryDark,
                 ),
               ),
-              const SizedBox(height: 12),
-              const Text(
+              SizedBox(height: 12),
+              Text(
                 'Полевые наблюдения редких растений и отправка данных на геопортал МАУ.',
-                style: TextStyle(fontSize: 16, height: 1.35, color: AppColors.muted),
+                style: TextStyle(fontSize: 16, height: 1.35, color: WildColors.of(context).muted),
               ),
-              const SizedBox(height: 34),
+              SizedBox(height: 34),
               TextField(
                 controller: _loginController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   prefixIcon: Icon(Icons.person_outline),
                   hintText: 'Логин',
                 ),
               ),
-              const SizedBox(height: 14),
+              SizedBox(height: 14),
               TextField(
                 controller: _passwordController,
                 obscureText: _obscurePassword,
                 decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.lock_outline),
+                  prefixIcon: Icon(Icons.lock_outline),
                   hintText: 'Пароль',
                   suffixIcon: IconButton(
                     onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
@@ -213,32 +213,32 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton.icon(
                   onPressed: () => _showAccountInfoDialog(context),
-                  icon: const Icon(Icons.help_outline, size: 18),
-                  label: const Text('Доступ'),
+                  icon: Icon(Icons.help_outline, size: 18),
+                  label: Text('Доступ'),
                 ),
               ),
-              const SizedBox(height: 14),
+              SizedBox(height: 14),
               ElevatedButton.icon(
                 onPressed: _isLoading ? null : _login,
                 icon: _isLoading
-                    ? const SizedBox(
+                    ? SizedBox(
                   width: 20,
                   height: 20,
                   child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                 )
-                    : const Icon(Icons.login),
+                    : Icon(Icons.login),
                 label: Text(_isLoading ? 'Вход...' : 'Войти'),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               OutlinedButton.icon(
                 onPressed: _isLoading ? null : _loginAsGuest,
-                icon: const Icon(Icons.cloud_off_outlined),
-                label: const Text('Гостевой режим'),
+                icon: Icon(Icons.cloud_off_outlined),
+                label: Text('Гостевой режим'),
               ),
             ],
           ),

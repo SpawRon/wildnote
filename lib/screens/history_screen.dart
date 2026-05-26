@@ -142,7 +142,7 @@ class HistoryScreenState extends State<HistoryScreen> {
       case ObservationStatus.synced:
         return AppColors.success;
       case ObservationStatus.queued:
-        return AppColors.muted;
+        return WildColors.of(context).muted;
       case ObservationStatus.error:
         return AppColors.danger;
       default:
@@ -191,7 +191,7 @@ class HistoryScreenState extends State<HistoryScreen> {
       context: context,
       builder: (context) {
         return Dialog(
-          backgroundColor: AppColors.surface,
+          backgroundColor: WildColors.of(context).surface,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.card)),
           insetPadding: const EdgeInsets.symmetric(horizontal: 24),
           child: Padding(
@@ -200,29 +200,29 @@ class HistoryScreenState extends State<HistoryScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Очистить историю',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w900,
-                    color: AppColors.primaryDark,
+                    color: WildColors.of(context).primaryDark,
                   ),
                 ),
-                const SizedBox(height: 10),
-                const Text(
+                SizedBox(height: 10),
+                Text(
                   'Выберите, где удалить записи.',
-                  style: TextStyle(color: AppColors.muted),
+                  style: TextStyle(color: WildColors.of(context).muted),
                 ),
-                const SizedBox(height: 22),
+                SizedBox(height: 22),
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => Navigator.pop(context),
-                        child: const Text('Отмена'),
+                        child: Text('Отмена'),
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    SizedBox(width: 10),
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => Navigator.pop(context, _ClearHistoryMode.localOnly),
@@ -232,7 +232,7 @@ class HistoryScreenState extends State<HistoryScreen> {
                   ],
                 ),
                 if (!widget.isGuest) ...[
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(
@@ -243,8 +243,8 @@ class HistoryScreenState extends State<HistoryScreen> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.medium)),
                         minimumSize: const Size.fromHeight(48),
                       ),
-                      icon: const Icon(Icons.delete_forever_rounded),
-                      label: const Text('Удалить у себя и на геопортале'),
+                      icon: Icon(Icons.delete_forever_rounded),
+                      label: Text('Удалить у себя и на геопортале'),
                     ),
                   ),
                 ],
@@ -306,7 +306,7 @@ class HistoryScreenState extends State<HistoryScreen> {
     return Tooltip(
       message: tooltip,
       child: Material(
-        color: AppColors.surface,
+        color: WildColors.of(context).surface,
         borderRadius: BorderRadius.circular(18),
         child: InkWell(
           onTap: onPressed,
@@ -317,7 +317,7 @@ class HistoryScreenState extends State<HistoryScreen> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(18),
             ),
-            child: Icon(icon, color: onPressed == null ? AppColors.muted.withValues(alpha: 0.5) : color ?? AppColors.primaryDark),
+            child: Icon(icon, color: onPressed == null ? WildColors.of(context).muted.withValues(alpha: 0.5) : color ?? WildColors.of(context).primaryDark),
           ),
         ),
       ),
@@ -330,7 +330,7 @@ class HistoryScreenState extends State<HistoryScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: WildColors.of(context).surface,
         borderRadius: BorderRadius.circular(22),
       ),
       child: Row(
@@ -339,12 +339,12 @@ class HistoryScreenState extends State<HistoryScreen> {
           Icon(
             widget.isGuest ? Icons.cloud_off_rounded : Icons.cloud_done_outlined,
             size: 17,
-            color: AppColors.primary,
+            color: WildColors.of(context).primary,
           ),
-          const SizedBox(width: 6),
+          SizedBox(width: 6),
           Text(
             label,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.primaryDark),
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: WildColors.of(context).primaryDark),
           ),
 
         ],
@@ -367,9 +367,9 @@ class HistoryScreenState extends State<HistoryScreen> {
     final placeholder = Container(
       width: width,
       height: height,
-      color: AppColors.surfaceSoft,
+      color: WildColors.of(context).surfaceSoft,
       alignment: Alignment.center,
-      child: const Icon(Icons.image_outlined, color: AppColors.muted),
+      child: Icon(Icons.image_outlined, color: WildColors.of(context).muted),
     );
 
     final cacheWidth = width == null ? null : (width * 3).round();
@@ -582,7 +582,7 @@ class HistoryScreenState extends State<HistoryScreen> {
                     borderRadius: BorderRadius.circular(16),
                     child: _buildImage(firstPhoto, width: 76, height: 76),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   Expanded(
                     child: SizedBox(
                       height: 76,
@@ -593,18 +593,18 @@ class HistoryScreenState extends State<HistoryScreen> {
                             title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w900,
-                              color: AppColors.primaryDark,
+                              color: WildColors.of(context).primaryDark,
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          SizedBox(height: 4),
                           Text(
                             _formatDate(item['created_at'] as String?),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: AppColors.muted,
+                              color: WildColors.of(context).muted,
                             ),
                           ),
                           const Spacer(),
@@ -615,7 +615,7 @@ class HistoryScreenState extends State<HistoryScreen> {
                                 size: 17,
                                 color: _statusColor(status),
                               ),
-                              const SizedBox(width: 6),
+                              SizedBox(width: 6),
                               Text(
                                 _statusText(status),
                                 style: TextStyle(
@@ -625,18 +625,18 @@ class HistoryScreenState extends State<HistoryScreen> {
                                 ),
                               ),
                               if (photos.isNotEmpty) ...[
-                                const SizedBox(width: 10),
-                                const Icon(
+                                SizedBox(width: 10),
+                                Icon(
                                   Icons.photo_library_outlined,
                                   size: 16,
-                                  color: AppColors.muted,
+                                  color: WildColors.of(context).muted,
                                 ),
-                                const SizedBox(width: 4),
+                                SizedBox(width: 4),
                                 Text(
                                   '${photos.length}',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 12,
-                                    color: AppColors.muted,
+                                    color: WildColors.of(context).muted,
                                   ),
                                 ),
                               ],
@@ -646,18 +646,18 @@ class HistoryScreenState extends State<HistoryScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 6),
+                  SizedBox(width: 6),
                   Column(
                     children: [
                       if (!widget.isGuest && !remoteOnly && status != ObservationStatus.synced)
                         IconButton(
                           onPressed: _isBusy ? null : () => _sendOne(item['id'] as int),
-                          icon: const Icon(Icons.cloud_upload_outlined),
+                          icon: Icon(Icons.cloud_upload_outlined),
                           tooltip: 'Отправить',
                         ),
                       IconButton(
                         onPressed: _isBusy ? null : () => _deleteObservation(item),
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.delete_outline_rounded,
                           color: AppColors.danger,
                         ),
@@ -681,11 +681,11 @@ class HistoryScreenState extends State<HistoryScreen> {
                 syncError,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 11, color: AppColors.danger),
+                style: TextStyle(fontSize: 11, color: AppColors.danger),
               ),
             ),
           ),
-        const Divider(height: 1, color: AppColors.border),
+        Divider(height: 1, color: WildColors.of(context).border),
       ],
     );
   }
@@ -710,9 +710,9 @@ class HistoryScreenState extends State<HistoryScreen> {
                     icon: _isBusy ? Icons.hourglass_top_rounded : Icons.cloud_upload_outlined,
                     onPressed: _isBusy ? null : _sendAll,
                     tooltip: 'Отправить всё',
-                    color: AppColors.primary,
+                    color: WildColors.of(context).primary,
                   ),
-                  const SizedBox(width: 10),
+                  SizedBox(width: 10),
                 ],
                 _buildTopIconButton(
                   icon: Icons.delete_sweep_outlined,
@@ -720,34 +720,34 @@ class HistoryScreenState extends State<HistoryScreen> {
                   tooltip: 'Очистить всё',
                   color: AppColors.danger,
                 ),
-                const SizedBox(width: 10),
+                SizedBox(width: 10),
                 _buildTopIconButton(
                   icon: Icons.description_outlined,
                   onPressed: _openDeveloperLog,
                   tooltip: 'Лог приложения',
-                  color: AppColors.primaryDark,
+                  color: WildColors.of(context).primaryDark,
                 ),
                 const Spacer(),
                 _buildTopIconButton(
                   icon: Icons.refresh_rounded,
                   onPressed: _isBusy ? null : reload,
                   tooltip: 'Обновить',
-                  color: AppColors.primaryDark,
+                  color: WildColors.of(context).primaryDark,
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? Center(child: CircularProgressIndicator())
                 : _observations.isEmpty
-                ? const Center(
+                ? Center(
               child: Padding(
                 padding: EdgeInsets.all(24),
                 child: Text(
                   'Записей пока нет',
-                  style: TextStyle(fontSize: 16, color: AppColors.muted),
+                  style: TextStyle(fontSize: 16, color: WildColors.of(context).muted),
                 ),
               ),
             )
@@ -883,7 +883,7 @@ $log
         child: ClipRRect(
           borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadius.sheet)),
           child: Material(
-            color: AppColors.surface,
+            color: WildColors.of(context).surface,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
               child: Column(
@@ -893,51 +893,51 @@ $log
                     height: 4,
                     margin: const EdgeInsets.only(bottom: 12),
                     decoration: BoxDecoration(
-                      color: AppColors.muted.withValues(alpha: 0.45),
+                      color: WildColors.of(context).muted.withValues(alpha: 0.45),
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   Row(
                     children: [
-                      const Expanded(
+                      Expanded(
                         child: Text(
                           'Лог приложения',
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.primaryDark),
+                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: WildColors.of(context).primaryDark),
                         ),
                       ),
-                      IconButton(onPressed: _reload, icon: const Icon(Icons.refresh), tooltip: 'Обновить'),
-                      IconButton(onPressed: () => Navigator.of(context).pop(), icon: const Icon(Icons.close), tooltip: 'Закрыть'),
+                      IconButton(onPressed: _reload, icon: Icon(Icons.refresh), tooltip: 'Обновить'),
+                      IconButton(onPressed: () => Navigator.of(context).pop(), icon: Icon(Icons.close), tooltip: 'Закрыть'),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   Row(
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: _copyLog,
-                          icon: const Icon(Icons.copy),
-                          label: const Text('Copy'),
+                          icon: Icon(Icons.copy),
+                          label: Text('Copy'),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: _openGithubIssue,
-                          icon: const Icon(Icons.bug_report_outlined),
-                          label: const Text('Проблема'),
+                          icon: Icon(Icons.bug_report_outlined),
+                          label: Text('Проблема'),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      IconButton(onPressed: _clearLog, icon: const Icon(Icons.delete_sweep_outlined), tooltip: 'Очистить лог'),
+                      SizedBox(width: 8),
+                      IconButton(onPressed: _clearLog, icon: Icon(Icons.delete_sweep_outlined), tooltip: 'Очистить лог'),
                     ],
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
                   Expanded(
                     child: FutureBuilder<String>(
                       future: _logFuture,
                       builder: (context, snapshot) {
                         if (snapshot.connectionState != ConnectionState.done) {
-                          return const Center(child: CircularProgressIndicator());
+                          return Center(child: CircularProgressIndicator());
                         }
 
                         if (snapshot.hasError) {
@@ -951,13 +951,13 @@ $log
                           width: double.infinity,
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: AppColors.surfaceSoft,
+                            color: WildColors.of(context).surfaceSoft,
                             borderRadius: BorderRadius.circular(AppRadius.medium),
                           ),
                           child: SingleChildScrollView(
                             child: SelectableText(
                               log,
-                              style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
+                              style: TextStyle(fontFamily: 'monospace', fontSize: 11),
                             ),
                           ),
                         );

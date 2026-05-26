@@ -158,12 +158,12 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
     final placeholder = Container(
       width: width,
       height: height,
-      color: AppColors.surfaceSoft,
+      color: WildColors.of(context).surfaceSoft,
       alignment: Alignment.center,
       child: Icon(
         placeholderIcon,
         size: width != null && width < 90 ? 23 : 54,
-        color: AppColors.muted,
+        color: WildColors.of(context).muted,
       ),
     );
 
@@ -268,7 +268,7 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
     return Tooltip(
       message: tooltip ?? '',
       child: Material(
-        color: AppColors.surface.withValues(alpha: 0.96),
+        color: WildColors.of(context).surface.withValues(alpha: 0.96),
         shape: const CircleBorder(),
         child: InkWell(
           onTap: onTap,
@@ -276,7 +276,7 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
           child: SizedBox(
             width: 42,
             height: 42,
-            child: Icon(icon, size: 22, color: AppColors.primaryDark),
+            child: Icon(icon, size: 22, color: WildColors.of(context).primaryDark),
           ),
         ),
       ),
@@ -290,12 +290,12 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
       }) {
     if (photos.isEmpty) {
       return Container(
-        color: AppColors.surfaceSoft,
+        color: WildColors.of(context).surfaceSoft,
         alignment: Alignment.center,
-        child: const Icon(
+        child: Icon(
           Icons.image_outlined,
           size: 72,
-          color: AppColors.muted,
+          color: WildColors.of(context).muted,
         ),
       );
     }
@@ -368,8 +368,8 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
                 height: 8,
                 decoration: BoxDecoration(
                   color: selected
-                      ? AppColors.surface
-                      : AppColors.surface.withValues(alpha: 0.45),
+                      ? WildColors.of(context).surface
+                      : WildColors.of(context).surface.withValues(alpha: 0.45),
                   borderRadius: BorderRadius.circular(999),
                 ),
               ),
@@ -381,14 +381,14 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
   }
 
   Widget _badge(ObservationDetailBadge badge) {
-    final color = badge.color ?? AppColors.muted;
+    final color = badge.color ?? WildColors.of(context).muted;
     final text = badge.text.trim().isEmpty ? '—' : badge.text.trim();
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(badge.icon, size: 15, color: color),
-        const SizedBox(width: 5),
+        SizedBox(width: 5),
         Text(
           text,
           style: TextStyle(
@@ -409,7 +409,7 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
           height: 1,
           width: double.infinity,
           margin: const EdgeInsets.symmetric(horizontal: 18),
-          color: AppColors.border.withValues(alpha: 0.72),
+          color: WildColors.of(context).border.withValues(alpha: 0.72),
         ),
       ),
     );
@@ -428,16 +428,16 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
               width: 54,
               height: 54,
               decoration: BoxDecoration(
-                color: AppColors.softGreen,
+                color: WildColors.of(context).softGreen,
                 borderRadius: BorderRadius.circular(18),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.local_florist_rounded,
-                color: AppColors.primary,
+                color: WildColors.of(context).primary,
                 size: 30,
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -448,15 +448,15 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
                         : widget.data.title.trim(),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 23,
                       height: 1.08,
                       fontWeight: FontWeight.w900,
-                      color: AppColors.primaryDark,
+                      color: WildColors.of(context).primaryDark,
                     ),
                   ),
                   if (widget.data.badges.isNotEmpty) ...[
-                    const SizedBox(height: 9),
+                    SizedBox(height: 9),
                     Wrap(
                       spacing: 12,
                       runSpacing: 7,
@@ -469,13 +469,13 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
           ],
         ),
         if (description != null && description.isNotEmpty) ...[
-          const SizedBox(height: 15),
+          SizedBox(height: 15),
           Text(
             description,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               height: 1.34,
-              color: AppColors.primaryDark,
+              color: WildColors.of(context).primaryDark,
             ),
           ),
         ],
@@ -496,19 +496,19 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
         _thinDivider(),
         Row(
           children: [
-            Icon(icon, size: 22, color: AppColors.primary),
-            const SizedBox(width: 10),
+            Icon(icon, size: 22, color: WildColors.of(context).primary),
+            SizedBox(width: 10),
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w900,
-                color: AppColors.primaryDark,
+                color: WildColors.of(context).primaryDark,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 11),
+        SizedBox(height: 11),
         ...rows.map(
               (row) => Padding(
             padding: const EdgeInsets.only(bottom: 9),
@@ -519,24 +519,24 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
                   flex: 5,
                   child: Text(
                     row.key,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       height: 1.2,
-                      color: AppColors.muted,
+                      color: WildColors.of(context).muted,
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Expanded(
                   flex: 6,
                   child: Text(
                     row.value,
                     textAlign: TextAlign.right,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       height: 1.2,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.primaryDark,
+                      color: WildColors.of(context).primaryDark,
                     ),
                   ),
                 ),
@@ -569,7 +569,7 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
     await showMenu<void>(
       context: buttonContext,
       position: RelativeRect.fromRect(buttonRect, Offset.zero & overlay.size),
-      color: AppColors.surface,
+      color: WildColors.of(context).surface,
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.medium),
@@ -583,15 +583,15 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Техническая информация',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w900,
-                    color: AppColors.primaryDark,
+                    color: WildColors.of(context).primaryDark,
                   ),
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 ...widget.data.technicalRows.map(
                       (row) => Padding(
                     padding: const EdgeInsets.only(bottom: 8),
@@ -601,21 +601,21 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
                         Expanded(
                           child: Text(
                             row.key,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: AppColors.muted,
+                              color: WildColors.of(context).muted,
                             ),
                           ),
                         ),
-                        const SizedBox(width: 10),
+                        SizedBox(width: 10),
                         Expanded(
                           child: Text(
                             row.value,
                             textAlign: TextAlign.right,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w800,
-                              color: AppColors.primaryDark,
+                              color: WildColors.of(context).primaryDark,
                             ),
                           ),
                         ),
@@ -824,8 +824,8 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
                 builder: (context, scrollController) {
                   return RepaintBoundary(
                     child: DecoratedBox(
-                      decoration: const BoxDecoration(
-                        color: AppColors.surface,
+                      decoration: BoxDecoration(
+                        color: WildColors.of(context).surface,
                         borderRadius: BorderRadius.vertical(
                           top: Radius.circular(34),
                         ),
@@ -876,7 +876,7 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
       _precacheVisiblePhotos(widget.data.photos);
 
       return Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: WildColors.of(context).background,
         body: _body(widget.data.photos),
       );
     }
@@ -900,7 +900,7 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
         }
 
         return Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor: WildColors.of(context).background,
           body: _body(photos),
         );
       },

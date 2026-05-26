@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 
 import 'screens/login_screen.dart';
 import 'screens/main_home_screen.dart';
+import 'services/app_appearance_settings.dart';
 import 'services/app_logger.dart';
+import 'services/device_brightness_service.dart';
 import 'services/session_manager.dart';
 import 'theme/app_theme.dart';
 
@@ -15,7 +17,7 @@ Future<void> main() async {
   try {
     await AppLogger.instance.init().timeout(const Duration(seconds: 2));
   } catch (_) {
-    // логгер не должен блокировать запуск
+    // Логгер не должен блокировать запуск.
   }
 
   FlutterError.onError = (FlutterErrorDetails details) {
@@ -54,22 +56,70 @@ Future<void> main() async {
   );
 }
 
-class WildNoteApp extends StatelessWidget {
+class WildNoteApp extends StatefulWidget {
   const WildNoteApp({super.key});
 
   @override
+  State<WildNoteApp> createState() => _WildNoteAppState();
+}
+
+class _WildNoteAppState extends State<WildNoteApp> {
+  final AppAppearanceController _appearanceController =
+      AppAppearance.controller;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _appearanceController.addListener(_applyDeviceBrightness);
+    unawaited(_appearanceController.load());
+  }
+
+  void _applyDeviceBrightness() {
+    unawaited(
+      DeviceBrightnessService.instance.applyAutoBrightness(
+        _appearanceController.autoBrightness,
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _appearanceController.removeListener(_applyDeviceBrightness);
+    unawaited(DeviceBrightnessService.instance.applyAutoBrightness(false));
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'WildNote',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      home: const _StartupGate(),
+    return AnimatedBuilder(
+      animation: _appearanceController,
+      builder: (context, _) {
+        final data = _appearanceController.data;
+
+        return MaterialApp(
+          title: 'WildNote',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.build(
+            brightness: data.darkTheme ? Brightness.dark : Brightness.light,
+            accent: data.accentColor,
+            highContrast: data.autoContrast,
+          ),
+          home: _StartupGate(
+            appearanceController: _appearanceController,
+          ),
+        );
+      },
     );
   }
 }
 
 class _StartupGate extends StatefulWidget {
-  const _StartupGate();
+  final AppAppearanceController appearanceController;
+
+  const _StartupGate({
+    required this.appearanceController,
+  });
 
   @override
   State<_StartupGate> createState() => _StartupGateState();
@@ -133,6 +183,7 @@ class _StartupGateState extends State<_StartupGate> {
         return MainHomeScreen(
           isGuest: session.isGuest,
           userLogin: session.userLogin,
+          appearanceController: widget.appearanceController,
         );
       },
     );

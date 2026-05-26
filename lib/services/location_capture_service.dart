@@ -19,8 +19,8 @@ class PreciseLocationConfig {
 
   const PreciseLocationConfig({
     this.maxAcceptedAccuracyMeters = 60,
-    this.acceptableSaveAccuracyMeters = 35,
-    this.targetAccuracyMeters = 10,
+    this.acceptableSaveAccuracyMeters = LocationAccuracySettings.defaultTargetAccuracyMeters,
+    this.targetAccuracyMeters = LocationAccuracySettings.defaultTargetAccuracyMeters,
     this.minSamples = 3,
     this.maxBestPointsUsed = 6,
     this.requestTimeout = const Duration(seconds: 3),

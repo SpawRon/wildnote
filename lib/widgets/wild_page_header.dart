@@ -27,6 +27,8 @@ class WildPageHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = WildColors.of(context);
+
     return Padding(
       padding: padding,
       child: ConstrainedBox(
@@ -41,11 +43,11 @@ class WildPageHeader extends StatelessWidget {
                 title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 28,
                   height: 1.05,
                   fontWeight: FontWeight.w900,
-                  color: AppColors.primaryDark,
+                  color: colors.primaryDark,
                 ),
               ),
             ),
