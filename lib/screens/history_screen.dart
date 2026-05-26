@@ -35,23 +35,6 @@ class HistoryScreenState extends State<HistoryScreen> {
   bool _isLoading = true;
   bool _isBusy = false;
 
-  static const Map<String, String> _attributeLabels = {
-    PlantAttributeKeys.identificationStatus: 'Статус определения',
-    PlantAttributeKeys.habitat: 'Местообитание',
-    PlantAttributeKeys.soilType: 'Тип почвы',
-    PlantAttributeKeys.moisture: 'Увлажнение',
-    PlantAttributeKeys.lightCondition: 'Освещенность',
-    PlantAttributeKeys.lifeStage: 'Жизненная стадия',
-    PlantAttributeKeys.phenophase: 'Фенологическая фаза',
-    PlantAttributeKeys.plantCondition: 'Состояние растения',
-    PlantAttributeKeys.abundanceCategory: 'Категория численности',
-    PlantAttributeKeys.individualCount: 'Количество особей',
-    PlantAttributeKeys.areaOccupied: 'Площадь участка, м²',
-    PlantAttributeKeys.anthropogenicImpact: 'Антропогенное воздействие',
-    PlantAttributeKeys.threatFactor: 'Угрожающий фактор',
-    PlantAttributeKeys.protectionStatus: 'Охранный статус',
-  };
-
   @override
   void initState() {
     super.initState();
@@ -334,7 +317,7 @@ class HistoryScreenState extends State<HistoryScreen> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(18),
             ),
-            child: Icon(icon, color: onPressed == null ? AppColors.muted.withOpacity(0.5) : color ?? AppColors.primaryDark),
+            child: Icon(icon, color: onPressed == null ? AppColors.muted.withValues(alpha: 0.5) : color ?? AppColors.primaryDark),
           ),
         ),
       ),
@@ -403,7 +386,7 @@ class HistoryScreenState extends State<HistoryScreen> {
         cacheHeight: cacheHeight,
         filterQuality: FilterQuality.low,
         gaplessPlayback: true,
-        errorBuilder: (_, __, ___) => placeholder,
+        errorBuilder: (context, error, stackTrace) => placeholder,
       );
     }
 
@@ -515,47 +498,6 @@ class HistoryScreenState extends State<HistoryScreen> {
     return {};
   }
 
-  String _formatAttributeValue(dynamic value) {
-    if (value == null) return '';
-
-    if (value is Iterable) {
-      return value
-          .map((item) => item.toString().trim())
-          .where((item) => item.isNotEmpty && item != 'null')
-          .join(', ');
-    }
-
-    if (value is num) {
-      final number = value.toDouble();
-      if (number.truncateToDouble() == number) return number.toStringAsFixed(0);
-      return number.toString();
-    }
-
-    final text = value.toString().trim();
-    if (text == 'null') return '';
-
-    if (text.startsWith('[') && text.endsWith(']')) {
-      final clean = text.substring(1, text.length - 1).trim();
-      if (clean.isEmpty) return '';
-      return clean.split(',').map((item) => item.trim()).where((item) => item.isNotEmpty).join(', ');
-    }
-
-    return text;
-  }
-
-  List<MapEntry<String, String>> _attributeRows(Map<String, dynamic> item, List<String> keys) {
-    final attributes = _attributesFor(item);
-    final rows = <MapEntry<String, String>>[];
-
-    for (final key in keys) {
-      final value = _formatAttributeValue(attributes[key]);
-      if (value.isEmpty) continue;
-      rows.add(MapEntry(_attributeLabels[key] ?? key, value));
-    }
-
-    return rows;
-  }
-
   void _openObservationDetails(Map<String, dynamic> item) {
     final photos = _photoPaths(item);
     final status = _asInt(item['status']) ?? ObservationStatus.localOnly;
@@ -604,275 +546,6 @@ class HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  Widget _buildDetailPhotoBlock(List<String> photos) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(30),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: [
-          AspectRatio(
-            aspectRatio: 1.15,
-            child: photos.isEmpty
-                ? Container(
-              color: AppColors.surfaceSoft,
-              alignment: Alignment.center,
-              child: const Icon(Icons.image_outlined, size: 54, color: AppColors.muted),
-            )
-                : PageView.builder(
-              itemCount: photos.length,
-              itemBuilder: (context, index) => _buildImage(photos[index], fit: BoxFit.cover),
-            ),
-          ),
-          Container(
-            height: 86,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-            color: AppColors.surfaceSoft,
-            child: Row(
-              children: [
-                Container(
-                  width: 58,
-                  height: 58,
-                  decoration: BoxDecoration(
-                    color: AppColors.softGreen,
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: const Icon(Icons.photo_library_outlined, color: AppColors.primary, size: 30),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: photos.isEmpty
-                      ? const Text('Фотографии не прикреплены', style: TextStyle(color: AppColors.muted))
-                      : ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: photos.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 8),
-                    itemBuilder: (context, index) {
-                      return ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: _buildImage(photos[index], width: 58, height: 58),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDetailHeader({
-    required Map<String, dynamic> item,
-    required String title,
-    required int status,
-    required bool isManual,
-    required int photoCount,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 54,
-            height: 54,
-            decoration: BoxDecoration(
-              color: AppColors.softGreen,
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: const Icon(Icons.local_florist_rounded, color: AppColors.primary, size: 30),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.primaryDark),
-                ),
-                const SizedBox(height: 7),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _miniPill(Icons.calendar_month_outlined, _formatDate(item['created_at'] as String?)),
-                    _miniPill(_statusIcon(status), _statusText(status), color: _statusColor(status)),
-                    if (isManual) _miniPill(Icons.edit_location_alt_outlined, 'Ручной ввод'),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Builder(
-            builder: (buttonContext) {
-              return IconButton(
-                tooltip: 'Техническая информация',
-                onPressed: () => _showTechnicalInfoPopup(
-                  buttonContext: buttonContext,
-                  item: item,
-                  photoCount: photoCount,
-                ),
-                icon: const Icon(Icons.info_outline_rounded),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _miniPill(IconData icon, String text, {Color? color}) {
-    final effective = color ?? AppColors.muted;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-      decoration: BoxDecoration(
-        color: effective.withOpacity(0.10),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 15, color: effective),
-          const SizedBox(width: 5),
-          Text(
-            text.isEmpty ? '—' : text,
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: effective),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoCard({required IconData icon, required String title, required Widget child}) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: AppColors.primary, size: 22),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: AppColors.primaryDark)),
-                const SizedBox(height: 6),
-                child,
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAttributeCard({
-    required IconData icon,
-    required String title,
-    required Map<String, dynamic> item,
-    required List<String> keys,
-  }) {
-    final rows = _attributeRows(item, keys);
-    if (rows.isEmpty) return const SizedBox.shrink();
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: _buildInfoCard(
-        icon: icon,
-        title: title,
-        child: Column(
-          children: rows.map((row) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 4,
-                    child: Text(row.key, style: const TextStyle(fontSize: 12, color: AppColors.muted)),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    flex: 5,
-                    child: Text(
-                      row.value,
-                      textAlign: TextAlign.right,
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.primaryDark),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _showTechnicalInfoPopup({
-    required BuildContext buttonContext,
-    required Map<String, dynamic> item,
-    required int photoCount,
-  }) async {
-    final buttonBox = buttonContext.findRenderObject() as RenderBox?;
-    final overlay = Navigator.of(buttonContext).overlay?.context.findRenderObject() as RenderBox?;
-
-    if (buttonBox == null || overlay == null) return;
-
-    final buttonRect = Rect.fromPoints(
-      buttonBox.localToGlobal(Offset.zero, ancestor: overlay),
-      buttonBox.localToGlobal(buttonBox.size.bottomRight(Offset.zero), ancestor: overlay),
-    );
-
-    final position = RelativeRect.fromRect(buttonRect, Offset.zero & overlay.size);
-
-    await showMenu<void>(
-      context: buttonContext,
-      position: position,
-      color: AppColors.surface,
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.medium)),
-      items: [
-        PopupMenuItem<void>(
-          enabled: false,
-          padding: const EdgeInsets.all(14),
-          child: SizedBox(
-            width: 285,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Техническая информация',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: AppColors.primaryDark),
-                ),
-                const SizedBox(height: 10),
-                _popupRow('Координаты', _formatCoordinates(item)),
-                _popupRow('Точность', _asFiniteDouble(item['accuracy']) == null ? '—' : '±${_asFiniteDouble(item['accuracy'])!.toStringAsFixed(1)} м'),
-                _popupRow('Гаусс X / Y', _gaussText(item)),
-                _popupRow('Фото', photoCount.toString()),
-                _popupRow('ID объекта', _remoteIdText(item)),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   String _gaussText(Map<String, dynamic> item) {
     final x = _asFiniteDouble(item['gauss_x']);
     final y = _asFiniteDouble(item['gauss_y']);
@@ -883,26 +556,6 @@ class HistoryScreenState extends State<HistoryScreen> {
   String _remoteIdText(Map<String, dynamic> item) {
     final value = _asInt(item['remote_feature_id']) ?? _asInt(item['id']);
     return value == null || value <= 0 ? '—' : value.toString();
-  }
-
-  Widget _popupRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(child: Text(label, style: const TextStyle(fontSize: 12, color: AppColors.muted))),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-              style: const TextStyle(fontSize: 12, color: AppColors.primaryDark, fontWeight: FontWeight.w800),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   Widget _buildHistoryCard(Map<String, dynamic> item) {
@@ -1240,7 +893,7 @@ $log
                     height: 4,
                     margin: const EdgeInsets.only(bottom: 12),
                     decoration: BoxDecoration(
-                      color: AppColors.muted.withOpacity(0.45),
+                      color: AppColors.muted.withValues(alpha: 0.45),
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),

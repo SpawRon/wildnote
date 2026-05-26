@@ -33,7 +33,6 @@ class AppTheme {
       seedColor: AppColors.primary,
       brightness: Brightness.light,
       surface: AppColors.surface,
-      background: AppColors.background,
     );
 
     return ThemeData(
@@ -86,7 +85,7 @@ class AppTheme {
           elevation: 0,
           backgroundColor: AppColors.primaryDark,
           foregroundColor: Colors.white,
-          disabledBackgroundColor: AppColors.muted.withOpacity(0.4),
+          disabledBackgroundColor: AppColors.muted.withValues(alpha: 0.4),
           disabledForegroundColor: Colors.white70,
           minimumSize: const Size.fromHeight(54),
           shape: RoundedRectangleBorder(

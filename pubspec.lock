@@ -98,7 +98,7 @@ packages:
     source: hosted
     version: "3.0.7"
   cupertino_icons:
-    dependency: "direct overridden"
+    dependency: "direct main"
     description:
       name: cupertino_icons
       sha256: "41e005c33bd814be4d3096aff55b1908d419fde52ca656c8c47719ec745873cd"
@@ -577,7 +577,7 @@ packages:
     source: hosted
     version: "3.2.1"
   path:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: path
       sha256: "75cca69d1490965be98c73ceaea117e8a04dd21217b37b292c9ddbec0d955bc5"
@@ -673,7 +673,7 @@ packages:
     source: hosted
     version: "6.5.0"
   proj4dart:
-    dependency: "direct overridden"
+    dependency: "direct main"
     description:
       name: proj4dart
       sha256: ddcedc1f7876e62717de43ab3491e2829bdad0b028261805f94aa080967e5859

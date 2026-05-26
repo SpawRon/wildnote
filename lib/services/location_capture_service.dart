@@ -4,6 +4,8 @@ import 'dart:math' as math;
 
 import 'package:geolocator/geolocator.dart';
 
+import 'location_accuracy_settings.dart';
+
 class PreciseLocationConfig {
   final double maxAcceptedAccuracyMeters;
   final double acceptableSaveAccuracyMeters;
@@ -95,6 +97,44 @@ class LocationCaptureService {
   Stream<PreciseLocationProgress> get progressStream => _controller.stream;
   bool get isRunning => _isRunning;
   PreciseLocationProgress? get latestProgress => _latestProgress;
+
+  Future<PreciseLocationConfig> _configFromUserSettings() async {
+    final targetAccuracy =
+    await LocationAccuracySettings.loadTargetAccuracyMeters();
+
+    final maxAcceptedAccuracy =
+    math.max(30.0, targetAccuracy * 3.0).clamp(30.0, 90.0).toDouble();
+
+    final minSamples = targetAccuracy <= 7
+        ? 6
+        : targetAccuracy <= 15
+        ? 4
+        : 3;
+
+    final maxBestPointsUsed = targetAccuracy <= 7
+        ? 10
+        : targetAccuracy <= 15
+        ? 8
+        : 6;
+
+    final maxSessionDuration = targetAccuracy <= 7
+        ? const Duration(seconds: 180)
+        : targetAccuracy <= 15
+        ? const Duration(seconds: 120)
+        : const Duration(seconds: 80);
+
+    return PreciseLocationConfig(
+      maxAcceptedAccuracyMeters: maxAcceptedAccuracy,
+      acceptableSaveAccuracyMeters: targetAccuracy,
+      targetAccuracyMeters: targetAccuracy,
+      minSamples: minSamples,
+      maxBestPointsUsed: maxBestPointsUsed,
+      requestTimeout: const Duration(seconds: 3),
+      requestInterval: const Duration(milliseconds: 600),
+      maxSessionDuration: maxSessionDuration,
+      autoStopWhenTargetReached: true,
+    );
+  }
 
   Future<void> dispose() async {
     _disposed = true;
@@ -285,14 +325,15 @@ class LocationCaptureService {
   }
 
   Future<void> startCapture({
-    PreciseLocationConfig config = const PreciseLocationConfig(),
+    PreciseLocationConfig? config,
     bool reset = false,
   }) async {
     if (_disposed) return;
 
     await ensureLocationReady();
 
-    _activeConfig = config;
+    final effectiveConfig = config ?? await _configFromUserSettings();
+    _activeConfig = effectiveConfig;
 
     if (reset) {
       clearProgress();
@@ -324,7 +365,7 @@ class LocationCaptureService {
 
     _emit(
       _buildProgress(
-        config: config,
+        config: effectiveConfig,
         isRunning: true,
         messageOverride: 'Поиск спутников...',
       ),
@@ -337,12 +378,12 @@ class LocationCaptureService {
 
       if (lastKnown != null &&
           _isFresh(lastKnown) &&
-          _isAccepted(lastKnown, config)) {
+          _isAccepted(lastKnown, effectiveConfig)) {
         _accepted.add(lastKnown);
         _lastAcceptedAt = DateTime.now();
         _emit(
           _buildProgress(
-            config: config,
+            config: effectiveConfig,
             isRunning: true,
             messageOverride:
             'Найдена свежая последняя позиция. Уточняем координаты...',
@@ -355,7 +396,7 @@ class LocationCaptureService {
 
     await _positionSubscription?.cancel();
 
-    final settings = _buildLocationSettings(config);
+    final settings = _buildLocationSettings(effectiveConfig);
     _positionSubscription = Geolocator.getPositionStream(
       locationSettings: settings,
     ).listen(
@@ -364,17 +405,17 @@ class LocationCaptureService {
 
         _lastAnyPositionAt = DateTime.now();
 
-        if (_isAccepted(position, config)) {
+        if (_isAccepted(position, effectiveConfig)) {
           _accepted.add(position);
           _lastAcceptedAt = DateTime.now();
 
           final progress = _buildProgress(
-            config: config,
+            config: effectiveConfig,
             isRunning: true,
           );
           _emit(progress);
 
-          if (config.autoStopWhenTargetReached && progress.isTargetReached) {
+          if (effectiveConfig.autoStopWhenTargetReached && progress.isTargetReached) {
             await stopAndKeepBest(
               reason: 'Достигнута целевая точность.',
             );
@@ -382,7 +423,7 @@ class LocationCaptureService {
         } else {
           _emit(
             _buildProgress(
-              config: config,
+              config: effectiveConfig,
               isRunning: true,
               messageOverride:
               'Текущая точка слишком грубая (${position.accuracy.toStringAsFixed(1)} м), продолжаем уточнение...',
@@ -394,7 +435,7 @@ class LocationCaptureService {
         if (_disposed) return;
         _emit(
           _buildProgress(
-            config: config,
+            config: effectiveConfig,
             isRunning: true,
             messageOverride: 'Продолжаем поиск координат: $error',
           ),
@@ -404,7 +445,7 @@ class LocationCaptureService {
     );
 
     _sessionTimer?.cancel();
-    _sessionTimer = Timer(config.maxSessionDuration, () {
+    _sessionTimer = Timer(effectiveConfig.maxSessionDuration, () {
       if (!_disposed && _isRunning) {
         stopAndKeepBest(
           reason: 'Сеанс фиксации завершён. Можно принять текущую точность.',
@@ -413,13 +454,13 @@ class LocationCaptureService {
     });
 
     _statusTimer?.cancel();
-    _statusTimer = Timer.periodic(config.requestTimeout, (_) {
+    _statusTimer = Timer.periodic(effectiveConfig.requestTimeout, (_) {
       if (_disposed || !_isRunning) return;
 
       if (_accepted.isEmpty) {
         _emit(
           _buildProgress(
-            config: config,
+            config: effectiveConfig,
             isRunning: true,
             messageOverride: 'Ищем спутники... продолжаем сбор.',
           ),
@@ -436,13 +477,13 @@ class LocationCaptureService {
           : now.difference(_lastAnyPositionAt!);
 
       final staleAcceptedLimit = Duration(
-        milliseconds: config.requestTimeout.inMilliseconds * 2,
+        milliseconds: effectiveConfig.requestTimeout.inMilliseconds * 2,
       );
 
-      if (noAnyUpdateFor != null && noAnyUpdateFor >= config.requestTimeout) {
+      if (noAnyUpdateFor != null && noAnyUpdateFor >= effectiveConfig.requestTimeout) {
         _emit(
           _buildProgress(
-            config: config,
+            config: effectiveConfig,
             isRunning: true,
             messageOverride: 'Новых координат пока нет, продолжаем поиск...',
           ),
@@ -451,7 +492,7 @@ class LocationCaptureService {
           noNewAcceptedFor >= staleAcceptedLimit) {
         _emit(
           _buildProgress(
-            config: config,
+            config: effectiveConfig,
             isRunning: true,
             messageOverride:
             'Свежие точки идут, но качество пока не улучшается. Продолжаем уточнение...',

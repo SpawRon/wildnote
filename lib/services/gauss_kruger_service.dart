@@ -34,10 +34,6 @@ class GaussKrugerService {
       targetCrs,
     );
 
-    if (transform == null) {
-      throw Exception('Не удалось создать трансформацию CRS');
-    }
-
     final point = Point(x: longitude, y: latitude);
     final result = transform.transform(point);
 

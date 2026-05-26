@@ -251,6 +251,8 @@ class AppLogger {
   }
 
   void _scheduleFlush() {
+    if (_file == null) return;
+
     _flushTimer ??= Timer(const Duration(milliseconds: 500), () {
       _flushTimer = null;
       unawaited(flush());

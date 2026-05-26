@@ -57,11 +57,18 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
   final DraggableScrollableController _sheetController =
   DraggableScrollableController();
 
-  static const double _sheetMinSize = 0.24;
+  static const double _sheetMinSize = 0.14;
   static const double _sheetInitialSize = 0.58;
   static const double _sheetMaxSize = 0.94;
 
+  static const List<double> _sheetSnapSizes = <double>[
+    _sheetMinSize,
+    _sheetInitialSize,
+    _sheetMaxSize,
+  ];
+
   int _currentPhotoIndex = 0;
+  final ValueNotifier<int> _photoIndexNotifier = ValueNotifier<int>(0);
   final Set<String> _precachedPhotos = <String>{};
 
   static const Map<String, String> _attributeLabels = {
@@ -97,7 +104,7 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
 
     final cacheWidth = (MediaQuery.sizeOf(context).width *
         MediaQuery.devicePixelRatioOf(context))
-        .clamp(180, 1200)
+        .clamp(180, 1080)
         .round();
 
     for (final path in photos.take(3)) {
@@ -128,6 +135,7 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
 
   @override
   void dispose() {
+    _photoIndexNotifier.dispose();
     _sheetController.dispose();
     _pageController.dispose();
     super.dispose();
@@ -177,7 +185,7 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
                 : null);
 
         final cacheWidth = (resolvedWidth * pixelRatio)
-            .clamp(180, 1200)
+            .clamp(180, 1080)
             .round();
 
         if (_isRemotePath(path)) {
@@ -190,7 +198,6 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
             alignment: alignment,
             cacheWidth: cacheWidth,
             filterQuality: FilterQuality.low,
-            gaplessPlayback: true,
             errorBuilder: (context, error, stackTrace) => placeholder,
           );
         }
@@ -203,7 +210,6 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
           alignment: alignment,
           cacheWidth: cacheWidth,
           filterQuality: FilterQuality.low,
-          gaplessPlayback: true,
           errorBuilder: (context, error, stackTrace) => placeholder,
         );
       },
@@ -310,7 +316,10 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
             pageSnapping: true,
             allowImplicitScrolling: true,
             itemCount: photos.length,
-            onPageChanged: (index) => setState(() => _currentPhotoIndex = index),
+            onPageChanged: (index) {
+              _currentPhotoIndex = index;
+              _photoIndexNotifier.value = index;
+            },
             itemBuilder: (context, index) => _image(
               photos[index],
               width: width,
@@ -340,29 +349,34 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
   Widget _photoDots(List<String> photos) {
     if (photos.length <= 1) return const SizedBox.shrink();
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(photos.length, (index) {
-        final selected = index == _currentPhotoIndex;
+    return ValueListenableBuilder<int>(
+      valueListenable: _photoIndexNotifier,
+      builder: (context, currentIndex, _) {
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(photos.length, (index) {
+            final selected = index == currentIndex;
 
-        return GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () => _goToPhoto(index, photos.length),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 160),
-            curve: Curves.easeOutCubic,
-            margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-            width: selected ? 19 : 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: selected
-                  ? AppColors.surface
-                  : AppColors.surface.withValues(alpha: 0.45),
-              borderRadius: BorderRadius.circular(999),
-            ),
-          ),
+            return GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => _goToPhoto(index, photos.length),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 140),
+                curve: Curves.easeOutCubic,
+                margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                width: selected ? 18 : 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: selected
+                      ? AppColors.surface
+                      : AppColors.surface.withValues(alpha: 0.45),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+            );
+          }),
         );
-      }),
+      },
     );
   }
 
@@ -675,10 +689,12 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
 
   Widget _staticPhotoLayer(List<String> photos) {
     return RepaintBoundary(
-      child: _mainPhoto(
-        photos,
-        fit: BoxFit.cover,
-        alignment: const Alignment(0, -0.06),
+      child: SizedBox.expand(
+        child: _mainPhoto(
+          photos,
+          fit: BoxFit.cover,
+          alignment: const Alignment(0, -0.06),
+        ),
       ),
     );
   }
@@ -694,16 +710,33 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
 
     final initialTop = screenHeight * (1 - _sheetInitialSize);
     final minTop = screenHeight * (1 - _sheetMinSize);
+
     final openProgress = ((sheetTop - initialTop) / (minTop - initialTop))
         .clamp(0.0, 1.0)
         .toDouble();
 
-    // Визуальная часть сохранена: при движении листа фото будто раскрывается.
-    // Но само изображение не пересоздаётся и не меняет размер каждый кадр.
-    final photoShiftY = (openProgress * 34).toDouble();
+    final closedProgress = ((sheetSize - _sheetInitialSize) /
+        (_sheetMaxSize - _sheetInitialSize))
+        .clamp(0.0, 1.0)
+        .toDouble();
+
+    // Масштаб идёт от более общего кадра при опущенной плашке
+    // к более крупному кадру при закрытии фото плашкой.
+    // Ниже 1.0 не опускаемся, поэтому боковых полей не появляется.
+    final photoScale = (1.06 - openProgress * 0.06 + closedProgress * 0.07)
+        .clamp(1.0, 1.14)
+        .toDouble();
+
+    // Низ фотографии визуально привязан к верхней границе плашки,
+    // но уходит под неё на небольшой нахлёст.
+    // Фото не смещается вниз, поэтому сверху не появляется пустая область.
+    final sheetOverlap = 26.0 + openProgress * 18.0;
+    final visiblePhotoHeight = (sheetTop + sheetOverlap)
+        .clamp(safeTop + 160.0, screenHeight)
+        .toDouble();
 
     final dotsTop = (sheetTop - 34)
-        .clamp(safeTop + 78.0, screenHeight - 92.0)
+        .clamp(safeTop + 78.0, visiblePhotoHeight - 32.0)
         .toDouble();
 
     return Stack(
@@ -711,11 +744,14 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
         Positioned(
           left: 0,
           right: 0,
-          top: -48,
-          bottom: -48,
-          child: Transform.translate(
-            offset: Offset(0, photoShiftY),
-            child: photoLayer,
+          top: 0,
+          height: visiblePhotoHeight,
+          child: ClipRect(
+            child: Transform.scale(
+              scale: photoScale,
+              alignment: Alignment.bottomCenter,
+              child: photoLayer,
+            ),
           ),
         ),
 
@@ -724,7 +760,7 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  Colors.black.withValues(alpha: 0.22),
+                  Colors.black.withValues(alpha: 0.20),
                   Colors.transparent,
                 ],
                 begin: Alignment.topCenter,
@@ -781,7 +817,9 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
                 initialChildSize: _sheetInitialSize,
                 minChildSize: _sheetMinSize,
                 maxChildSize: _sheetMaxSize,
-                snap: false,
+                snap: true,
+                snapSizes: _sheetSnapSizes,
+                snapAnimationDuration: const Duration(milliseconds: 150),
                 expand: false,
                 builder: (context, scrollController) {
                   return RepaintBoundary(
@@ -853,6 +891,8 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
         if (_currentPhotoIndex >= photos.length && photos.isNotEmpty) {
           _currentPhotoIndex = photos.length - 1;
           WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            _photoIndexNotifier.value = _currentPhotoIndex;
             if (_pageController.hasClients) {
               _pageController.jumpToPage(_currentPhotoIndex);
             }

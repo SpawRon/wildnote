@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../services/location_accuracy_settings.dart';
 import '../services/session_manager.dart';
 import '../theme/app_theme.dart';
 import '../widgets/wild_page_header.dart';
@@ -25,9 +26,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _autoBrightness = false;
   bool _darkTheme = false;
   Color _selectedAccent = AppColors.primary;
+  double _targetAccuracyMeters =
+      LocationAccuracySettings.defaultTargetAccuracyMeters;
 
   static const String _version = '0.1.0';
   static const String _storeUrl = 'https://www.rustore.ru/catalog/app/mauniver.ivt.ponarin.wildnote';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLocationAccuracy();
+  }
+
+  Future<void> _loadLocationAccuracy() async {
+    final value = await LocationAccuracySettings.loadTargetAccuracyMeters();
+
+    if (!mounted) return;
+
+    setState(() {
+      _targetAccuracyMeters = value;
+    });
+  }
 
   Future<void> _logout() async {
     await SessionManager.instance.clearSession();
@@ -49,6 +68,164 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SnackBar(content: Text('Ссылка на магазин будет доступна после публикации')),
       );
     }
+  }
+
+  Future<void> _showLocationAccuracyDialog() async {
+    var selected = _targetAccuracyMeters;
+
+    final saved = await showDialog<double>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            String label(double value) {
+              return '${LocationAccuracySettings.formatMeters(value)} м';
+            }
+
+            Widget preset(double value) {
+              final isSelected = (selected - value).abs() < 0.1;
+
+              return ChoiceChip(
+                label: Text(label(value)),
+                selected: isSelected,
+                showCheckmark: false,
+                selectedColor: AppColors.softGreen,
+                labelStyle: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: isSelected ? AppColors.primary : AppColors.primaryDark,
+                ),
+                side: BorderSide.none,
+                onSelected: (_) {
+                  setDialogState(() => selected = value);
+                },
+              );
+            }
+
+            return Dialog(
+              backgroundColor: AppColors.surface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadius.card),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(22, 22, 22, 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Точность координат',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.primaryDark,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Чем меньше значение, тем дольше приложение будет уточнять координаты перед сохранением.',
+                      style: TextStyle(
+                        fontSize: 14,
+                        height: 1.35,
+                        color: AppColors.muted,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Center(
+                      child: Text(
+                        '±${label(selected)}',
+                        style: const TextStyle(
+                          fontSize: 30,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                    Slider(
+                      value: selected,
+                      min: LocationAccuracySettings.minTargetAccuracyMeters,
+                      max: LocationAccuracySettings.maxTargetAccuracyMeters,
+                      divisions: 57,
+                      activeColor: AppColors.primary,
+                      inactiveColor: AppColors.border,
+                      label: label(selected),
+                      onChanged: (value) {
+                        setDialogState(() => selected = value.roundToDouble());
+                      },
+                    ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        preset(5),
+                        preset(10),
+                        preset(15),
+                        preset(25),
+                        preset(35),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    Row(
+                      children: [
+                        TextButton(
+                          onPressed: () async {
+                            await LocationAccuracySettings
+                                .resetTargetAccuracyMeters();
+
+                            if (!context.mounted) return;
+
+                            Navigator.of(context).pop(
+                              LocationAccuracySettings
+                                  .defaultTargetAccuracyMeters,
+                            );
+                          },
+                          child: const Text('Сбросить'),
+                        ),
+                        const Spacer(),
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('Отмена'),
+                        ),
+                        const SizedBox(width: 8),
+                        FilledButton(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: AppColors.surface,
+                          ),
+                          onPressed: () {
+                            Navigator.of(context).pop(selected);
+                          },
+                          child: const Text('Сохранить'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (saved == null) return;
+
+    final normalized = LocationAccuracySettings.normalize(saved);
+    await LocationAccuracySettings.saveTargetAccuracyMeters(normalized);
+
+    if (!mounted) return;
+
+    setState(() {
+      _targetAccuracyMeters = normalized;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Требуемая точность: ±${LocationAccuracySettings.formatMeters(normalized)} м',
+        ),
+      ),
+    );
   }
 
   void _showAbout() {
@@ -183,7 +360,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
             ),
-            if (trailing != null) trailing,
+            ?trailing,
           ],
         ),
       ),
@@ -203,7 +380,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       subtitle: subtitle,
       trailing: Switch(
         value: value,
-        activeColor: AppColors.primary,
+        activeThumbColor: AppColors.primary,
         onChanged: onChanged,
       ),
     );
@@ -222,19 +399,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
       padding: const EdgeInsets.fromLTRB(35, 2, 0, 12),
       child: Row(
         children: colors.map((color) {
-          final selected = color.value == _selectedAccent.value;
+          final isSelected = color == _selectedAccent;
 
           return Padding(
             padding: const EdgeInsets.only(right: 10),
-            child: InkWell(
-              onTap: () => setState(() => _selectedAccent = color),
-              customBorder: const CircleBorder(),
-              child: Container(
-                width: 31,
-                height: 31,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: color,
+            child: Semantics(
+              selected: isSelected,
+              child: InkWell(
+                onTap: () => setState(() => _selectedAccent = color),
+                customBorder: const CircleBorder(),
+                child: Container(
+                  width: 31,
+                  height: 31,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: color,
+                  ),
                 ),
               ),
             ),
@@ -305,6 +485,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _section(
             title: 'Полевой режим',
             children: [
+              _row(
+                icon: Icons.gps_fixed_rounded,
+                title: 'Точность координат',
+                subtitle:
+                'Сейчас: ±${LocationAccuracySettings.formatMeters(_targetAccuracyMeters)} м. Чем точнее, тем дольше ожидание.',
+                trailing: const Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppColors.muted,
+                ),
+                onTap: _showLocationAccuracyDialog,
+              ),
+              _divider(),
               _switchRow(
                 icon: Icons.contrast_rounded,
                 title: 'Автоконтрастность',

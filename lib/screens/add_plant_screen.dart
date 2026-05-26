@@ -70,6 +70,9 @@ class _AddPlantScreenState extends State<AddPlantScreen>
   final LocationCaptureService _locationService = LocationCaptureService();
   final GaussKrugerService _gaussKrugerService = GaussKrugerService();
   final MapController _manualMapController = MapController();
+  final ValueNotifier<int> _photoIndexNotifier = ValueNotifier<int>(0);
+  final ValueNotifier<int> _photoRevisionNotifier = ValueNotifier<int>(0);
+  final ValueNotifier<int> _locationRevisionNotifier = ValueNotifier<int>(0);
   LatLng? _manualPoint;
   bool _updatingManualControllers = false;
   int _currentPhotoIndex = 0;
@@ -132,9 +135,25 @@ class _AddPlantScreenState extends State<AddPlantScreen>
     _anthropogenicImpactController.dispose();
     _threatFactorController.dispose();
     _protectionStatusController.dispose();
+    _photoIndexNotifier.dispose();
+    _photoRevisionNotifier.dispose();
+    _locationRevisionNotifier.dispose();
     _pageController.dispose();
 
     super.dispose();
+  }
+
+  void _setCurrentPhotoIndex(int index) {
+    _currentPhotoIndex = index;
+    _photoIndexNotifier.value = index;
+  }
+
+  void _notifyPhotoListChanged() {
+    _photoRevisionNotifier.value++;
+  }
+
+  void _notifyLocationChanged() {
+    _locationRevisionNotifier.value++;
   }
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -178,7 +197,8 @@ class _AddPlantScreenState extends State<AddPlantScreen>
 
     if (!mounted) return;
 
-    setState(() => _manualPoint = point);
+    _manualPoint = point;
+    _notifyLocationChanged();
     _moveManualMap(point);
   }
 
@@ -190,13 +210,12 @@ class _AddPlantScreenState extends State<AddPlantScreen>
     _lngController.text = point.longitude.toStringAsFixed(7);
     _updatingManualControllers = false;
 
-    setState(() {
-      _manualPoint = point;
-      _isLocationFixed = true;
-      _coordinatesLabel =
-      'Шир: ${point.latitude.toStringAsFixed(7)}, Долг: ${point.longitude.toStringAsFixed(7)}';
-      _geoStatus = 'Координаты выбраны на карте';
-    });
+    _manualPoint = point;
+    _isLocationFixed = true;
+    _coordinatesLabel =
+    'Шир: ${point.latitude.toStringAsFixed(7)}, Долг: ${point.longitude.toStringAsFixed(7)}';
+    _geoStatus = 'Координаты выбраны на карте';
+    _notifyLocationChanged();
 
     _moveManualMap(point);
   }
@@ -228,10 +247,9 @@ class _AddPlantScreenState extends State<AddPlantScreen>
 
       if (pickedFile == null || !mounted) return;
 
-      setState(() {
-        _images.add(File(pickedFile.path));
-        _currentPhotoIndex = _images.length - 1;
-      });
+      _images.add(File(pickedFile.path));
+      _setCurrentPhotoIndex(_images.length - 1);
+      _notifyPhotoListChanged();
 
       AppLogger.instance.info(
         'AddPlantScreen',
@@ -270,25 +288,25 @@ class _AddPlantScreenState extends State<AddPlantScreen>
 
     if (!mounted) return;
 
-    setState(() {
-      _isManualEntry = value;
-      _isLocating = false;
+    _isManualEntry = value;
+    _isLocating = false;
 
-      if (_isManualEntry) {
-        _geoStatus = "Ручной ввод координат";
+    if (_isManualEntry) {
+      _geoStatus = "Ручной ввод координат";
 
-        if (_currentPosition != null) {
-          _latController.text = _currentPosition!.latitude.toStringAsFixed(7);
-          _lngController.text = _currentPosition!.longitude.toStringAsFixed(7);
-          _manualPoint = LatLng(
-            _currentPosition!.latitude,
-            _currentPosition!.longitude,
-          );
-        } else {
-          _manualPoint ??= const LatLng(68.9707, 33.0749);
-        }
+      if (_currentPosition != null) {
+        _latController.text = _currentPosition!.latitude.toStringAsFixed(7);
+        _lngController.text = _currentPosition!.longitude.toStringAsFixed(7);
+        _manualPoint = LatLng(
+          _currentPosition!.latitude,
+          _currentPosition!.longitude,
+        );
+      } else {
+        _manualPoint ??= const LatLng(68.9707, 33.0749);
       }
-    });
+    }
+
+    _notifyLocationChanged();
 
     if (_isManualEntry && _manualPoint != null) {
       _moveManualMap(_manualPoint!);
@@ -372,38 +390,25 @@ class _AddPlantScreenState extends State<AddPlantScreen>
 
       if (shouldRebuild) {
         _lastLocationUiUpdate = now;
-        setState(applyProgress);
+        applyProgress();
+        _notifyLocationChanged();
       } else {
         applyProgress();
       }
     });
 
     try {
-      setState(() {
-        _isLocating = true;
-        if (reset) {
-          _isLocationFixed = false;
-          _currentPosition = null;
-          _locationProgress = null;
-          _coordinatesLabel = "Ожидание данных...";
-          _geoStatus = "Идёт точная фиксация координат...";
-        }
-      });
+      _isLocating = true;
+      if (reset) {
+        _isLocationFixed = false;
+        _currentPosition = null;
+        _locationProgress = null;
+        _coordinatesLabel = "Ожидание данных...";
+        _geoStatus = "Идёт точная фиксация координат...";
+      }
+      _notifyLocationChanged();
 
-      await _locationService.startCapture(
-        config: const PreciseLocationConfig(
-          maxAcceptedAccuracyMeters: 60,
-          acceptableSaveAccuracyMeters: 35,
-          targetAccuracyMeters: 15,
-          minSamples: 3,
-          maxBestPointsUsed: 6,
-          requestTimeout: Duration(seconds: 3),
-          requestInterval: Duration(milliseconds: 600),
-          maxSessionDuration: Duration(seconds: 70),
-          autoStopWhenTargetReached: true,
-        ),
-        reset: reset,
-      );
+      await _locationService.startCapture(reset: reset);
     } catch (e, st) {
       AppLogger.instance.error(
         'AddPlantScreen',
@@ -413,10 +418,9 @@ class _AddPlantScreenState extends State<AddPlantScreen>
       );
 
       if (!mounted) return;
-      setState(() {
-        _isLocating = false;
-        _geoStatus = e.toString();
-      });
+      _isLocating = false;
+      _geoStatus = e.toString();
+      _notifyLocationChanged();
     }
   }
 
@@ -427,33 +431,32 @@ class _AddPlantScreenState extends State<AddPlantScreen>
 
     if (!mounted) return;
 
-    setState(() {
-      _isLocating = false;
-      _locationProgress = progress;
-      _geoStatus = progress.message;
+    _isLocating = false;
+    _locationProgress = progress;
+    _geoStatus = progress.message;
 
-      if (progress.latitude != null &&
-          progress.longitude != null &&
-          progress.accuracy != null) {
-        _currentPosition = Position(
-          longitude: progress.longitude!,
-          latitude: progress.latitude!,
-          timestamp: DateTime.now(),
-          accuracy: progress.accuracy!,
-          altitude: 0,
-          altitudeAccuracy: 0,
-          heading: 0,
-          headingAccuracy: 0,
-          speed: 0,
-          speedAccuracy: 0,
-        );
+    if (progress.latitude != null &&
+        progress.longitude != null &&
+        progress.accuracy != null) {
+      _currentPosition = Position(
+        longitude: progress.longitude!,
+        latitude: progress.latitude!,
+        timestamp: DateTime.now(),
+        accuracy: progress.accuracy!,
+        altitude: 0,
+        altitudeAccuracy: 0,
+        heading: 0,
+        headingAccuracy: 0,
+        speed: 0,
+        speedAccuracy: 0,
+      );
 
-        _coordinatesLabel =
-        "Шир: ${progress.latitude}, Долг: ${progress.longitude}";
-      }
+      _coordinatesLabel =
+      "Шир: ${progress.latitude}, Долг: ${progress.longitude}";
+    }
 
-      _isLocationFixed = progress.isUsable;
-    });
+    _isLocationFixed = progress.isUsable;
+    _notifyLocationChanged();
 
     if (!progress.isUsable) {
       _showMessage(
@@ -532,13 +535,14 @@ class _AddPlantScreenState extends State<AddPlantScreen>
         accuracy = _currentPosition!.accuracy;
       }
 
-      if (!_isManualEntry && accuracy != null && accuracy > 35) {
+      if (!_isManualEntry && !_isLocationFixed) {
         AppLogger.instance.warning(
           'AddPlantScreen',
           'Save blocked: accuracy is not enough',
           data: {
-            'accuracy': _currentPosition?.accuracy,
-            'limit': 35,
+            'accuracy': accuracy,
+            'isLocationFixed': _isLocationFixed,
+            'progressIsUsable': _locationProgress?.isUsable,
           },
         );
 

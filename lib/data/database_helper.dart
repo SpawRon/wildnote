@@ -946,7 +946,7 @@ class DatabaseHelper {
     await db.update(
       'attribute_options',
       {
-        if (remoteId != null) 'remote_id': remoteId,
+        'remote_id': ?remoteId,
         'synced_at': DateTime.now().toIso8601String(),
         'sync_status': 0,
       },
@@ -1131,8 +1131,7 @@ class DatabaseHelper {
       'photos',
       {
         'uploaded_url': uploadedUrl,
-        if (remoteAttachmentId != null)
-          'remote_attachment_id': remoteAttachmentId,
+        'remote_attachment_id': ?remoteAttachmentId,
       },
       where: 'id = ?',
       whereArgs: [photoId],
