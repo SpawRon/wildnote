@@ -1021,20 +1021,80 @@ class DatabaseHelper {
       orderBy: 'datetime(created_at) DESC',
     );
 
+    if (observationRows.isEmpty) {
+      return const <Map<String, dynamic>>[];
+    }
+
+    final ids = observationRows
+        .map((row) => _toInt(row['id']))
+        .whereType<int>()
+        .toList(growable: false);
+
+    if (ids.isEmpty) {
+      return const <Map<String, dynamic>>[];
+    }
+
+    final placeholders = List<String>.filled(ids.length, '?').join(',');
+
+    final photoRows = await db.query(
+      'photos',
+      where: 'observation_id IN ($placeholders)',
+      whereArgs: ids,
+      orderBy: 'observation_id ASC, order_index ASC',
+    );
+
+    final attributeRows = await db.query(
+      'observation_attributes',
+      where: 'observation_id IN ($placeholders)',
+      whereArgs: ids,
+      orderBy: 'observation_id ASC',
+    );
+
+    final photosByObservation = <int, List<Map<String, dynamic>>>{};
+    for (final photo in photoRows) {
+      final observationId = _toInt(photo['observation_id']);
+      if (observationId == null) continue;
+
+      photosByObservation
+          .putIfAbsent(observationId, () => <Map<String, dynamic>>[])
+          .add(Map<String, dynamic>.from(photo));
+    }
+
+    final attributesByObservation = <int, Map<String, Object?>>{};
+    for (final row in attributeRows) {
+      final observationId = _toInt(row['observation_id']);
+      if (observationId == null) continue;
+
+      final key = row['attribute_key']?.toString();
+      if (key == null || key.isEmpty) continue;
+
+      final valueText = row['value_text'];
+      final valueNumber = row['value_number'];
+      final valueBool = row['value_bool'];
+
+      Object? value;
+      if (_numberAttributeKeys.contains(key) && valueNumber != null) {
+        value = _toDouble(valueNumber);
+      } else if (valueBool != null) {
+        value = _toInt(valueBool);
+      } else {
+        value = _decodeStoredAttributeValue(valueText?.toString());
+      }
+
+      if (value == null) continue;
+
+      attributesByObservation
+          .putIfAbsent(observationId, () => <String, Object?>{})[key] = value;
+    }
+
     final result = <Map<String, dynamic>>[];
 
     for (final row in observationRows) {
-      final id = row['id'];
-      if (id is! int) continue;
+      final id = _toInt(row['id']);
+      if (id == null) continue;
 
-      final photos = await db.query(
-        'photos',
-        where: 'observation_id = ?',
-        whereArgs: [id],
-        orderBy: 'order_index ASC',
-      );
-
-      final attributes = await getObservationAttributes(id);
+      final attributes = attributesByObservation[id] ?? <String, Object?>{};
+      final photos = photosByObservation[id] ?? const <Map<String, dynamic>>[];
 
       result.add({
         ...row,

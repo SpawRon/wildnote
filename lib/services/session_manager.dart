@@ -62,7 +62,7 @@ class UserSession {
 
   factory UserSession.fromMap(Map<String, dynamic> map) {
     return UserSession(
-      userLogin: (map['userLogin'] ?? '').toString(),
+      userLogin: (map['userLogin'] ?? '').toString().trim(),
       isGuest: map['isGuest'] == true,
       accessToken: map['accessToken'] as String?,
       remoteFolder: map['remoteFolder'] as String?,

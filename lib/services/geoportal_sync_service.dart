@@ -101,6 +101,17 @@ class GeoportalSyncService {
     return resolved;
   }
 
+
+  bool _looksLikeSkippedCreateWarning(String? value) {
+    final text = value?.toLowerCase().trim() ?? '';
+    if (text.isEmpty) return false;
+
+    return text.contains('новая точка не создана') ||
+        text.contains('похожая точка') ||
+        text.contains('уже отправлялась ранее') ||
+        text.contains('create skipped');
+  }
+
   Future<SyncResult> sendObservationById(int observationId) async {
     if (!_sendingObservationIds.add(observationId)) {
       AppLogger.instance.warning(
@@ -199,7 +210,13 @@ class GeoportalSyncService {
       },
     );
 
-    if (status == ObservationStatus.synced && remoteFeatureId != null) {
+    final syncErrorText = observation['sync_error']?.toString();
+    final shouldRepairSkippedCreate =
+    _looksLikeSkippedCreateWarning(syncErrorText);
+
+    if (status == ObservationStatus.synced &&
+        remoteFeatureId != null &&
+        !shouldRepairSkippedCreate) {
       AppLogger.instance.info(
         'GeoportalSyncService',
         'Send skipped: already synced',
@@ -213,6 +230,18 @@ class GeoportalSyncService {
         success: true,
         message: 'Запись уже синхронизирована',
         sentCount: 1,
+      );
+    }
+
+    if (shouldRepairSkippedCreate) {
+      AppLogger.instance.warning(
+        'GeoportalSyncService',
+        'Synced observation will be resent because previous send reused another feature',
+        data: {
+          'observationId': observationId,
+          'oldRemoteFeatureId': remoteFeatureId,
+          'syncError': syncErrorText,
+        },
       );
     }
 
@@ -252,6 +281,19 @@ class GeoportalSyncService {
         return SyncResult(
           success: false,
           message: response.error ?? 'Ошибка отправки',
+        );
+      }
+
+      if (response.remoteFeatureId == null || response.remoteFeatureId! <= 0) {
+        await DatabaseHelper.instance.updateObservationStatus(
+          id: observationId,
+          status: ObservationStatus.error,
+          error: 'Геопортал не вернул ID созданной точки',
+        );
+
+        return const SyncResult(
+          success: false,
+          message: 'Геопортал не вернул ID созданной точки',
         );
       }
 
@@ -811,18 +853,46 @@ class GeoportalSyncService {
       ) {
     final merged = <Map<String, dynamic>>[];
     final localRemoteIds = <int>{};
+    final localUuids = <String>{};
 
     for (final item in local) {
-      final remoteId = item['remote_feature_id'];
-      if (remoteId is int && remoteId > 0) {
-        localRemoteIds.add(remoteId);
+      final remoteIdRaw = item['remote_feature_id'];
+      if (remoteIdRaw is num) {
+        final remoteId = remoteIdRaw.toInt();
+        if (remoteId > 0) {
+          localRemoteIds.add(remoteId);
+        }
+      }
+      final localUuid = item['local_uuid']?.toString().trim();
+      if (localUuid != null && localUuid.isNotEmpty) {
+        localUuids.add(localUuid);
       }
       merged.add(item);
     }
 
     for (final item in remote) {
-      final remoteId = item['remote_feature_id'];
-      if (remoteId is int && localRemoteIds.contains(remoteId)) {
+      final remoteIdRaw = item['remote_feature_id'];
+      if (remoteIdRaw is num) {
+        final remoteId = remoteIdRaw.toInt();
+        if (remoteId > 0 && localRemoteIds.contains(remoteId)) {
+          AppLogger.instance.debug(
+            'GeoportalSyncService',
+            'Remote history item skipped: already represented by local remote_feature_id',
+            data: {'remoteFeatureId': remoteId},
+          );
+          continue;
+        }
+      }
+
+      final remoteLocalUuid = item['local_uuid']?.toString().trim();
+      if (remoteLocalUuid != null &&
+          remoteLocalUuid.isNotEmpty &&
+          localUuids.contains(remoteLocalUuid)) {
+        AppLogger.instance.debug(
+          'GeoportalSyncService',
+          'Remote history item skipped: already represented by local_uuid',
+          data: {'localUuid': remoteLocalUuid},
+        );
         continue;
       }
 
@@ -856,14 +926,16 @@ class GeoportalSyncService {
     if (session == null || session.isGuest) {
       return local;
     }
-    if (session.userLogin != userLogin) {
+    final sessionUser = session.userLogin.trim();
+    final requestedUser = userLogin.trim();
+    if (sessionUser.toLowerCase() != requestedUser.toLowerCase()) {
       return local;
     }
 
     try {
       final workingSession = await _ensureWorkspace(
         session,
-        refreshRemote: true,
+        refreshRemote: false,
       );
 
       final remote = await GeoportalApiService.instance.fetchUserLayerHistory(

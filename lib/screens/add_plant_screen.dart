@@ -1,19 +1,97 @@
+import 'dart:async';
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter_map/flutter_map.dart';
 //noinspection SpellCheckingInspection
 import 'package:latlong2/latlong.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import '../data/database_helper.dart';
 import '../services/geoportal_sync_service.dart';
-import 'dart:async';
 import '../services/location_capture_service.dart';
 import '../services/location_accuracy_settings.dart';
 import '../services/gauss_kruger_service.dart';
 import '../services/app_logger.dart';
 import '../theme/app_theme.dart';
 import '../widgets/wild_page_header.dart';
+
+void _showWildTopMessage(BuildContext context, String text) {
+  final overlay = Overlay.maybeOf(context, rootOverlay: true);
+
+  if (overlay == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(text)),
+    );
+    return;
+  }
+
+  final media = MediaQuery.maybeOf(context);
+  final top = (media?.viewPadding.top ?? 0) + 12;
+
+  late final OverlayEntry entry;
+  entry = OverlayEntry(
+    builder: (context) {
+      final colors = WildColors.of(context);
+
+      return Positioned(
+        top: top,
+        left: 16,
+        right: 16,
+        child: IgnorePointer(
+          child: Material(
+            color: Colors.transparent,
+            child: TweenAnimationBuilder<double>(
+              tween: Tween<double>(begin: 0, end: 1),
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOutCubic,
+              builder: (context, value, child) {
+                return Opacity(
+                  opacity: value,
+                  child: Transform.translate(
+                    offset: Offset(0, -10 * (1 - value)),
+                    child: child,
+                  ),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 13,
+                ),
+                decoration: BoxDecoration(
+                  color: colors.primaryDark,
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Text(
+                  text,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: colors.surface,
+                    fontSize: 14,
+                    height: 1.25,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    },
+  );
+
+  overlay.insert(entry);
+
+  Future<void>.delayed(const Duration(seconds: 3), () {
+    if (entry.mounted) {
+      entry.remove();
+    }
+  });
+}
+
 
 class AddPlantScreen extends StatefulWidget {
   final bool isGuest;
@@ -74,6 +152,8 @@ class _AddPlantScreenState extends State<AddPlantScreen>
   final ValueNotifier<int> _photoIndexNotifier = ValueNotifier<int>(0);
   final ValueNotifier<int> _photoRevisionNotifier = ValueNotifier<int>(0);
   final ValueNotifier<int> _locationRevisionNotifier = ValueNotifier<int>(0);
+  final ValueNotifier<int> _manualMapRevisionNotifier = ValueNotifier<int>(0);
+  final ValueNotifier<int> _attributesRevisionNotifier = ValueNotifier<int>(0);
   LatLng? _manualPoint;
   bool _updatingManualControllers = false;
   int _currentPhotoIndex = 0;
@@ -86,11 +166,31 @@ class _AddPlantScreenState extends State<AddPlantScreen>
   Position? _currentPosition;
 
   StreamSubscription<PreciseLocationProgress>? _locationSubscription;
+  Timer? _manualPointDebounce;
   PreciseLocationProgress? _locationProgress;
   bool _isLocating = false;
   DateTime? _lastLocationUiUpdate;
   double _targetAccuracyMeters =
       LocationAccuracySettings.defaultTargetAccuracyMeters;
+
+  String? _expandedAttributeKey;
+
+  static const List<String> _attributeOrder = <String>[
+    PlantAttributeKeys.identificationStatus,
+    PlantAttributeKeys.habitat,
+    PlantAttributeKeys.soilType,
+    PlantAttributeKeys.moisture,
+    PlantAttributeKeys.lightCondition,
+    PlantAttributeKeys.lifeStage,
+    PlantAttributeKeys.phenophase,
+    PlantAttributeKeys.plantCondition,
+    PlantAttributeKeys.abundanceCategory,
+    PlantAttributeKeys.individualCount,
+    PlantAttributeKeys.areaOccupied,
+    PlantAttributeKeys.anthropogenicImpact,
+    PlantAttributeKeys.threatFactor,
+    PlantAttributeKeys.protectionStatus,
+  ];
 
 
 
@@ -116,6 +216,7 @@ class _AddPlantScreenState extends State<AddPlantScreen>
     WidgetsBinding.instance.removeObserver(this);
 
     _locationSubscription?.cancel();
+    _manualPointDebounce?.cancel();
     unawaited(_locationService.dispose());
     _latController.removeListener(_syncManualPointFromText);
     _lngController.removeListener(_syncManualPointFromText);
@@ -142,6 +243,8 @@ class _AddPlantScreenState extends State<AddPlantScreen>
     _photoIndexNotifier.dispose();
     _photoRevisionNotifier.dispose();
     _locationRevisionNotifier.dispose();
+    _manualMapRevisionNotifier.dispose();
+    _attributesRevisionNotifier.dispose();
     _pageController.dispose();
 
     super.dispose();
@@ -159,6 +262,16 @@ class _AddPlantScreenState extends State<AddPlantScreen>
   void _notifyLocationChanged() {
     if (!mounted) return;
     _locationRevisionNotifier.value++;
+  }
+
+  void _notifyManualMapChanged() {
+    if (!mounted) return;
+    _manualMapRevisionNotifier.value++;
+  }
+
+  void _notifyAttributesChanged() {
+    if (!mounted) return;
+    _attributesRevisionNotifier.value++;
   }
 
   Future<void> _loadTargetAccuracy() async {
@@ -198,23 +311,30 @@ class _AddPlantScreenState extends State<AddPlantScreen>
   }
 
   void _syncManualPointFromText() {
-    if (!_isManualEntry || _updatingManualControllers) return;
-
-    final point = _manualPointFromControllers();
-    if (point == null) return;
-
-    final current = _manualPoint;
-    if (current != null &&
-        (current.latitude - point.latitude).abs() < 0.0000001 &&
-        (current.longitude - point.longitude).abs() < 0.0000001) {
+    if (!_isManualEntry || _updatingManualControllers) {
+      _manualPointDebounce?.cancel();
       return;
     }
 
-    if (!mounted) return;
+    _manualPointDebounce?.cancel();
+    _manualPointDebounce = Timer(const Duration(milliseconds: 350), () {
+      if (!mounted || !_isManualEntry || _updatingManualControllers) return;
 
-    _manualPoint = point;
-    _notifyLocationChanged();
-    _moveManualMap(point);
+      final point = _manualPointFromControllers();
+      if (point == null) return;
+
+      final current = _manualPoint;
+      if (current != null &&
+          (current.latitude - point.latitude).abs() < 0.0000001 &&
+          (current.longitude - point.longitude).abs() < 0.0000001) {
+        return;
+      }
+
+      _manualPoint = point;
+      _notifyLocationChanged();
+      _notifyManualMapChanged();
+      _moveManualMap(point);
+    });
   }
 
   void _setManualPointFromMap(LatLng point) {
@@ -231,6 +351,7 @@ class _AddPlantScreenState extends State<AddPlantScreen>
     'Шир: ${point.latitude.toStringAsFixed(7)}, Долг: ${point.longitude.toStringAsFixed(7)}';
     _geoStatus = 'Координаты выбраны на карте';
     _notifyLocationChanged();
+    _notifyManualMapChanged();
 
     _moveManualMap(point);
   }
@@ -246,9 +367,27 @@ class _AddPlantScreenState extends State<AddPlantScreen>
 
   void _showMessage(String text) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(text)),
+    _showWildTopMessage(context, text);
+  }
+
+  Future<File> _persistPickedImage(XFile pickedFile) async {
+    final source = File(pickedFile.path);
+    final documentsDir = await getApplicationDocumentsDirectory();
+    final photosDir = Directory(
+      p.join(documentsDir.path, 'observation_photos'),
     );
+
+    if (!await photosDir.exists()) {
+      await photosDir.create(recursive: true);
+    }
+
+    final extension = p.extension(pickedFile.path).toLowerCase();
+    final safeExtension = extension.isEmpty ? '.jpg' : extension;
+    final fileName =
+        '${DateTime.now().microsecondsSinceEpoch}_${_images.length}$safeExtension';
+    final target = File(p.join(photosDir.path, fileName));
+
+    return source.copy(target.path);
   }
 
   Future<void> _pickImage(ImageSource source) async {
@@ -262,7 +401,10 @@ class _AddPlantScreenState extends State<AddPlantScreen>
 
       if (pickedFile == null || !mounted) return;
 
-      _images.add(File(pickedFile.path));
+      final savedFile = await _persistPickedImage(pickedFile);
+      if (!mounted) return;
+
+      _images.add(savedFile);
       _setCurrentPhotoIndex(_images.length - 1);
       _notifyPhotoListChanged();
 
@@ -272,7 +414,7 @@ class _AddPlantScreenState extends State<AddPlantScreen>
         data: {
           'source': source.name,
           'photoCount': _images.length,
-          'path': pickedFile.path,
+          'path': savedFile.path,
         },
       );
 
@@ -325,6 +467,7 @@ class _AddPlantScreenState extends State<AddPlantScreen>
           'Долг: ${_manualPoint!.longitude.toStringAsFixed(7)}';
 
       _notifyLocationChanged();
+      _notifyManualMapChanged();
       _moveManualMap(_manualPoint!);
 
       unawaited(
@@ -715,9 +858,7 @@ class _AddPlantScreenState extends State<AddPlantScreen>
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
+      _showWildTopMessage(context, message);
 
       widget.onSaved?.call();
       _clearForm();
@@ -744,7 +885,7 @@ class _AddPlantScreenState extends State<AddPlantScreen>
   void _clearForm() {
     setState(() {
       _images.clear();
-      _currentPhotoIndex = 0;
+      _setCurrentPhotoIndex(0);
       _nameController.clear();
       _descriptionController.clear();
       _latController.clear();
@@ -766,6 +907,7 @@ class _AddPlantScreenState extends State<AddPlantScreen>
       _protectionStatusController.clear();
       _selectedAttributeTags.clear();
       _sharedAttributeTags.clear();
+      _expandedAttributeKey = null;
       _isManualEntry = false;
       _isLocationFixed = false;
       _coordinatesLabel = "Ожидание данных...";
@@ -774,6 +916,10 @@ class _AddPlantScreenState extends State<AddPlantScreen>
       _manualPoint = null;
     });
 
+    _notifyPhotoListChanged();
+    _notifyLocationChanged();
+    _notifyManualMapChanged();
+    _notifyAttributesChanged();
     unawaited(_loadTargetAccuracy());
     _startLocationCapture(reset: true);
     if (!widget.isGuest) {
@@ -788,15 +934,17 @@ class _AddPlantScreenState extends State<AddPlantScreen>
   void _removePhoto(int index) {
     if (_images.isEmpty || index < 0 || index >= _images.length) return;
 
-    setState(() {
-      _images.removeAt(index);
+    _images.removeAt(index);
 
-      if (_images.isEmpty) {
-        _currentPhotoIndex = 0;
-      } else if (_currentPhotoIndex >= _images.length) {
-        _currentPhotoIndex = _images.length - 1;
-      }
-    });
+    if (_images.isEmpty) {
+      _setCurrentPhotoIndex(0);
+    } else if (_currentPhotoIndex >= _images.length) {
+      _setCurrentPhotoIndex(_images.length - 1);
+    } else {
+      _setCurrentPhotoIndex(_currentPhotoIndex);
+    }
+
+    _notifyPhotoListChanged();
   }
 
   void _showImageSourceActionSheet(BuildContext context) {
@@ -925,13 +1073,14 @@ class _AddPlantScreenState extends State<AddPlantScreen>
 
   void _setAttributeTags(String key, List<String> values) {
     if (!mounted) return;
-    setState(() {
-      if (values.isEmpty) {
-        _selectedAttributeTags.remove(key);
-      } else {
-        _selectedAttributeTags[key] = values;
-      }
-    });
+
+    if (values.isEmpty) {
+      _selectedAttributeTags.remove(key);
+    } else {
+      _selectedAttributeTags[key] = values;
+    }
+
+    _notifyAttributesChanged();
   }
 
   void _setSharedAttributeTags(String key, Set<String> values) {
@@ -940,6 +1089,8 @@ class _AddPlantScreenState extends State<AddPlantScreen>
     } else {
       _sharedAttributeTags[key] = values;
     }
+
+    _notifyAttributesChanged();
   }
 
   Widget _buildSectionTitle(String text) {
@@ -956,6 +1107,73 @@ class _AddPlantScreenState extends State<AddPlantScreen>
     );
   }
 
+  bool _isLastAttribute(String attributeKey) {
+    return _attributeOrder.isNotEmpty && _attributeOrder.last == attributeKey;
+  }
+
+  String? _nextAttributeKey(String attributeKey) {
+    final index = _attributeOrder.indexOf(attributeKey);
+    if (index < 0 || index >= _attributeOrder.length - 1) return null;
+    return _attributeOrder[index + 1];
+  }
+
+  void _toggleAttribute(String attributeKey) {
+    if (!mounted) return;
+
+    FocusScope.of(context).unfocus();
+
+    _expandedAttributeKey =
+    _expandedAttributeKey == attributeKey ? null : attributeKey;
+    _notifyAttributesChanged();
+  }
+
+  void _goToNextAttribute(String attributeKey) {
+    if (!mounted) return;
+
+    final nextKey = _nextAttributeKey(attributeKey);
+    _expandedAttributeKey = nextKey;
+    _notifyAttributesChanged();
+
+    if (nextKey == null) {
+      FocusScope.of(context).unfocus();
+    }
+  }
+
+  Widget _buildTextInputCard({
+    required String title,
+    required TextEditingController controller,
+    required String hintText,
+    int maxLines = 1,
+    TextInputAction textInputAction = TextInputAction.next,
+  }) {
+    final colors = WildColors.of(context);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionTitle(title),
+          TextField(
+            controller: controller,
+            maxLines: maxLines,
+            textInputAction: textInputAction,
+            decoration: InputDecoration(
+              hintText: hintText,
+              filled: true,
+              fillColor: colors.fieldFill,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTagAttributeField({
     required String label,
     required String attributeKey,
@@ -963,6 +1181,8 @@ class _AddPlantScreenState extends State<AddPlantScreen>
     String? hintText,
     bool allowMultiple = false,
     bool showLabel = true,
+    bool autoFocus = false,
+    VoidCallback? onDone,
   }) {
     return _AttributeTagField(
       label: label,
@@ -976,6 +1196,8 @@ class _AddPlantScreenState extends State<AddPlantScreen>
       hintText: hintText,
       onChanged: (values) => _setAttributeTags(attributeKey, values),
       onShareChanged: (values) => _setSharedAttributeTags(attributeKey, values),
+      autoFocus: autoFocus,
+      onDone: onDone,
     );
   }
 
@@ -999,6 +1221,8 @@ class _AddPlantScreenState extends State<AddPlantScreen>
     String? hintText,
     bool allowMultiple = false,
   }) {
+    final isExpanded = _expandedAttributeKey == attributeKey;
+
     return _LazyAttributeTile(
       title: label,
       summary: _attributeSummary(
@@ -1006,6 +1230,9 @@ class _AddPlantScreenState extends State<AddPlantScreen>
         controller: controller,
       ),
       icon: allowMultiple ? Icons.sell_outlined : Icons.label_outline_rounded,
+      expanded: isExpanded,
+      showDivider: !_isLastAttribute(attributeKey),
+      onTap: () => _toggleAttribute(attributeKey),
       builder: (context) => _buildTagAttributeField(
         label: label,
         attributeKey: attributeKey,
@@ -1013,25 +1240,34 @@ class _AddPlantScreenState extends State<AddPlantScreen>
         hintText: hintText,
         allowMultiple: allowMultiple,
         showLabel: false,
+        autoFocus: isExpanded,
+        onDone: () => _goToNextAttribute(attributeKey),
       ),
     );
   }
 
   Widget _buildNumberAttributeTile({
     required String label,
+    required String attributeKey,
     required TextEditingController controller,
     String? hintText,
   }) {
     final value = controller.text.trim();
+    final isExpanded = _expandedAttributeKey == attributeKey;
 
     return _LazyAttributeTile(
       title: label,
       summary: value.isEmpty ? 'Не заполнено' : value,
       icon: Icons.pin_outlined,
+      expanded: isExpanded,
+      showDivider: !_isLastAttribute(attributeKey),
+      onTap: () => _toggleAttribute(attributeKey),
       builder: (context) => _buildNumberAttributeField(
         label: label,
         controller: controller,
         hintText: hintText,
+        autoFocus: isExpanded,
+        onDone: () => _goToNextAttribute(attributeKey),
       ),
     );
   }
@@ -1040,12 +1276,16 @@ class _AddPlantScreenState extends State<AddPlantScreen>
     required String label,
     required TextEditingController controller,
     String? hintText,
+    bool autoFocus = false,
+    VoidCallback? onDone,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextField(
         controller: controller,
-        textInputAction: TextInputAction.next,
+        autofocus: autoFocus,
+        textInputAction: TextInputAction.done,
+        onSubmitted: (_) => onDone?.call(),
         keyboardType: const TextInputType.numberWithOptions(
           decimal: true,
           signed: false,
@@ -1121,11 +1361,13 @@ class _AddPlantScreenState extends State<AddPlantScreen>
           ),
           _buildNumberAttributeTile(
             label: 'Количество особей',
+            attributeKey: PlantAttributeKeys.individualCount,
             controller: _individualCountController,
             hintText: 'Например: 1, 5, 20',
           ),
           _buildNumberAttributeTile(
             label: 'Площадь участка, м²',
+            attributeKey: PlantAttributeKeys.areaOccupied,
             controller: _areaOccupiedController,
             hintText: 'Например: 0.5, 2, 10',
           ),
@@ -1152,125 +1394,113 @@ class _AddPlantScreenState extends State<AddPlantScreen>
 
   @override
   Widget build(BuildContext context) {
-    final bool locationReady = _isManualEntry || _isLocationFixed;
-
     return Scaffold(
       backgroundColor: WildColors.of(context).background,
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 112),
+        child: CustomScrollView(
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.manual,
-          children: [
-            const WildPageHeader(
-              title: 'Новая запись',
-              padding: EdgeInsets.zero,
-            ),
-            SizedBox(height: 18),
-
-            _buildPhotoCarousel(),
-
-            SizedBox(height: 25),
-
-            Text(
-              'Название',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            SizedBox(height: 8),
-            TextField(
-              controller: _nameController,
-              decoration: InputDecoration(
-                hintText: 'Введите название...',
-              ),
-            ),
-
-            SizedBox(height: 16),
-
-            Text(
-              'Описание',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            SizedBox(height: 8),
-            TextField(
-              controller: _descriptionController,
-              maxLines: 3,
-              decoration: InputDecoration(
-                hintText: 'Свободное описание наблюдения...',
-              ),
-            ),
-
-            SizedBox(height: 20),
-
-            _buildAttributesBlock(),
-
-            SizedBox(height: 20),
-
-            ValueListenableBuilder<int>(
-              valueListenable: _locationRevisionNotifier,
-              builder: (context, _, __) => _buildLocationBlock(),
-            ),
-
-            SizedBox(height: 30),
-
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: WildColors.of(context).primary,
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: Colors.grey.shade500,
-                  disabledForegroundColor: Colors.white70,
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                onPressed: _isSaving
-                    ? null
-                    : () async {
-                  if (!_isManualEntry && !locationReady) {
-                    AppLogger.instance.warning(
-                      'AddPlantScreen',
-                      'Save button pressed before location is ready',
-                      data: {
-                        'isManual': _isManualEntry,
-                        'isLocationFixed': _isLocationFixed,
-                        'hasCurrentPosition': _currentPosition != null,
-                      },
-                    );
-
-                    _showMessage('Дождитесь определения координат');
-                    return;
-                  }
-
-                  await _saveObservation();
-                },
-                child: _isSaving
-                    ? Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 112),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate(
+                  [
+                    const WildPageHeader(
+                      title: 'Новая запись',
+                      padding: EdgeInsets.zero,
+                    ),
+                    const SizedBox(height: 18),
+                    ValueListenableBuilder<int>(
+                      valueListenable: _photoRevisionNotifier,
+                      builder: (context, revision, child) => _buildPhotoCarousel(),
+                    ),
+                    const SizedBox(height: 20),
+                    _buildTextInputCard(
+                      title: 'Название',
+                      controller: _nameController,
+                      hintText: 'Введите название...',
+                    ),
+                    const SizedBox(height: 16),
+                    _buildTextInputCard(
+                      title: 'Описание',
+                      controller: _descriptionController,
+                      hintText: 'Свободное описание наблюдения...',
+                      maxLines: 3,
+                      textInputAction: TextInputAction.done,
+                    ),
+                    const SizedBox(height: 20),
+                    ValueListenableBuilder<int>(
+                      valueListenable: _attributesRevisionNotifier,
+                      builder: (context, revision, child) => RepaintBoundary(
+                        child: _buildAttributesBlock(),
                       ),
                     ),
-                    SizedBox(width: 10),
-                    Text('Сохранение...'),
+                    const SizedBox(height: 20),
+                    ValueListenableBuilder<int>(
+                      valueListenable: _locationRevisionNotifier,
+                      builder: (context, revision, child) => RepaintBoundary(
+                        child: _buildLocationBlock(),
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: WildColors.of(context).primary,
+                          foregroundColor: Colors.white,
+                          disabledBackgroundColor: Colors.grey.shade500,
+                          disabledForegroundColor: Colors.white70,
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        onPressed: _isSaving
+                            ? null
+                            : () async {
+                          if (!_isManualEntry && !_isLocationFixed) {
+                            AppLogger.instance.warning(
+                              'AddPlantScreen',
+                              'Save button pressed before location is ready',
+                              data: {
+                                'isManual': _isManualEntry,
+                                'isLocationFixed': _isLocationFixed,
+                                'hasCurrentPosition': _currentPosition != null,
+                              },
+                            );
+
+                            _showMessage('Дождитесь определения координат');
+                            return;
+                          }
+
+                          await _saveObservation();
+                        },
+                        child: _isSaving
+                            ? Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            ),
+                            SizedBox(width: 10),
+                            Text('Сохранение...'),
+                          ],
+                        )
+                            : Text(
+                          widget.isGuest
+                              ? 'Сохранить локально'
+                              : 'Сохранить и отправить',
+                        ),
+                      ),
+                    ),
                   ],
-                )
-                    : Text(
-                  widget.isGuest
-                      ? 'Сохранить локально'
-                      : 'Сохранить и отправить',
                 ),
               ),
             ),
@@ -1281,130 +1511,143 @@ class _AddPlantScreenState extends State<AddPlantScreen>
   }
 
   Widget _buildPhotoCarousel() {
+    final colors = WildColors.of(context);
     final hasImages = _images.isNotEmpty;
 
-    return Container(
-      width: double.infinity,
-      height: 330,
-      decoration: BoxDecoration(
-        color: WildColors.of(context).surface,
-        borderRadius: BorderRadius.circular(30),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: [
-          Expanded(
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: hasImages
-                      ? PageView.builder(
-                    controller: _pageController,
-                    itemCount: _images.length,
-                    onPageChanged: (index) {
-                      setState(() => _currentPhotoIndex = index);
-                    },
-                    itemBuilder: (context, index) {
-                      return Image.file(
-                        _images[index],
-                        fit: BoxFit.cover,
-                        cacheWidth: 900,
-                      );
-                    },
-                  )
-                      : _buildCameraPlaceholder(),
+    return RepaintBoundary(
+      child: Container(
+        width: double.infinity,
+        height: 330,
+        decoration: BoxDecoration(
+          color: colors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          children: [
+            Expanded(
+              child: ColoredBox(
+                color: Color.alphaBlend(
+                  colors.primary.withValues(alpha: 0.045),
+                  colors.surface,
                 ),
-                if (hasImages)
-                  Positioned(
-                    right: 14,
-                    top: 14,
-                    child: _roundPhotoButton(
-                      icon: Icons.delete_outline,
-                      foregroundColor: Colors.redAccent,
-                      onTap: () => _removePhoto(_currentPhotoIndex),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          Container(
-            height: 88,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: WildColors.of(context).surface,
-            ),
-            child: Row(
-              children: [
-                GestureDetector(
-                  onTap: () => _showImageSourceActionSheet(context),
-                  child: Container(
-                    width: 62,
-                    height: 62,
-                    decoration: BoxDecoration(
-                      color: WildColors.of(context).softGreen,
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: Icon(
-                      Icons.camera_alt_outlined,
-                      color: WildColors.of(context).primary,
-                      size: 32,
-                    ),
-                  ),
-                ),
-                SizedBox(width: 10),
-                Expanded(
-                  child: hasImages
-                      ? ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _images.length,
-                    separatorBuilder: (context, index) =>
-                        SizedBox(width: 8),
-                    itemBuilder: (context, index) {
-                      return GestureDetector(
-                        onTap: () {
-                          _pageController.jumpToPage(index);
-                          setState(() => _currentPhotoIndex = index);
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: hasImages
+                          ? PageView.builder(
+                        controller: _pageController,
+                        itemCount: _images.length,
+                        onPageChanged: _setCurrentPhotoIndex,
+                        itemBuilder: (context, index) {
+                          return Image.file(
+                            _images[index],
+                            fit: BoxFit.cover,
+                            cacheWidth: 900,
+                            filterQuality: FilterQuality.low,
+                          );
                         },
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 160),
-                          width: 62,
-                          height: 62,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                            image: DecorationImage(
-                              image: FileImage(_images[index]),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
+                      )
+                          : _buildCameraPlaceholder(),
+                    ),
+                    if (hasImages)
+                      Positioned(
+                        right: 14,
+                        top: 14,
+                        child: _roundPhotoButton(
+                          icon: Icons.delete_outline,
+                          foregroundColor: Colors.redAccent,
+                          onTap: () => _removePhoto(_currentPhotoIndex),
                         ),
-                      );
-                    },
-                  )
-                      : Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Добавьте фотографии растения',
-                      style: TextStyle(
-                        color: WildColors.of(context).primary,
-                        fontWeight: FontWeight.w600,
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            Container(
+              height: 88,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              color: colors.surface,
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => _showImageSourceActionSheet(context),
+                    child: Container(
+                      width: 62,
+                      height: 62,
+                      decoration: BoxDecoration(
+                        color: colors.softGreen,
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Icon(
+                        Icons.camera_alt_outlined,
+                        color: colors.primary,
+                        size: 32,
                       ),
                     ),
                   ),
-                ),
-                if (hasImages) ...[
-                  SizedBox(width: 8),
-                  Text(
-                    '${_currentPhotoIndex + 1}/${_images.length}',
-                    style: TextStyle(
-                      color: WildColors.of(context).primary,
-                      fontWeight: FontWeight.w700,
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: hasImages
+                        ? ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _images.length,
+                      separatorBuilder: (context, index) =>
+                      const SizedBox(width: 8),
+                      itemBuilder: (context, index) {
+                        return GestureDetector(
+                          onTap: () {
+                            _pageController.jumpToPage(index);
+                            _setCurrentPhotoIndex(index);
+                          },
+                          child: SizedBox(
+                            width: 62,
+                            height: 62,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: Image.file(
+                                _images[index],
+                                fit: BoxFit.cover,
+                                cacheWidth: 186,
+                                cacheHeight: 186,
+                                filterQuality: FilterQuality.low,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    )
+                        : Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Добавьте фотографии растения',
+                        style: TextStyle(
+                          color: colors.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                   ),
+                  if (hasImages) ...[
+                    const SizedBox(width: 8),
+                    ValueListenableBuilder<int>(
+                      valueListenable: _photoIndexNotifier,
+                      builder: (context, currentIndex, child) {
+                        return Text(
+                          '${currentIndex + 1}/${_images.length}',
+                          style: TextStyle(
+                            color: colors.primary,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1429,23 +1672,28 @@ class _AddPlantScreenState extends State<AddPlantScreen>
   }
 
   Widget _buildCameraPlaceholder() {
+    final colors = WildColors.of(context);
+
     return Container(
-      color: WildColors.of(context).surfaceSoft,
+      color: Color.alphaBlend(
+        colors.primary.withValues(alpha: 0.045),
+        colors.surface,
+      ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.add_photo_alternate_outlined,
+            Icons.not_interested_rounded,
             size: 56,
-            color: WildColors.of(context).muted,
+            color: colors.muted,
           ),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           Text(
-            'Фото наблюдения',
+            'Фото не прикреплено',
             style: TextStyle(
-              color: WildColors.of(context).primary,
+              color: colors.primary,
               fontSize: 16,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w800,
             ),
           ),
         ],
@@ -1455,12 +1703,6 @@ class _AddPlantScreenState extends State<AddPlantScreen>
 
 
   Widget _buildManualMapSelector() {
-    final point = _manualPoint ??
-        _manualPointFromControllers() ??
-        (_currentPosition == null
-            ? const LatLng(68.9707, 33.0749)
-            : LatLng(_currentPosition!.latitude, _currentPosition!.longitude));
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1469,34 +1711,48 @@ class _AddPlantScreenState extends State<AddPlantScreen>
           borderRadius: BorderRadius.circular(16),
           child: SizedBox(
             height: 190,
-            child: FlutterMap(
-              mapController: _manualMapController,
-              options: MapOptions(
-                initialCenter: point,
-                initialZoom: 15,
-                onTap: (_, tappedPoint) => _setManualPointFromMap(tappedPoint),
-              ),
-              children: [
-                TileLayer(
-                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  //noinspection SpellCheckingInspection
-                  userAgentPackageName: 'ru.mauniver.wildnote',
-                ),
-                MarkerLayer(
-                  markers: [
-                    Marker(
-                      point: point,
-                      width: 38,
-                      height: 38,
-                      child: Icon(
-                        Icons.location_on_rounded,
-                        color: AppColors.danger,
-                        size: 34,
-                      ),
+            child: ValueListenableBuilder<int>(
+              valueListenable: _manualMapRevisionNotifier,
+              builder: (context, revision, child) {
+                final point = _manualPoint ??
+                    _manualPointFromControllers() ??
+                    (_currentPosition == null
+                        ? const LatLng(68.9707, 33.0749)
+                        : LatLng(
+                      _currentPosition!.latitude,
+                      _currentPosition!.longitude,
+                    ));
+
+                return FlutterMap(
+                  mapController: _manualMapController,
+                  options: MapOptions(
+                    initialCenter: point,
+                    initialZoom: 15,
+                    onTap: (_, tappedPoint) => _setManualPointFromMap(tappedPoint),
+                  ),
+                  children: [
+                    TileLayer(
+                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      //noinspection SpellCheckingInspection
+                      userAgentPackageName: 'ru.mauniver.wildnote',
+                    ),
+                    MarkerLayer(
+                      markers: [
+                        Marker(
+                          point: point,
+                          width: 38,
+                          height: 38,
+                          child: Icon(
+                            Icons.location_on_rounded,
+                            color: AppColors.danger,
+                            size: 34,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
-                ),
-              ],
+                );
+              },
             ),
           ),
         ),
@@ -1766,34 +2022,34 @@ class _AddPlantScreenState extends State<AddPlantScreen>
 
 
 
-class _LazyAttributeTile extends StatefulWidget {
+class _LazyAttributeTile extends StatelessWidget {
   final String title;
   final String summary;
   final IconData icon;
+  final bool expanded;
+  final bool showDivider;
+  final VoidCallback onTap;
   final WidgetBuilder builder;
 
   const _LazyAttributeTile({
     required this.title,
     required this.summary,
     required this.icon,
+    required this.expanded,
+    required this.showDivider,
+    required this.onTap,
     required this.builder,
   });
 
   @override
-  State<_LazyAttributeTile> createState() => _LazyAttributeTileState();
-}
-
-class _LazyAttributeTileState extends State<_LazyAttributeTile> {
-  bool _expanded = false;
-
-  @override
   Widget build(BuildContext context) {
-    final filled = widget.summary != 'Не заполнено';
+    final filled = summary != 'Не заполнено';
+    final colors = WildColors.of(context);
 
     return Column(
       children: [
         InkWell(
-          onTap: () => setState(() => _expanded = !_expanded),
+          onTap: onTap,
           borderRadius: BorderRadius.circular(14),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 10),
@@ -1803,60 +2059,68 @@ class _LazyAttributeTileState extends State<_LazyAttributeTile> {
                   width: 34,
                   height: 34,
                   decoration: BoxDecoration(
-                    color: WildColors.of(context).softGreen,
+                    color: colors.softGreen,
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: Icon(widget.icon, size: 19, color: WildColors.of(context).primary),
+                  child: Icon(icon, size: 19, color: colors.primary),
                 ),
-                SizedBox(width: 11),
+                const SizedBox(width: 11),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        widget.title,
+                        title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w900,
-                          color: WildColors.of(context).primaryDark,
+                          color: colors.primaryDark,
                         ),
                       ),
-                      SizedBox(height: 3),
+                      const SizedBox(height: 3),
                       Text(
-                        widget.summary,
-                        maxLines: _expanded ? 2 : 1,
+                        summary,
+                        maxLines: expanded ? 2 : 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 12,
                           height: 1.12,
-                          fontWeight: filled ? FontWeight.w700 : FontWeight.w500,
-                          color: filled ? WildColors.of(context).primary : WildColors.of(context).muted,
+                          fontWeight:
+                          filled ? FontWeight.w700 : FontWeight.w500,
+                          color: filled ? colors.primary : colors.muted,
                         ),
                       ),
                     ],
                   ),
                 ),
                 AnimatedRotation(
-                  turns: _expanded ? 0.5 : 0,
+                  turns: expanded ? 0.5 : 0,
                   duration: const Duration(milliseconds: 150),
                   curve: Curves.easeOutCubic,
                   child: Icon(
                     Icons.keyboard_arrow_down_rounded,
-                    color: WildColors.of(context).muted,
+                    color: colors.muted,
                   ),
                 ),
               ],
             ),
           ),
         ),
-        if (_expanded)
-          Padding(
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 140),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeOutCubic,
+          child: expanded
+              ? Padding(
+            key: ValueKey<String>('expanded_$title'),
             padding: const EdgeInsets.fromLTRB(0, 0, 0, 10),
-            child: widget.builder(context),
-          ),
-        Divider(height: 1, color: WildColors.of(context).border),
+            child: builder(context),
+          )
+              : const SizedBox.shrink(),
+        ),
+        if (showDivider) Divider(height: 1, color: colors.border),
       ],
     );
   }
@@ -1899,6 +2163,8 @@ class _AttributeTagField extends StatefulWidget {
   final String? hintText;
   final ValueChanged<List<String>> onChanged;
   final ValueChanged<Set<String>> onShareChanged;
+  final bool autoFocus;
+  final VoidCallback? onDone;
 
   const _AttributeTagField({
     required this.label,
@@ -1911,6 +2177,8 @@ class _AttributeTagField extends StatefulWidget {
     required this.userLogin,
     required this.onChanged,
     required this.onShareChanged,
+    this.autoFocus = false,
+    this.onDone,
     this.hintText,
   });
 
@@ -1937,6 +2205,14 @@ class _AttributeTagFieldState extends State<_AttributeTagField> {
         .toSet();
     widget.controller.addListener(_onTextChanged);
     _focusNode.addListener(_onFocusChanged);
+
+    if (widget.autoFocus) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _focusNode.requestFocus();
+        }
+      });
+    }
   }
 
   @override
@@ -1952,6 +2228,14 @@ class _AttributeTagFieldState extends State<_AttributeTagField> {
           .map((e) => e.trim())
           .where((e) => e.isNotEmpty)
           .toSet();
+    }
+
+    if (!oldWidget.autoFocus && widget.autoFocus) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _focusNode.requestFocus();
+        }
+      });
     }
   }
 
@@ -2020,13 +2304,14 @@ class _AttributeTagFieldState extends State<_AttributeTagField> {
   }
 
   Future<void> _loadOptions({String? search}) async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
 
     try {
       final rows = await DatabaseHelper.instance.getAttributeOptions(
         attributeKey: widget.attributeKey,
         search: search,
-        limit: 18,
+        limit: 14,
       );
 
       final options = <_AttributeOptionUi>[];
@@ -2119,10 +2404,9 @@ class _AttributeTagFieldState extends State<_AttributeTagField> {
 
     widget.onShareChanged(Set<String>.unmodifiable(_sharedPending));
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('«$value» будет добавлено в общий список при сохранении'),
-      ),
+    _showWildTopMessage(
+      context,
+      '«$value» будет добавлено в общий список при сохранении',
     );
   }
 
@@ -2160,13 +2444,9 @@ class _AttributeTagFieldState extends State<_AttributeTagField> {
     if (!mounted) return;
 
     if (result.success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Вариант убран из общего списка')),
-      );
+      _showWildTopMessage(context, 'Вариант убран из общего списка');
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result.message)),
-      );
+      _showWildTopMessage(context, result.message);
     }
   }
 
@@ -2201,7 +2481,7 @@ class _AttributeTagFieldState extends State<_AttributeTagField> {
 
     return filtered
         .where((item) => !_containsValue(_selected, item.value))
-        .take(12)
+        .take(10)
         .toList();
   }
 
@@ -2260,13 +2540,16 @@ class _AttributeTagFieldState extends State<_AttributeTagField> {
                 controller: widget.controller,
                 focusNode: _focusNode,
                 textInputAction: TextInputAction.done,
-                onSubmitted: _commitLocal,
+                onSubmitted: (value) {
+                  _commitLocal(value);
+                  widget.onDone?.call();
+                },
                 decoration: InputDecoration(
                   isDense: true,
                   hintText: widget.hintText ??
                       (widget.allowMultiple
-                          ? 'Выберите несколько вариантов или напишите свой'
-                          : 'Выберите вариант или напишите свой'),
+                          ? 'Выберите несколько или напишите'
+                          : 'Выберите или напишите'),
                   suffixIcon: IconButton(
                     tooltip: 'Добавить в общий список при сохранении',
                     onPressed:

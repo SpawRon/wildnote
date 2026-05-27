@@ -15,9 +15,9 @@ class DeviceBrightnessService {
 
     try {
       if (enabled) {
-        await ScreenBrightness().setScreenBrightness(1.0);
+        await ScreenBrightness().setApplicationScreenBrightness(1.0);
       } else {
-        await ScreenBrightness().resetScreenBrightness();
+        await ScreenBrightness().resetApplicationScreenBrightness();
       }
 
       return true;

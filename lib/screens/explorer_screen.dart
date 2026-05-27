@@ -338,7 +338,7 @@ class ExplorerScreenState extends State<ExplorerScreen> {
             builder: (context, scrollController) {
               return Column(
                 children: [
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   Container(
                     width: 42,
                     height: 4,
@@ -347,7 +347,7 @@ class ExplorerScreenState extends State<ExplorerScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  SizedBox(height: 12),
+                  const SizedBox(height: 12),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Row(
@@ -368,62 +368,66 @@ class ExplorerScreenState extends State<ExplorerScreen> {
                       ],
                     ),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Expanded(
                     child: ListView.separated(
                       controller: scrollController,
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 108),
+                      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                      cacheExtent: 420,
                       itemCount: _points.length,
                       separatorBuilder: (context, index) => SizedBox(height: 8),
                       itemBuilder: (context, index) {
                         final point = _points[index];
 
-                        return Column(
-                          children: [
-                            ListTile(
-                              onTap: () {
-                                Navigator.of(context).pop();
-                                _moveMap(point.latLng, 15.0);
-                                _showPointDetails(point);
-                              },
-                              contentPadding: EdgeInsets.zero,
-                              leading: Icon(
-                                point.isManual
-                                    ? Icons.edit_location_alt_rounded
-                                    : Icons.eco_rounded,
-                                color: point.isManual
-                                    ? AppColors.danger
-                                    : WildColors.of(context).primary,
-                              ),
-                              title: Text(
-                                point.name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  color: WildColors.of(context).primaryDark,
+                        return RepaintBoundary(
+                          child: Column(
+                            children: [
+                              ListTile(
+                                onTap: () {
+                                  Navigator.of(context).pop();
+                                  _moveMap(point.latLng, 15.0);
+                                  _showPointDetails(point);
+                                },
+                                contentPadding: EdgeInsets.zero,
+                                leading: Icon(
+                                  point.isManual
+                                      ? Icons.edit_location_alt_rounded
+                                      : Icons.eco_rounded,
+                                  color: point.isManual
+                                      ? AppColors.danger
+                                      : WildColors.of(context).primary,
                                 ),
-                              ),
-                              subtitle: Text(
-                                '${point.userLogin}\n${_service.formatDate(point.createdAt)}',
-                              ),
-                              trailing: point.photoCount > 0
-                                  ? Text(
-                                '${point.photoCount} фото',
-                                style: TextStyle(
-                                  fontSize: 12,
+                                title: Text(
+                                  point.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    color: WildColors.of(context).primaryDark,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  '${point.userLogin}\n${_service.formatDate(point.createdAt)}',
+                                ),
+                                trailing: point.photoCount > 0
+                                    ? Text(
+                                  '${point.photoCount} фото',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: WildColors.of(context).muted,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                )
+                                    : Icon(
+                                  Icons.photo_outlined,
                                   color: WildColors.of(context).muted,
-                                  fontWeight: FontWeight.w700,
                                 ),
-                              )
-                                  : Icon(
-                                Icons.photo_outlined,
-                                color: WildColors.of(context).muted,
+                                isThreeLine: true,
                               ),
-                              isThreeLine: true,
-                            ),
-                            Divider(height: 1, color: WildColors.of(context).border),
-                          ],
+                              Divider(height: 1, color: WildColors.of(context).border),
+                            ],
+                          ),
                         );
                       },
                     ),
@@ -539,7 +543,7 @@ class ExplorerScreenState extends State<ExplorerScreen> {
                     : Icons.format_list_bulleted_rounded,
                 color: _points.isEmpty ? WildColors.of(context).muted : WildColors.of(context).primary,
               ),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   title,
@@ -588,9 +592,19 @@ class ExplorerScreenState extends State<ExplorerScreen> {
     final areaCenter = _areaCenter;
     final areaCenterValid = areaCenter != null &&
         _isValidLatLon(areaCenter.latitude, areaCenter.longitude);
+    final visiblePoints = _points
+        .where(
+          (point) => _isValidLatLon(
+        point.latitude,
+        point.longitude,
+      ),
+    )
+        .toList(growable: false);
 
     return SafeArea(
       child: ListView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        cacheExtent: 520,
         padding: const EdgeInsets.fromLTRB(
           AppSpacing.screen,
           20,
@@ -607,82 +621,77 @@ class ExplorerScreenState extends State<ExplorerScreen> {
               tooltip: 'Обновить',
             ),
           ),
-          SizedBox(height: 14),
+          const SizedBox(height: 14),
           _buildModeSelector(),
-          SizedBox(height: 14),
+          const SizedBox(height: 14),
           _mode == ExplorerMode.user
               ? _buildUserModeContent()
               : _buildAreaModeContent(),
-          SizedBox(height: 14),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(22),
-            child: SizedBox(
-              height: MediaQuery.sizeOf(context).height * 0.48,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  border: Border.all(color: WildColors.of(context).border),
-                  borderRadius: BorderRadius.circular(22),
-                ),
-                child: FlutterMap(
-                  mapController: _mapController,
-                  options: MapOptions(
-                    initialCenter: _fallbackCenter,
-                    initialZoom: 10.5,
-                    onTap: (tapPosition, point) async {
-                      if (_mode != ExplorerMode.area) return;
-                      if (!_isValidLatLon(point.latitude, point.longitude)) {
-                        return;
-                      }
-
-                      setState(() => _areaCenter = point);
-                      await _searchByArea();
-                    },
+          const SizedBox(height: 14),
+          RepaintBoundary(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(22),
+              child: SizedBox(
+                height: MediaQuery.sizeOf(context).height * 0.48,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: WildColors.of(context).border),
+                    borderRadius: BorderRadius.circular(22),
                   ),
-                  children: [
-                    TileLayer(
-                      urlTemplate:
-                      'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'ru.mauniver.wildnote',
+                  child: FlutterMap(
+                    mapController: _mapController,
+                    options: MapOptions(
+                      initialCenter: _fallbackCenter,
+                      initialZoom: 10.5,
+                      onTap: (tapPosition, point) async {
+                        if (_mode != ExplorerMode.area) return;
+                        if (!_isValidLatLon(point.latitude, point.longitude)) {
+                          return;
+                        }
+
+                        setState(() => _areaCenter = point);
+                        await _searchByArea();
+                      },
                     ),
-                    if (_mode == ExplorerMode.area &&
-                        areaCenterValid &&
-                        radiusValid)
-                      CircleLayer(
-                        circles: [
-                          CircleMarker(
-                            point: areaCenter,
-                            radius: _radiusMeters,
-                            useRadiusInMeter: true,
-                            color: const Color(0x335D7B79),
-                            borderColor: WildColors.of(context).primary,
-                            borderStrokeWidth: 2,
-                          ),
+                    children: [
+                      TileLayer(
+                        urlTemplate:
+                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        userAgentPackageName: 'ru.mauniver.wildnote',
+                      ),
+                      if (_mode == ExplorerMode.area &&
+                          areaCenterValid &&
+                          radiusValid)
+                        CircleLayer(
+                          circles: [
+                            CircleMarker(
+                              point: areaCenter,
+                              radius: _radiusMeters,
+                              useRadiusInMeter: true,
+                              color: const Color(0x335D7B79),
+                              borderColor: WildColors.of(context).primary,
+                              borderStrokeWidth: 2,
+                            ),
+                          ],
+                        ),
+                      MarkerLayer(
+                        markers: [
+                          if (_mode == ExplorerMode.area && areaCenterValid)
+                            Marker(
+                              point: areaCenter,
+                              width: 34,
+                              height: 34,
+                              child: Icon(
+                                Icons.my_location,
+                                color: Color(0xFF1E88E5),
+                                size: 28,
+                              ),
+                            ),
+                          ...visiblePoints.map(_buildMarker),
                         ],
                       ),
-                    MarkerLayer(
-                      markers: [
-                        if (_mode == ExplorerMode.area && areaCenterValid)
-                          Marker(
-                            point: areaCenter,
-                            width: 34,
-                            height: 34,
-                            child: Icon(
-                              Icons.my_location,
-                              color: Color(0xFF1E88E5),
-                              size: 28,
-                            ),
-                          ),
-                        ..._points
-                            .where(
-                              (point) => _isValidLatLon(
-                            point.latitude,
-                            point.longitude,
-                          ),
-                        )
-                            .map(_buildMarker),
-                      ],
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -787,7 +796,7 @@ class ExplorerScreenState extends State<ExplorerScreen> {
               color: WildColors.of(context).primaryDark,
             ),
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
           if (_users.isEmpty)
             Padding(
               padding: EdgeInsets.symmetric(vertical: 10),
@@ -836,9 +845,9 @@ class ExplorerScreenState extends State<ExplorerScreen> {
                 },
               ),
             ),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           Divider(height: 1, color: WildColors.of(context).border),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           _buildPointsLauncherCard(),
         ],
       ),
@@ -871,7 +880,7 @@ class ExplorerScreenState extends State<ExplorerScreen> {
               color: WildColors.of(context).primaryDark,
             ),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text(
             center == null
                 ? 'Выберите центр поиска кнопкой или нажатием на карту'
@@ -883,9 +892,9 @@ class ExplorerScreenState extends State<ExplorerScreen> {
               fontWeight: FontWeight.w600,
             ),
           ),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           Divider(height: 1, color: WildColors.of(context).border),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -905,7 +914,7 @@ class ExplorerScreenState extends State<ExplorerScreen> {
                   ),
                 ),
               ),
-              SizedBox(width: 8),
+              const SizedBox(width: 8),
               IconButton(
                 tooltip: 'Моё местоположение',
                 onPressed: _isLoading ? null : _useCurrentLocation,
@@ -918,7 +927,7 @@ class ExplorerScreenState extends State<ExplorerScreen> {
               ),
             ],
           ),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           _buildPointsLauncherCard(),
         ],
       ),

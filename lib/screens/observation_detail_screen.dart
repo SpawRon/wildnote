@@ -71,6 +71,11 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
   final ValueNotifier<int> _photoIndexNotifier = ValueNotifier<int>(0);
   final Set<String> _precachedPhotos = <String>{};
 
+  late final List<MapEntry<String, String>> _environmentRows;
+  late final List<MapEntry<String, String>> _conditionRows;
+  late final List<MapEntry<String, String>> _abundanceRows;
+  late final List<MapEntry<String, String>> _protectionRows;
+
   static const Map<String, String> _attributeLabels = {
     PlantAttributeKeys.identificationStatus: 'Статус определения',
     PlantAttributeKeys.habitat: 'Местообитание',
@@ -134,6 +139,37 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+
+    _environmentRows = _rowsFor(const [
+      PlantAttributeKeys.habitat,
+      PlantAttributeKeys.soilType,
+      PlantAttributeKeys.moisture,
+      PlantAttributeKeys.lightCondition,
+    ]);
+
+    _conditionRows = _rowsFor(const [
+      PlantAttributeKeys.identificationStatus,
+      PlantAttributeKeys.lifeStage,
+      PlantAttributeKeys.phenophase,
+      PlantAttributeKeys.plantCondition,
+    ]);
+
+    _abundanceRows = _rowsFor(const [
+      PlantAttributeKeys.abundanceCategory,
+      PlantAttributeKeys.individualCount,
+      PlantAttributeKeys.areaOccupied,
+    ]);
+
+    _protectionRows = _rowsFor(const [
+      PlantAttributeKeys.anthropogenicImpact,
+      PlantAttributeKeys.threatFactor,
+      PlantAttributeKeys.protectionStatus,
+    ]);
+  }
+
+  @override
   void dispose() {
     _photoIndexNotifier.dispose();
     _sheetController.dispose();
@@ -191,6 +227,7 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
         if (_isRemotePath(path)) {
           return Image.network(
             path,
+            key: ValueKey<String>('detail_remote_$path'),
             headers: widget.data.imageHeaders,
             width: resolvedWidth,
             height: resolvedHeight,
@@ -204,6 +241,7 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
 
         return Image.file(
           File(path),
+          key: ValueKey<String>('detail_local_$path'),
           width: resolvedWidth,
           height: resolvedHeight,
           fit: fit,
@@ -314,7 +352,7 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
             controller: _pageController,
             physics: const PageScrollPhysics(),
             pageSnapping: true,
-            allowImplicitScrolling: true,
+            allowImplicitScrolling: false,
             itemCount: photos.length,
             onPageChanged: (index) {
               _currentPhotoIndex = index;
@@ -388,7 +426,7 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(badge.icon, size: 15, color: color),
-        SizedBox(width: 5),
+        const SizedBox(width: 5),
         Text(
           text,
           style: TextStyle(
@@ -437,7 +475,7 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
                 size: 30,
               ),
             ),
-            SizedBox(width: 12),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -456,7 +494,7 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
                     ),
                   ),
                   if (widget.data.badges.isNotEmpty) ...[
-                    SizedBox(height: 9),
+                    const SizedBox(height: 9),
                     Wrap(
                       spacing: 12,
                       runSpacing: 7,
@@ -469,7 +507,7 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
           ],
         ),
         if (description != null && description.isNotEmpty) ...[
-          SizedBox(height: 15),
+          const SizedBox(height: 15),
           Text(
             description,
             style: TextStyle(
@@ -497,7 +535,7 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
         Row(
           children: [
             Icon(icon, size: 22, color: WildColors.of(context).primary),
-            SizedBox(width: 10),
+            const SizedBox(width: 10),
             Text(
               title,
               style: TextStyle(
@@ -508,7 +546,7 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
             ),
           ],
         ),
-        SizedBox(height: 11),
+        const SizedBox(height: 11),
         ...rows.map(
               (row) => Padding(
             padding: const EdgeInsets.only(bottom: 9),
@@ -526,7 +564,7 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
                     ),
                   ),
                 ),
-                SizedBox(width: 12),
+                const SizedBox(width: 12),
                 Expanded(
                   flex: 6,
                   child: Text(
@@ -591,7 +629,7 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
                     color: WildColors.of(context).primaryDark,
                   ),
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 ...widget.data.technicalRows.map(
                       (row) => Padding(
                     padding: const EdgeInsets.only(bottom: 8),
@@ -607,7 +645,7 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
                             ),
                           ),
                         ),
-                        SizedBox(width: 10),
+                        const SizedBox(width: 10),
                         Expanded(
                           child: Text(
                             row.value,
@@ -647,40 +685,22 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
           _section(
             icon: Icons.terrain_rounded,
             title: 'Среда произрастания',
-            rows: _rowsFor(const [
-              PlantAttributeKeys.habitat,
-              PlantAttributeKeys.soilType,
-              PlantAttributeKeys.moisture,
-              PlantAttributeKeys.lightCondition,
-            ]),
+            rows: _environmentRows,
           ),
           _section(
             icon: Icons.eco_rounded,
             title: 'Состояние растения',
-            rows: _rowsFor(const [
-              PlantAttributeKeys.identificationStatus,
-              PlantAttributeKeys.lifeStage,
-              PlantAttributeKeys.phenophase,
-              PlantAttributeKeys.plantCondition,
-            ]),
+            rows: _conditionRows,
           ),
           _section(
             icon: Icons.scatter_plot_rounded,
             title: 'Численность',
-            rows: _rowsFor(const [
-              PlantAttributeKeys.abundanceCategory,
-              PlantAttributeKeys.individualCount,
-              PlantAttributeKeys.areaOccupied,
-            ]),
+            rows: _abundanceRows,
           ),
           _section(
             icon: Icons.shield_outlined,
             title: 'Охрана и воздействие',
-            rows: _rowsFor(const [
-              PlantAttributeKeys.anthropogenicImpact,
-              PlantAttributeKeys.threatFactor,
-              PlantAttributeKeys.protectionStatus,
-            ]),
+            rows: _protectionRows,
           ),
         ],
       ),

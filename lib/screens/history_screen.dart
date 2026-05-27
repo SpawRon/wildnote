@@ -222,7 +222,7 @@ class HistoryScreenState extends State<HistoryScreen> {
                         child: Text('Отмена'),
                       ),
                     ),
-                    SizedBox(width: 10),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => Navigator.pop(context, _ClearHistoryMode.localOnly),
@@ -269,6 +269,17 @@ class HistoryScreenState extends State<HistoryScreen> {
 
     await reload();
     _showMessage(result.message);
+  }
+
+
+  bool _looksLikeSkippedCreateWarning(String? value) {
+    final text = value?.toLowerCase().trim() ?? '';
+    if (text.isEmpty) return false;
+
+    return text.contains('новая точка не создана') ||
+        text.contains('похожая точка') ||
+        text.contains('уже отправлялась ранее') ||
+        text.contains('create skipped');
   }
 
   Future<void> _sendOne(int observationId) async {
@@ -363,21 +374,38 @@ class HistoryScreenState extends State<HistoryScreen> {
     return <String, String>{'Authorization': _authToken!};
   }
 
-  Widget _buildImage(String? path, {double? width, double? height, BoxFit fit = BoxFit.cover}) {
+  Widget _buildImage(
+      String? path, {
+        double? width,
+        double? height,
+        BoxFit fit = BoxFit.cover,
+      }) {
+    final colors = WildColors.of(context);
+    final pixelRatio = MediaQuery.devicePixelRatioOf(context);
+    final cacheWidth = width == null
+        ? 240
+        : (width * pixelRatio).clamp(120, 360).round();
+    final cacheHeight = height == null
+        ? null
+        : (height * pixelRatio).clamp(120, 360).round();
+
     final placeholder = Container(
       width: width,
       height: height,
-      color: WildColors.of(context).surfaceSoft,
+      color: colors.surfaceSoft,
       alignment: Alignment.center,
-      child: Icon(Icons.image_outlined, color: WildColors.of(context).muted),
+      child: Icon(Icons.image_outlined, color: colors.muted),
     );
 
-    final cacheWidth = width == null ? null : (width * 3).round();
-    final cacheHeight = height == null ? null : (height * 3).round();
+    final normalized = path?.trim();
+    if (normalized == null || normalized.isEmpty) {
+      return placeholder;
+    }
 
-    if (_isRemotePath(path)) {
+    if (_isRemotePath(normalized)) {
       return Image.network(
-        path!,
+        normalized,
+        key: ValueKey<String>('remote_thumb_$normalized'),
         headers: _imageHeaders,
         width: width,
         height: height,
@@ -385,28 +413,24 @@ class HistoryScreenState extends State<HistoryScreen> {
         cacheWidth: cacheWidth,
         cacheHeight: cacheHeight,
         filterQuality: FilterQuality.low,
-        gaplessPlayback: true,
         errorBuilder: (context, error, stackTrace) => placeholder,
       );
     }
 
-    if (path != null && path.isNotEmpty) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(14),
-        child: Image.file(
-          File(path),
-          width: width,
-          height: height,
-          fit: BoxFit.cover,
-          cacheWidth: width == null ? 240 : (width * 2).round(),
-          filterQuality: FilterQuality.low,
-          gaplessPlayback: true,
-          errorBuilder: (context, error, stackTrace) => placeholder,
-        ),
-      );
-    }
-
-    return placeholder;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: Image.file(
+        File(normalized),
+        key: ValueKey<String>('local_thumb_$normalized'),
+        width: width,
+        height: height,
+        fit: fit,
+        cacheWidth: cacheWidth,
+        cacheHeight: cacheHeight,
+        filterQuality: FilterQuality.low,
+        errorBuilder: (context, error, stackTrace) => placeholder,
+      ),
+    );
   }
 
   List<String> _photoPaths(Map<String, dynamic> item) {
@@ -565,6 +589,10 @@ class HistoryScreenState extends State<HistoryScreen> {
     final status = item['status'] as int? ?? 0;
     final syncError = item['sync_error'] as String?;
     final title = _titleFor(item);
+    final canSend = !widget.isGuest &&
+        !remoteOnly &&
+        (status != ObservationStatus.synced ||
+            _looksLikeSkippedCreateWarning(syncError));
 
     return Column(
       children: [
@@ -582,7 +610,7 @@ class HistoryScreenState extends State<HistoryScreen> {
                     borderRadius: BorderRadius.circular(16),
                     child: _buildImage(firstPhoto, width: 76, height: 76),
                   ),
-                  SizedBox(width: 12),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: SizedBox(
                       height: 76,
@@ -599,7 +627,7 @@ class HistoryScreenState extends State<HistoryScreen> {
                               color: WildColors.of(context).primaryDark,
                             ),
                           ),
-                          SizedBox(height: 4),
+                          const SizedBox(height: 4),
                           Text(
                             _formatDate(item['created_at'] as String?),
                             style: TextStyle(
@@ -615,7 +643,7 @@ class HistoryScreenState extends State<HistoryScreen> {
                                 size: 17,
                                 color: _statusColor(status),
                               ),
-                              SizedBox(width: 6),
+                              const SizedBox(width: 6),
                               Text(
                                 _statusText(status),
                                 style: TextStyle(
@@ -625,13 +653,13 @@ class HistoryScreenState extends State<HistoryScreen> {
                                 ),
                               ),
                               if (photos.isNotEmpty) ...[
-                                SizedBox(width: 10),
+                                const SizedBox(width: 10),
                                 Icon(
                                   Icons.photo_library_outlined,
                                   size: 16,
                                   color: WildColors.of(context).muted,
                                 ),
-                                SizedBox(width: 4),
+                                const SizedBox(width: 4),
                                 Text(
                                   '${photos.length}',
                                   style: TextStyle(
@@ -646,10 +674,10 @@ class HistoryScreenState extends State<HistoryScreen> {
                       ),
                     ),
                   ),
-                  SizedBox(width: 6),
+                  const SizedBox(width: 6),
                   Column(
                     children: [
-                      if (!widget.isGuest && !remoteOnly && status != ObservationStatus.synced)
+                      if (canSend)
                         IconButton(
                           onPressed: _isBusy ? null : () => _sendOne(item['id'] as int),
                           icon: Icon(Icons.cloud_upload_outlined),
@@ -672,7 +700,8 @@ class HistoryScreenState extends State<HistoryScreen> {
         ),
         if (syncError != null &&
             syncError.trim().isNotEmpty &&
-            status == ObservationStatus.error)
+            (status == ObservationStatus.error ||
+                _looksLikeSkippedCreateWarning(syncError)))
           Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: Align(
@@ -688,6 +717,28 @@ class HistoryScreenState extends State<HistoryScreen> {
         Divider(height: 1, color: WildColors.of(context).border),
       ],
     );
+  }
+
+  String _historyItemKey(Map<String, dynamic> item) {
+    final remoteOnly = item['_remote_only'] == true;
+    final remoteId = _asInt(item['remote_feature_id']);
+    if (remoteId != null && remoteId > 0) {
+      return '${remoteOnly ? 'r' : 'l'}:remote:$remoteId';
+    }
+
+    final localUuid = item['local_uuid']?.toString().trim();
+    if (localUuid != null && localUuid.isNotEmpty) {
+      return '${remoteOnly ? 'r' : 'l'}:uuid:$localUuid';
+    }
+
+    final localId = _asInt(item['id']);
+    if (localId != null) {
+      return '${remoteOnly ? 'r' : 'l'}:local:$localId';
+    }
+
+    final createdAt = item['created_at']?.toString().trim() ?? '';
+    final title = _titleFor(item);
+    return 'fallback:$createdAt:$title';
   }
 
   @override
@@ -712,7 +763,7 @@ class HistoryScreenState extends State<HistoryScreen> {
                     tooltip: 'Отправить всё',
                     color: WildColors.of(context).primary,
                   ),
-                  SizedBox(width: 10),
+                  const SizedBox(width: 10),
                 ],
                 _buildTopIconButton(
                   icon: Icons.delete_sweep_outlined,
@@ -737,7 +788,7 @@ class HistoryScreenState extends State<HistoryScreen> {
               ],
             ),
           ),
-          SizedBox(height: 14),
+          const SizedBox(height: 14),
           Expanded(
             child: _isLoading
                 ? Center(child: CircularProgressIndicator())
@@ -755,8 +806,18 @@ class HistoryScreenState extends State<HistoryScreen> {
               onRefresh: reload,
               child: ListView.builder(
                 padding: const EdgeInsets.fromLTRB(AppSpacing.screen, 0, AppSpacing.screen, 116),
+                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                cacheExtent: 420,
                 itemCount: _observations.length,
-                itemBuilder: (context, index) => _buildHistoryCard(_observations[index]),
+                itemBuilder: (context, index) {
+                  final item = _observations[index];
+                  return KeyedSubtree(
+                    key: ValueKey<String>(_historyItemKey(item)),
+                    child: RepaintBoundary(
+                      child: _buildHistoryCard(item),
+                    ),
+                  );
+                },
               ),
             ),
           ),

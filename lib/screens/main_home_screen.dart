@@ -25,6 +25,8 @@ class MainHomeScreen extends StatefulWidget {
 
 class _MainHomeScreenState extends State<MainHomeScreen> {
   final List<Widget?> _screenCache = List<Widget?>.filled(4, null);
+  final GlobalKey<HistoryScreenState> _historyKey =
+      GlobalKey<HistoryScreenState>();
 
   late final AppAppearanceController _appearanceController;
   int _currentIndex = 0;
@@ -44,8 +46,10 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
       0 => add_screen.AddPlantScreen(
         isGuest: widget.isGuest,
         userLogin: widget.userLogin,
+        onSaved: () => _historyKey.currentState?.reload(),
       ),
       1 => HistoryScreen(
+        key: _historyKey,
         isGuest: widget.isGuest,
         userLogin: widget.userLogin,
       ),

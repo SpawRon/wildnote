@@ -446,15 +446,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     color: colors.primaryDark,
                                   ),
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Цвет меняется сразу при движении ползунков.',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    height: 1.25,
-                                    color: colors.muted,
-                                  ),
-                                ),
                               ],
                             ),
                           ),

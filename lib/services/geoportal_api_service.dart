@@ -361,6 +361,42 @@ class GeoportalApiService {
     ];
   }
 
+
+  String _safeIdentityPart(dynamic value) {
+    final text = value?.toString().trim() ?? '';
+    if (text.isEmpty) return 'empty';
+
+    final normalized = text.replaceAll(RegExp(r'[^0-9A-Za-zА-Яа-я_-]+'), '_');
+    return normalized.length > 80 ? normalized.substring(0, 80) : normalized;
+  }
+
+  String? _effectiveLocalUuid(Map<String, dynamic> observation) {
+    final existing = _asTrimmedString(observation['local_uuid']);
+    if (existing != null && existing.isNotEmpty) {
+      return existing;
+    }
+
+    final userLogin = _asTrimmedString(observation['user_login']);
+    final localId = _toInt(observation['id']);
+    final createdAt = _asTrimmedString(observation['created_at']);
+
+    if (userLogin == null || userLogin.isEmpty || localId == null || createdAt == null || createdAt.isEmpty) {
+      return null;
+    }
+
+    // Для старых локальных записей, где ещё нет local_uuid в БД.
+    // Главное отличие от старого local_id: сюда входит created_at,
+    // поэтому новая запись с тем же локальным id уже не склеится со старой.
+    return [
+      'legacy',
+      _safeIdentityPart(userLogin),
+      _safeIdentityPart(localId),
+      _safeIdentityPart(createdAt),
+      _safeIdentityPart(observation['latitude']),
+      _safeIdentityPart(observation['longitude']),
+    ].join('_');
+  }
+
   Map<String, dynamic> _buildRemoteFeatureFields({
     required Map<String, dynamic> observation,
     required Map<String, dynamic> attributes,
@@ -396,7 +432,7 @@ class GeoportalApiService {
             _asString(observation['created_at']);
 
     return {
-      'local_uuid': observation['local_uuid'],
+      'local_uuid': _effectiveLocalUuid(observation),
       'local_id': observation['id'],
       'user_login': observation['user_login'],
 
@@ -1375,15 +1411,15 @@ class GeoportalApiService {
     return const [];
   }
 
-  Future<int?> _findFeatureByLocalId({
+  Future<int?> _findFeatureByLocalUuid({
     required String auth,
     required int layerId,
     required Map<String, dynamic> observation,
   }) async {
-    final localId = observation['id'];
+    final localUuid = _effectiveLocalUuid(observation);
     final userLogin = (observation['user_login'] as String?)?.trim();
 
-    if (localId == null || userLogin == null || userLogin.isEmpty) {
+    if (localUuid == null || localUuid.isEmpty || userLogin == null || userLogin.isEmpty) {
       return null;
     }
 
@@ -1394,8 +1430,8 @@ class GeoportalApiService {
         query: {
           'limit': '1',
           'offset': '0',
-          'fields': 'local_id,user_login',
-          'fld_local_id__eq': localId.toString(),
+          'fields': 'local_uuid,user_login',
+          'fld_local_uuid__eq': localUuid,
           'fld_user_login__eq': userLogin,
         },
       );
@@ -1405,124 +1441,13 @@ class GeoportalApiService {
     } catch (e, st) {
       AppLogger.instance.warning(
         'GeoportalApiService',
-        'Find feature by local id failed',
+        'Find feature by local uuid failed',
         error: e,
         stackTrace: st,
-        data: {'layerId': layerId, 'localId': localId},
+        data: {'layerId': layerId, 'localUuid': localUuid},
       );
       return null;
     }
-  }
-
-  Future<int?> _findRecentDuplicateFeature({
-    required String auth,
-    required int layerId,
-    required Map<String, dynamic> observation,
-    Duration window = const Duration(seconds: 45),
-  }) async {
-    final userLogin = (observation['user_login'] as String?)?.trim();
-    final name = (observation['name'] as String?)?.trim();
-    final description = (observation['description'] as String?)?.trim() ?? '';
-    final latitude = _finiteDouble(observation['latitude']);
-    final longitude = _finiteDouble(observation['longitude']);
-    final createdAt = DateTime.tryParse(
-      (observation['created_at'] as String?)?.trim() ?? '',
-    );
-
-    if (userLogin == null ||
-        userLogin.isEmpty ||
-        name == null ||
-        name.isEmpty ||
-        latitude == null ||
-        longitude == null ||
-        createdAt == null) {
-      return null;
-    }
-
-    try {
-      final rows = await _getFeatures(
-        auth: auth,
-        layerId: layerId,
-        query: {
-          'limit': '80',
-          'offset': '0',
-          'srs': '4326',
-          'fields': 'local_id,user_login,name,description,latitude,longitude,created_at',
-          'fld_user_login__eq': userLogin,
-          'fld_name__eq': name,
-          'order_by': '-created_at',
-        },
-      );
-
-      for (final row in rows) {
-        final fields = _extractFields(row);
-        final remoteLocalId = _toInt(fields['local_id']);
-        final currentLocalId = _toInt(observation['id']);
-
-        if (currentLocalId != null &&
-            remoteLocalId != null &&
-            currentLocalId == remoteLocalId) {
-          continue;
-        }
-
-        final remoteUser = _asTrimmedString(fields['user_login']);
-        final remoteName = _asTrimmedString(fields['name']);
-        final remoteDescription =
-            _asTrimmedString(fields['description']) ?? '';
-
-        if (remoteUser != userLogin) continue;
-        if (remoteName != name) continue;
-        if (remoteDescription != description) continue;
-
-        final remoteLat = _finiteDouble(fields['latitude']);
-        final remoteLon = _finiteDouble(fields['longitude']);
-        if (remoteLat == null || remoteLon == null) continue;
-
-        final meters = _approxDistanceMeters(
-          latitude,
-          longitude,
-          remoteLat,
-          remoteLon,
-        );
-        if (meters > 1.5) continue;
-
-        final remoteCreatedAt =
-        DateTime.tryParse(_asTrimmedString(fields['created_at']) ?? '');
-        if (remoteCreatedAt == null) continue;
-
-        final diff = createdAt.isAfter(remoteCreatedAt)
-            ? createdAt.difference(remoteCreatedAt)
-            : remoteCreatedAt.difference(createdAt);
-        if (diff <= window) {
-          final featureId = _toInt(row['id']);
-          if (featureId != null) {
-            AppLogger.instance.warning(
-              'GeoportalApiService',
-              'Recent duplicate feature found',
-              data: {
-                'layerId': layerId,
-                'featureId': featureId,
-                'localId': currentLocalId,
-                'remoteLocalId': remoteLocalId,
-                'secondsDiff': diff.inSeconds,
-                'distanceMeters': meters,
-              },
-            );
-            return featureId;
-          }
-        }
-      }
-    } catch (e, st) {
-      AppLogger.instance.warning(
-        'GeoportalApiService',
-        'Recent duplicate check failed',
-        error: e,
-        stackTrace: st,
-        data: {'layerId': layerId, 'name': name},
-      );
-    }
-
-    return null;
   }
 
   Future<List<String>> _listAttachmentImageUrls({
@@ -1975,6 +1900,7 @@ class GeoportalApiService {
           'userLogin': session.userLogin,
           'layerId': layerId,
           'localId': observation['id'],
+          'localUuid': _effectiveLocalUuid(observation),
           'name': observation['name'],
           'latitude': observation['latitude'],
           'longitude': observation['longitude'],
@@ -1983,69 +1909,36 @@ class GeoportalApiService {
         },
       );
 
-      final existingByLocalId = await _findFeatureByLocalId(
+      final existingByLocalUuid = await _findFeatureByLocalUuid(
         auth: auth,
         layerId: layerId,
         observation: observation,
       );
 
-      if (existingByLocalId != null) {
+      if (existingByLocalUuid != null) {
         final urls = await _listAttachmentImageUrls(
           auth: auth,
           layerId: layerId,
-          featureId: existingByLocalId,
+          featureId: existingByLocalUuid,
         );
 
         AppLogger.instance.warning(
           'GeoportalApiService',
-          'Feature with same local_id already exists; create skipped',
+          'Feature with same local_uuid already exists; create skipped',
           data: {
             'layerId': layerId,
-            'localId': observation['id'],
-            'featureId': existingByLocalId,
+            'localUuid': _effectiveLocalUuid(observation),
+            'featureId': existingByLocalUuid,
             'attachmentUrls': urls.length,
           },
         );
 
         return GeoportalPointResult(
           success: true,
-          remoteFeatureId: existingByLocalId,
+          remoteFeatureId: existingByLocalUuid,
           folderPath: session.remoteFolder,
           photoUrls: urls,
-          warning: 'Такая локальная запись уже есть на сервере. Новая точка не создана.',
-        );
-      }
-
-      final recentDuplicateId = await _findRecentDuplicateFeature(
-        auth: auth,
-        layerId: layerId,
-        observation: observation,
-      );
-
-      if (recentDuplicateId != null) {
-        final urls = await _listAttachmentImageUrls(
-          auth: auth,
-          layerId: layerId,
-          featureId: recentDuplicateId,
-        );
-
-        AppLogger.instance.warning(
-          'GeoportalApiService',
-          'Recent probable duplicate found; create skipped',
-          data: {
-            'layerId': layerId,
-            'localId': observation['id'],
-            'featureId': recentDuplicateId,
-            'attachmentUrls': urls.length,
-          },
-        );
-
-        return GeoportalPointResult(
-          success: true,
-          remoteFeatureId: recentDuplicateId,
-          folderPath: session.remoteFolder,
-          photoUrls: urls,
-          warning: 'Найдена похожая точка, созданная недавно. Новая точка не создана.',
+          warning: 'Эта запись уже отправлялась ранее. Новая точка не создана.',
         );
       }
 
@@ -2091,8 +1984,11 @@ class GeoportalApiService {
         availableLocalPhotos++;
 
         try {
+          final localPhotoKey = _safeIdentityPart(
+            _effectiveLocalUuid(observation) ?? observation['id'],
+          );
           final remoteName =
-              '${session.userLogin}_${observation['id']}_${i + 1}${p.extension(file.path)}';
+              '${session.userLogin}_${localPhotoKey}_${i + 1}${p.extension(file.path)}';
 
           AppLogger.instance.info(
             'GeoportalApiService',
