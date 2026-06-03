@@ -26,7 +26,7 @@ class MainHomeScreen extends StatefulWidget {
 class _MainHomeScreenState extends State<MainHomeScreen> {
   final List<Widget?> _screenCache = List<Widget?>.filled(4, null);
   final GlobalKey<HistoryScreenState> _historyKey =
-      GlobalKey<HistoryScreenState>();
+  GlobalKey<HistoryScreenState>();
 
   late final AppAppearanceController _appearanceController;
   int _currentIndex = 0;
@@ -188,6 +188,7 @@ class _WildNavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = WildColors.of(context);
+    final fieldMode = colors.fieldMode;
     final color = selected ? colors.primary : colors.muted;
 
     return Expanded(
@@ -195,9 +196,9 @@ class _WildNavItem extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(22),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 140),
+          duration: fieldMode ? Duration.zero : const Duration(milliseconds: 140),
           curve: Curves.easeOutCubic,
-          height: 50,
+          height: fieldMode ? 58 : 50,
           decoration: BoxDecoration(
             color: selected ? colors.softGreen : Colors.transparent,
             borderRadius: BorderRadius.circular(22),
@@ -207,7 +208,7 @@ class _WildNavItem extends StatelessWidget {
             children: [
               Icon(
                 selected ? selectedIcon : icon,
-                size: selected ? 22 : 20,
+                size: fieldMode ? (selected ? 25 : 23) : (selected ? 22 : 20),
                 color: color,
               ),
               const SizedBox(height: 2),
@@ -216,7 +217,7 @@ class _WildNavItem extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 10,
+                  fontSize: fieldMode ? 10.8 : 10,
                   height: 1,
                   fontWeight: selected ? FontWeight.w900 : FontWeight.w600,
                   color: selected ? colors.primaryDark : colors.muted,

@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../services/app_appearance_settings.dart';
-import '../services/device_brightness_service.dart';
 import '../services/location_accuracy_settings.dart';
 import '../services/session_manager.dart';
 import '../theme/app_theme.dart';
@@ -33,6 +32,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _autoContrast = false;
   bool _autoBrightness = false;
   bool _darkTheme = false;
+  bool _sunlightContrast = false;
+  bool _fieldMode = false;
+  bool _largeButtons = false;
   Color _selectedAccent = AppAppearanceSettingsData.defaultAccent;
   double _targetAccuracyMeters =
       LocationAccuracySettings.defaultTargetAccuracyMeters;
@@ -79,6 +81,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _darkTheme = data.darkTheme;
       _autoContrast = data.autoContrast;
       _autoBrightness = data.autoBrightness;
+      _sunlightContrast = data.sunlightContrast;
+      _fieldMode = data.fieldMode;
+      _largeButtons = data.largeButtons;
       _selectedAccent = data.accentColor;
     });
   }
@@ -293,18 +298,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _setAutoBrightness(bool value) async {
-    final ok = await DeviceBrightnessService.instance.applyAutoBrightness(value);
-
-    if (!ok && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Не удалось изменить яркость экрана на устройстве'),
-        ),
-      );
-      return;
-    }
-
     await _appearanceController.setAutoBrightness(value);
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          value
+              ? 'Автояркость будет подстраиваться по датчику освещённости'
+              : 'Автояркость выключена',
+        ),
+      ),
+    );
+  }
+
+  Future<void> _setFieldMode(bool value) async {
+    await _appearanceController.setFieldMode(value);
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          value
+              ? 'Полевой режим включён'
+              : 'Полевой режим выключен',
+        ),
+      ),
+    );
+  }
+
+  Future<void> _setLargeButtons(bool value) async {
+    await _appearanceController.setLargeButtons(value);
   }
 
   Future<void> _setAccent(Color color) async {
@@ -587,6 +613,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _section({
     required String title,
+    Widget? trailing,
     required List<Widget> children,
   }) {
     final colors = WildColors.of(context);
@@ -602,13 +629,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w900,
-              color: colors.primaryDark,
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                    color: colors.primaryDark,
+                  ),
+                ),
+              ),
+              if (trailing != null) trailing,
+            ],
           ),
           const SizedBox(height: 8),
           ...children,
@@ -701,8 +735,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(35, 2, 0, 12),
       child: Wrap(
-        spacing: 10,
-        runSpacing: 10,
+        spacing: 8,
+        runSpacing: 8,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           ...quickColors.map((color) {
@@ -712,8 +746,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onTap: () => _setAccent(color),
               customBorder: const CircleBorder(),
               child: Container(
-                width: 32,
-                height: 32,
+                width: 30,
+                height: 30,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: color,
@@ -736,11 +770,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               height: 32,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: colors.surfaceSoft,
+                color: colors.primaryDark.withValues(alpha: 0.06),
               ),
               child: Icon(
                 Icons.tune_rounded,
-                size: 18,
+                size: 17,
                 color: colors.primary,
               ),
             ),
@@ -818,7 +852,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             _section(
               title: 'Полевой режим',
+              trailing: Switch(
+                value: _fieldMode,
+                onChanged: _setFieldMode,
+              ),
               children: [
+                _switchRow(
+                  icon: Icons.touch_app_rounded,
+                  title: 'Крупные кнопки',
+                  subtitle: 'Увеличивает основные кнопки и нижнее меню для работы на улице',
+                  value: _largeButtons,
+                  onChanged: _setLargeButtons,
+                ),
+                _divider(),
                 _row(
                   icon: Icons.gps_fixed_rounded,
                   title: 'Точность координат',
@@ -836,7 +882,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   title: 'Автоконтрастность',
                   subtitle: _darkTheme
                       ? 'Недоступна в тёмной теме'
-                      : 'Делает белые части светлее, а основной и вторичный текст темнее',
+                      : (_sunlightContrast
+                      ? 'Солнце на датчике: включена ультраконтрастность'
+                      : 'Обычная тема в тени и ультраконтраст при прямом солнце'),
                   value: _darkTheme ? false : _autoContrast,
                   onChanged: _darkTheme ? null : _setAutoContrast,
                 ),
@@ -844,7 +892,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _switchRow(
                   icon: Icons.wb_sunny_outlined,
                   title: 'Автояркость',
-                  subtitle: 'При включении поднимает яркость экрана приложения до максимума',
+                  subtitle:
+                  'Экран подстраивается под любое освещение',
                   value: _autoBrightness,
                   onChanged: _setAutoBrightness,
                 ),

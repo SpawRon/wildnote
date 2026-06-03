@@ -46,17 +46,22 @@ class AppTheme {
     required Brightness brightness,
     required Color accent,
     bool highContrast = false,
+    bool sunlightContrast = false,
+    bool fieldMode = false,
   }) {
     final isDark = brightness == Brightness.dark;
     final contrast = highContrast && !isDark;
+    final ultraContrast = contrast && sunlightContrast;
 
     final background = isDark
         ? Color.alphaBlend(
       accent.withValues(alpha: 0.045),
       const Color(0xFF09100C),
     )
+        : ultraContrast
+        ? Colors.white
         : Color.alphaBlend(
-      accent.withValues(alpha: contrast ? 0.010 : 0.025),
+      accent.withValues(alpha: contrast ? 0.006 : 0.025),
       const Color(0xFFFFFEFA),
     );
 
@@ -72,12 +77,20 @@ class AppTheme {
       accent.withValues(alpha: 0.075),
       const Color(0xFF18231B),
     )
+        : ultraContrast
+        ? Colors.white
         : (contrast ? Colors.white : const Color(0xFFFBFCF8));
 
-    final primaryText =
-    isDark ? const Color(0xFFF4FBF4) : const Color(0xFF07110C);
+    final primaryText = isDark
+        ? const Color(0xFFF4FBF4)
+        : ultraContrast
+        ? Colors.black
+        : const Color(0xFF07110C);
+
     final mutedText = isDark
         ? const Color(0xFFB9C3BD)
+        : ultraContrast
+        ? const Color(0xFF101812)
         : (contrast ? const Color(0xFF35413A) : const Color(0xFF5F6B64));
 
     final border = isDark
@@ -85,15 +98,23 @@ class AppTheme {
       accent.withValues(alpha: 0.14),
       const Color(0xFF263229),
     )
+        : ultraContrast
+        ? Color.alphaBlend(
+      accent.withValues(alpha: 0.58),
+      const Color(0xFFD5DDD5),
+    )
         : (contrast
-        ? const Color(0xFFD8DDD6)
+        ? Color.alphaBlend(
+      accent.withValues(alpha: 0.22),
+      const Color(0xFFD8DDD6),
+    )
         : Color.alphaBlend(
       accent.withValues(alpha: 0.07),
       const Color(0xFFE7EAE2),
     ));
 
     final softAccent = Color.alphaBlend(
-      accent.withValues(alpha: isDark ? 0.23 : 0.14),
+      accent.withValues(alpha: isDark ? 0.23 : (ultraContrast ? 0.23 : 0.14)),
       surface,
     );
 
@@ -105,6 +126,19 @@ class AppTheme {
       primary: accent,
       surface: surface,
       error: AppColors.danger,
+    );
+
+    final enabledBorderSide = ultraContrast
+        ? BorderSide(color: border, width: 1.15)
+        : BorderSide.none;
+
+    final buttonMinHeight = fieldMode ? 62.0 : 54.0;
+    final compactButtonMinHeight = fieldMode ? 56.0 : 48.0;
+    final inputVerticalPadding = fieldMode ? 17.0 : 14.0;
+
+    final focusedBorderSide = BorderSide(
+      color: accent.withValues(alpha: ultraContrast ? 0.86 : 0.36),
+      width: ultraContrast ? 1.35 : 1.0,
     );
 
     return ThemeData(
@@ -128,6 +162,8 @@ class AppTheme {
           danger: AppColors.danger,
           success: AppColors.success,
           warning: AppColors.warning,
+          sunlightContrast: ultraContrast,
+          fieldMode: fieldMode,
         ),
       ],
       appBarTheme: AppBarTheme(
@@ -152,31 +188,46 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: fieldFill,
-        hintStyle: TextStyle(color: mutedText, fontWeight: FontWeight.w500),
-        labelStyle: TextStyle(color: mutedText, fontWeight: FontWeight.w600),
+        hintStyle: TextStyle(
+          color: mutedText,
+          fontWeight: ultraContrast ? FontWeight.w700 : FontWeight.w500,
+        ),
+        labelStyle: TextStyle(
+          color: mutedText,
+          fontWeight: ultraContrast ? FontWeight.w800 : FontWeight.w600,
+        ),
         prefixIconColor: accent,
         suffixIconColor: mutedText,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.medium),
-          borderSide: BorderSide.none,
+          borderSide: enabledBorderSide,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.medium),
-          borderSide: BorderSide.none,
+          borderSide: enabledBorderSide,
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.medium),
-          borderSide: BorderSide(color: accent.withValues(alpha: 0.36)),
+          borderSide: focusedBorderSide,
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.medium),
-          borderSide: BorderSide.none,
+          borderSide: BorderSide(
+            color: AppColors.danger.withValues(alpha: 0.72),
+            width: ultraContrast ? 1.3 : 1.0,
+          ),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.medium),
-          borderSide: BorderSide.none,
+          borderSide: BorderSide(
+            color: AppColors.danger,
+            width: ultraContrast ? 1.4 : 1.0,
+          ),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: inputVerticalPadding,
+        ),
       ),
       textTheme: ThemeData(brightness: brightness).textTheme.apply(
         bodyColor: primaryText,
@@ -189,7 +240,7 @@ class AppTheme {
           foregroundColor: Colors.white,
           disabledBackgroundColor: mutedText.withValues(alpha: 0.36),
           disabledForegroundColor: Colors.white70,
-          minimumSize: const Size.fromHeight(54),
+          minimumSize: Size.fromHeight(buttonMinHeight),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.medium),
           ),
@@ -209,9 +260,12 @@ class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: accent,
-          minimumSize: const Size.fromHeight(48),
-          side: BorderSide(color: accent.withValues(alpha: 0.55), width: 1.2),
+          foregroundColor: ultraContrast ? primaryText : accent,
+          minimumSize: Size.fromHeight(compactButtonMinHeight),
+          side: BorderSide(
+            color: accent.withValues(alpha: ultraContrast ? 0.88 : 0.55),
+            width: ultraContrast ? 1.5 : 1.2,
+          ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.medium),
           ),
@@ -220,7 +274,7 @@ class AppTheme {
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: accent,
+          foregroundColor: ultraContrast ? primaryText : accent,
           textStyle: const TextStyle(fontWeight: FontWeight.w800),
         ),
       ),
@@ -234,9 +288,9 @@ class AppTheme {
         selectedColor: accent.withValues(alpha: isDark ? 0.36 : 0.20),
         labelStyle: TextStyle(
           color: primaryText,
-          fontWeight: FontWeight.w700,
+          fontWeight: ultraContrast ? FontWeight.w800 : FontWeight.w700,
         ),
-        side: BorderSide.none,
+        side: ultraContrast ? BorderSide(color: border) : BorderSide.none,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
         ),
@@ -265,7 +319,7 @@ class AppTheme {
             return border.withValues(alpha: 0.56);
           }
           if (states.contains(WidgetState.selected)) {
-            return accent.withValues(alpha: 0.30);
+            return accent.withValues(alpha: ultraContrast ? 0.42 : 0.30);
           }
           return border;
         }),
@@ -282,7 +336,7 @@ class AppTheme {
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return TextStyle(
-            fontSize: 12,
+            fontSize: fieldMode ? 12.5 : 12,
             fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
             color: selected ? primaryText : mutedText,
           );
@@ -290,7 +344,7 @@ class AppTheme {
         iconTheme: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return IconThemeData(
-            size: selected ? 27 : 25,
+            size: fieldMode ? (selected ? 29 : 27) : (selected ? 27 : 25),
             color: selected ? accent : mutedText,
           );
         }),
@@ -313,6 +367,8 @@ class WildColors extends ThemeExtension<WildColors> {
   final Color danger;
   final Color success;
   final Color warning;
+  final bool sunlightContrast;
+  final bool fieldMode;
 
   const WildColors({
     required this.background,
@@ -327,6 +383,8 @@ class WildColors extends ThemeExtension<WildColors> {
     required this.danger,
     required this.success,
     required this.warning,
+    this.sunlightContrast = false,
+    this.fieldMode = false,
   });
 
   static const WildColors fallback = WildColors(
@@ -342,6 +400,8 @@ class WildColors extends ThemeExtension<WildColors> {
     danger: AppColors.danger,
     success: AppColors.success,
     warning: AppColors.warning,
+    sunlightContrast: false,
+    fieldMode: false,
   );
 
   static WildColors of(BuildContext context) {
@@ -362,6 +422,8 @@ class WildColors extends ThemeExtension<WildColors> {
     Color? danger,
     Color? success,
     Color? warning,
+    bool? sunlightContrast,
+    bool? fieldMode,
   }) {
     return WildColors(
       background: background ?? this.background,
@@ -376,6 +438,8 @@ class WildColors extends ThemeExtension<WildColors> {
       danger: danger ?? this.danger,
       success: success ?? this.success,
       warning: warning ?? this.warning,
+      sunlightContrast: sunlightContrast ?? this.sunlightContrast,
+      fieldMode: fieldMode ?? this.fieldMode,
     );
   }
 
@@ -396,6 +460,8 @@ class WildColors extends ThemeExtension<WildColors> {
       danger: Color.lerp(danger, other.danger, t)!,
       success: Color.lerp(success, other.success, t)!,
       warning: Color.lerp(warning, other.warning, t)!,
+      sunlightContrast: t < 0.5 ? sunlightContrast : other.sunlightContrast,
+      fieldMode: t < 0.5 ? fieldMode : other.fieldMode,
     );
   }
 }

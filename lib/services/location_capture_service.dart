@@ -17,6 +17,20 @@ class PreciseLocationConfig {
   final Duration maxSessionDuration;
   final bool autoStopWhenTargetReached;
 
+  /// Пространственный антискачок: после формирования кластера
+  /// новая точка отклоняется, если она слишком далеко от основной группы,
+  /// даже если сама заявляет хорошую accuracy.
+  final bool rejectSpatialOutliers;
+
+  /// Сколько уже принятых точек нужно накопить до включения антискачка.
+  final int minSamplesBeforeSpatialFilter;
+
+  /// Минимально допустимый радиус кластера для антискачка.
+  final double minSpatialJumpMeters;
+
+  /// Максимально допустимый радиус кластера для антискачка.
+  final double maxSpatialJumpMeters;
+
   const PreciseLocationConfig({
     this.maxAcceptedAccuracyMeters = 60,
     this.acceptableSaveAccuracyMeters = LocationAccuracySettings.defaultTargetAccuracyMeters,
@@ -27,6 +41,10 @@ class PreciseLocationConfig {
     this.requestInterval = const Duration(milliseconds: 600),
     this.maxSessionDuration = const Duration(seconds: 70),
     this.autoStopWhenTargetReached = true,
+    this.rejectSpatialOutliers = true,
+    this.minSamplesBeforeSpatialFilter = 4,
+    this.minSpatialJumpMeters = 20,
+    this.maxSpatialJumpMeters = 55,
   });
 }
 
@@ -46,6 +64,12 @@ class PreciseLocationProgress {
   /// сколько лучших точек использовано в итоговом расчёте.
   final int usedSampleCount;
 
+  /// Сколько точек было отклонено пространственным антискачком.
+  final int rejectedSpatialOutlierCount;
+
+  /// Последнее расстояние отклонённой точки от текущего кластера.
+  final double? lastRejectedSpatialDistanceMeters;
+
   final bool isUsable;
   final bool isTargetReached;
   final bool isRunning;
@@ -58,6 +82,8 @@ class PreciseLocationProgress {
     required this.bestSampleAccuracy,
     required this.sampleCount,
     required this.usedSampleCount,
+    this.rejectedSpatialOutlierCount = 0,
+    this.lastRejectedSpatialDistanceMeters,
     required this.isUsable,
     required this.isTargetReached,
     required this.isRunning,
@@ -79,6 +105,8 @@ class LocationCaptureService {
   StreamController<PreciseLocationProgress>.broadcast();
 
   final List<Position> _accepted = [];
+  int _rejectedSpatialOutlierCount = 0;
+  double? _lastRejectedSpatialDistanceMeters;
 
   StreamSubscription<Position>? _positionSubscription;
   Timer? _sessionTimer;
@@ -133,6 +161,10 @@ class LocationCaptureService {
       requestInterval: const Duration(milliseconds: 600),
       maxSessionDuration: maxSessionDuration,
       autoStopWhenTargetReached: true,
+      rejectSpatialOutliers: true,
+      minSamplesBeforeSpatialFilter: minSamples,
+      minSpatialJumpMeters: 20,
+      maxSpatialJumpMeters: targetAccuracy <= 7 ? 35 : 55,
     );
   }
 
@@ -180,6 +212,8 @@ class LocationCaptureService {
 
   void clearProgress() {
     _accepted.clear();
+    _rejectedSpatialOutlierCount = 0;
+    _lastRejectedSpatialDistanceMeters = null;
     _latestProgress = null;
     _lastAnyPositionAt = null;
     _lastAcceptedAt = null;
@@ -187,6 +221,79 @@ class LocationCaptureService {
 
   bool _isAccepted(Position p, PreciseLocationConfig config) {
     return p.accuracy > 0 && p.accuracy <= config.maxAcceptedAccuracyMeters;
+  }
+
+
+  ({double latitude, double longitude}) _weightedCenterOfBestPoints(
+      List<Position> samples,
+      PreciseLocationConfig config,
+      ) {
+    final sorted = [...samples]..sort((a, b) => a.accuracy.compareTo(b.accuracy));
+    final bestPoints = sorted.take(config.maxBestPointsUsed).toList();
+
+    double weightedLat = 0;
+    double weightedLon = 0;
+    double totalWeight = 0;
+
+    for (final sample in bestPoints) {
+      final sigma = sample.accuracy <= 0 ? 1.0 : sample.accuracy;
+      final weight = 1 / (sigma * sigma);
+      weightedLat += sample.latitude * weight;
+      weightedLon += sample.longitude * weight;
+      totalWeight += weight;
+    }
+
+    if (totalWeight <= 0) {
+      return (
+      latitude: bestPoints.first.latitude,
+      longitude: bestPoints.first.longitude,
+      );
+    }
+
+    return (
+    latitude: weightedLat / totalWeight,
+    longitude: weightedLon / totalWeight,
+    );
+  }
+
+  double _allowedSpatialJumpMeters(
+      Position candidate,
+      PreciseLocationConfig config,
+      ) {
+    final byTarget = config.targetAccuracyMeters * 1.8;
+    final byCandidateAccuracy = candidate.accuracy * 2.4;
+
+    return math.max(
+      config.minSpatialJumpMeters,
+      math.max(byTarget, byCandidateAccuracy),
+    ).clamp(
+      config.minSpatialJumpMeters,
+      config.maxSpatialJumpMeters,
+    ).toDouble();
+  }
+
+  bool _isSpatialOutlier(
+      Position candidate,
+      PreciseLocationConfig config,
+      ) {
+    if (!config.rejectSpatialOutliers) return false;
+    if (_accepted.length < config.minSamplesBeforeSpatialFilter) return false;
+
+    final center = _weightedCenterOfBestPoints(_accepted, config);
+    final distance = _distanceMeters(
+      lat1: center.latitude,
+      lon1: center.longitude,
+      lat2: candidate.latitude,
+      lon2: candidate.longitude,
+    );
+
+    final allowed = _allowedSpatialJumpMeters(candidate, config);
+
+    if (distance <= allowed) return false;
+
+    _rejectedSpatialOutlierCount++;
+    _lastRejectedSpatialDistanceMeters = distance;
+    return true;
   }
 
   bool _isFresh(
@@ -249,6 +356,8 @@ class LocationCaptureService {
         bestSampleAccuracy: null,
         sampleCount: 0,
         usedSampleCount: 0,
+        rejectedSpatialOutlierCount: _rejectedSpatialOutlierCount,
+        lastRejectedSpatialDistanceMeters: _lastRejectedSpatialDistanceMeters,
         isUsable: false,
         isTargetReached: false,
         isRunning: isRunning,
@@ -314,6 +423,8 @@ class LocationCaptureService {
       bestSampleAccuracy: bestAccuracy,
       sampleCount: _accepted.length,
       usedSampleCount: bestPoints.length,
+      rejectedSpatialOutlierCount: _rejectedSpatialOutlierCount,
+      lastRejectedSpatialDistanceMeters: _lastRejectedSpatialDistanceMeters,
       isUsable: isUsable,
       isTargetReached: isTargetReached,
       isRunning: isRunning,
@@ -349,6 +460,10 @@ class LocationCaptureService {
             bestSampleAccuracy: _latestProgress!.bestSampleAccuracy,
             sampleCount: _latestProgress!.sampleCount,
             usedSampleCount: _latestProgress!.usedSampleCount,
+            rejectedSpatialOutlierCount:
+            _latestProgress!.rejectedSpatialOutlierCount,
+            lastRejectedSpatialDistanceMeters:
+            _latestProgress!.lastRejectedSpatialDistanceMeters,
             isUsable: _latestProgress!.isUsable,
             isTargetReached: _latestProgress!.isTargetReached,
             isRunning: true,
@@ -378,7 +493,8 @@ class LocationCaptureService {
 
       if (lastKnown != null &&
           _isFresh(lastKnown) &&
-          _isAccepted(lastKnown, effectiveConfig)) {
+          _isAccepted(lastKnown, effectiveConfig) &&
+          !_isSpatialOutlier(lastKnown, effectiveConfig)) {
         _accepted.add(lastKnown);
         _lastAcceptedAt = DateTime.now();
         _emit(
@@ -406,6 +522,18 @@ class LocationCaptureService {
         _lastAnyPositionAt = DateTime.now();
 
         if (_isAccepted(position, effectiveConfig)) {
+          if (_isSpatialOutlier(position, effectiveConfig)) {
+            _emit(
+              _buildProgress(
+                config: effectiveConfig,
+                isRunning: true,
+                messageOverride:
+                'Точка отклонена антискачком: ${_lastRejectedSpatialDistanceMeters!.toStringAsFixed(1)} м от основного кластера. Продолжаем уточнение...',
+              ),
+            );
+            return;
+          }
+
           _accepted.add(position);
           _lastAcceptedAt = DateTime.now();
 

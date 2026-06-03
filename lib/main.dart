@@ -14,14 +14,33 @@ import 'theme/app_theme.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  try {
-    await AppLogger.instance.init().timeout(const Duration(seconds: 2));
-  } catch (_) {
-    // Логгер не должен блокировать запуск.
+  unawaited(
+    AppLogger.instance
+        .init()
+        .timeout(const Duration(seconds: 2))
+        .catchError((_) {}),
+  );
+
+  void safeLogError(
+      String source,
+      String message, {
+        Object? error,
+        StackTrace? stackTrace,
+      }) {
+    try {
+      AppLogger.instance.error(
+        source,
+        message,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    } catch (_) {
+      // Ошибка логгера не должна мешать запуску приложения.
+    }
   }
 
   FlutterError.onError = (FlutterErrorDetails details) {
-    AppLogger.instance.error(
+    safeLogError(
       'FlutterError',
       details.exceptionAsString(),
       error: details.exception,
@@ -31,7 +50,7 @@ Future<void> main() async {
   };
 
   PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
-    AppLogger.instance.error(
+    safeLogError(
       'PlatformDispatcher',
       'Unhandled platform error',
       error: error,
@@ -42,11 +61,13 @@ Future<void> main() async {
 
   runZonedGuarded<void>(
         () {
-      AppLogger.instance.info('Main', 'Application started');
+      try {
+        AppLogger.instance.info('Main', 'Application started');
+      } catch (_) {}
       runApp(const WildNoteApp());
     },
         (Object error, StackTrace stack) {
-      AppLogger.instance.error(
+      safeLogError(
         'Zone',
         'Unhandled zone error',
         error: error,
@@ -76,9 +97,14 @@ class _WildNoteAppState extends State<WildNoteApp> {
   }
 
   void _applyDeviceBrightness() {
+    final data = _appearanceController.data;
+
     unawaited(
-      DeviceBrightnessService.instance.applyAutoBrightness(
-        _appearanceController.autoBrightness,
+      DeviceBrightnessService.instance.applyAdaptiveSettings(
+        autoBrightness: data.autoBrightness,
+        autoContrast: data.autoContrast,
+        darkTheme: data.darkTheme,
+        onSunlightContrastChanged: _appearanceController.setSunlightContrast,
       ),
     );
   }
@@ -86,7 +112,7 @@ class _WildNoteAppState extends State<WildNoteApp> {
   @override
   void dispose() {
     _appearanceController.removeListener(_applyDeviceBrightness);
-    unawaited(DeviceBrightnessService.instance.applyAutoBrightness(false));
+    unawaited(DeviceBrightnessService.instance.stop());
     super.dispose();
   }
 
@@ -100,10 +126,17 @@ class _WildNoteAppState extends State<WildNoteApp> {
         return MaterialApp(
           title: 'WildNote',
           debugShowCheckedModeBanner: false,
+          // Отключаем встроенную анимацию ThemeData.
+          // Иначе Flutter плавно пересчитывает цвета всего дерева: IndexedStack,
+          // карты, фото и подробные карточки. Это и давало сильный фриз.
+          themeAnimationDuration: Duration.zero,
+          themeAnimationCurve: Curves.linear,
           theme: AppTheme.build(
             brightness: data.darkTheme ? Brightness.dark : Brightness.light,
             accent: data.accentColor,
             highContrast: data.autoContrast,
+            sunlightContrast: data.sunlightContrast,
+            fieldMode: data.largeButtons,
           ),
           home: _StartupGate(
             appearanceController: _appearanceController,

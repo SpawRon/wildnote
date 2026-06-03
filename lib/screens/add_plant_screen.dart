@@ -11,12 +11,15 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import '../data/database_helper.dart';
 import '../services/geoportal_sync_service.dart';
+import '../services/explorer_service.dart';
 import '../services/location_capture_service.dart';
+import '../services/session_manager.dart';
 import '../services/location_accuracy_settings.dart';
 import '../services/gauss_kruger_service.dart';
 import '../services/app_logger.dart';
 import '../theme/app_theme.dart';
 import '../widgets/wild_page_header.dart';
+import 'guided_photo_capture_screen.dart';
 
 void _showWildTopMessage(BuildContext context, String text) {
   final overlay = Overlay.maybeOf(context, rootOverlay: true);
@@ -93,6 +96,54 @@ void _showWildTopMessage(BuildContext context, String text) {
 }
 
 
+
+enum _QualitySeverity { good, warning, problem }
+
+class _QualityItem {
+  final String title;
+  final String subtitle;
+  final _QualitySeverity severity;
+
+  const _QualityItem({
+    required this.title,
+    required this.subtitle,
+    required this.severity,
+  });
+}
+
+class _ObservationQualityReport {
+  final int score;
+  final List<_QualityItem> items;
+
+  const _ObservationQualityReport({
+    required this.score,
+    required this.items,
+  });
+
+  bool get hasProblems =>
+      items.any((item) => item.severity == _QualitySeverity.problem);
+
+  bool get hasWarnings => items.any(
+        (item) =>
+    item.severity == _QualitySeverity.warning ||
+        item.severity == _QualitySeverity.problem,
+  );
+}
+
+class _NearbyObservationHit {
+  final String name;
+  final String source;
+  final double distanceMeters;
+  final String? createdAt;
+
+  const _NearbyObservationHit({
+    required this.name,
+    required this.source,
+    required this.distanceMeters,
+    this.createdAt,
+  });
+}
+
 class AddPlantScreen extends StatefulWidget {
   final bool isGuest;
   final String userLogin;
@@ -113,6 +164,7 @@ class AddPlantScreen extends StatefulWidget {
 class _AddPlantScreenState extends State<AddPlantScreen>
     with WidgetsBindingObserver {
   final List<File> _images = [];
+  final List<String> _imageLabels = [];
   final ImagePicker _picker = ImagePicker();
   final PageController _pageController = PageController();
 
@@ -148,6 +200,7 @@ class _AddPlantScreenState extends State<AddPlantScreen>
   final Map<String, Set<String>> _sharedAttributeTags = <String, Set<String>>{};
   final LocationCaptureService _locationService = LocationCaptureService();
   final GaussKrugerService _gaussKrugerService = GaussKrugerService();
+  final Distance _distance = const Distance();
   final MapController _manualMapController = MapController();
   final ValueNotifier<int> _photoIndexNotifier = ValueNotifier<int>(0);
   final ValueNotifier<int> _photoRevisionNotifier = ValueNotifier<int>(0);
@@ -390,6 +443,45 @@ class _AddPlantScreenState extends State<AddPlantScreen>
     return source.copy(target.path);
   }
 
+
+  Future<void> _addPickedImage(
+      XFile pickedFile, {
+        required String source,
+        String? label,
+      }) async {
+    final savedFile = await _persistPickedImage(pickedFile);
+    if (!mounted) return;
+
+    _images.add(savedFile);
+    _imageLabels.add(
+      label?.trim().isNotEmpty == true
+          ? label!.trim()
+          : source == ImageSource.gallery.name
+          ? 'Фото из галереи'
+          : 'Фото наблюдения',
+    );
+
+    _setCurrentPhotoIndex(_images.length - 1);
+    _notifyPhotoListChanged();
+
+    AppLogger.instance.info(
+      'AddPlantScreen',
+      'Photo added',
+      data: {
+        'source': source,
+        'photoCount': _images.length,
+        'path': savedFile.path,
+        'label': _imageLabels.last,
+      },
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_pageController.hasClients && _images.isNotEmpty) {
+        _pageController.jumpToPage(_images.length - 1);
+      }
+    });
+  }
+
   Future<void> _pickImage(ImageSource source) async {
     try {
       final XFile? pickedFile = await _picker.pickImage(
@@ -401,28 +493,11 @@ class _AddPlantScreenState extends State<AddPlantScreen>
 
       if (pickedFile == null || !mounted) return;
 
-      final savedFile = await _persistPickedImage(pickedFile);
-      if (!mounted) return;
-
-      _images.add(savedFile);
-      _setCurrentPhotoIndex(_images.length - 1);
-      _notifyPhotoListChanged();
-
-      AppLogger.instance.info(
-        'AddPlantScreen',
-        'Photo added',
-        data: {
-          'source': source.name,
-          'photoCount': _images.length,
-          'path': savedFile.path,
-        },
+      await _addPickedImage(
+        pickedFile,
+        source: source.name,
+        label: source == ImageSource.gallery ? 'Фото из галереи' : 'Фото наблюдения',
       );
-
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_pageController.hasClients && _images.isNotEmpty) {
-          _pageController.jumpToPage(_images.length - 1);
-        }
-      });
     } catch (e) {
       debugPrint("Ошибка выбора фото: $e");
 
@@ -433,6 +508,40 @@ class _AddPlantScreenState extends State<AddPlantScreen>
       );
 
       _showMessage("Не удалось выбрать фото");
+    }
+  }
+
+  Future<void> _openGuidedPhotoCapture() async {
+    try {
+      final results = await Navigator.of(context).push<List<GuidedPhotoCaptureResult>>(
+        MaterialPageRoute(
+          builder: (_) => const GuidedPhotoCaptureScreen(),
+        ),
+      );
+
+      if (!mounted || results == null || results.isEmpty) return;
+
+      for (final result in results) {
+        await _addPickedImage(
+          result.file,
+          source: 'guided_camera',
+          label: result.label,
+        );
+      }
+
+      if (!mounted) return;
+      _showMessage('Добавлено фото по чек-листу: ${results.length}');
+    } catch (e, st) {
+      AppLogger.instance.error(
+        'AddPlantScreen',
+        'Guided photo capture failed',
+        error: e,
+        stackTrace: st,
+      );
+
+      if (mounted) {
+        _showMessage('Не удалось открыть чек-лист фотографий');
+      }
     }
   }
 
@@ -650,6 +759,628 @@ class _AddPlantScreenState extends State<AddPlantScreen>
     );
     await _startLocationCapture(reset: true);
   }
+
+  int _countFilledPlantAttributes(Map<String, Object?> attributes) {
+    int filled = 0;
+
+    for (final key in _attributeOrder) {
+      final value = attributes[key];
+      if (value == null) continue;
+
+      if (value is Iterable) {
+        if (value.any((item) => item.toString().trim().isNotEmpty)) {
+          filled++;
+        }
+        continue;
+      }
+
+      if (value.toString().trim().isNotEmpty) {
+        filled++;
+      }
+    }
+
+    return filled;
+  }
+
+  bool _hasFilledAttribute(
+      Map<String, Object?> attributes,
+      String key,
+      ) {
+    final value = attributes[key];
+    if (value == null) return false;
+
+    if (value is Iterable) {
+      return value.any((item) => item.toString().trim().isNotEmpty);
+    }
+
+    return value.toString().trim().isNotEmpty;
+  }
+
+  double? _finiteDouble(dynamic value) {
+    if (value == null) return null;
+
+    double? parsed;
+    if (value is double) {
+      parsed = value;
+    } else if (value is int) {
+      parsed = value.toDouble();
+    } else if (value is num) {
+      parsed = value.toDouble();
+    } else {
+      parsed = double.tryParse(value.toString().replaceAll(',', '.'));
+    }
+
+    if (parsed == null || !parsed.isFinite) return null;
+    return parsed;
+  }
+
+  String _formatNearbyDate(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return '';
+    final dt = DateTime.tryParse(raw);
+    if (dt == null) return raw.trim();
+
+    String two(int value) => value.toString().padLeft(2, '0');
+    return '${two(dt.day)}.${two(dt.month)}.${dt.year}';
+  }
+
+  Future<List<_NearbyObservationHit>> _findNearbyObservationHits({
+    required double latitude,
+    required double longitude,
+    required double? accuracy,
+  }) async {
+    final center = LatLng(latitude, longitude);
+    final radiusMeters = (accuracy == null || !accuracy.isFinite)
+        ? 25.0
+        : (accuracy * 2.0).clamp(20.0, 50.0).toDouble();
+
+    final hits = <_NearbyObservationHit>[];
+
+    try {
+      final localRows = await DatabaseHelper.instance.getObservations(
+        userLogin: widget.userLogin,
+      );
+
+      for (final row in localRows) {
+        final lat = _finiteDouble(row['latitude']);
+        final lon = _finiteDouble(row['longitude']);
+        if (lat == null || lon == null) continue;
+
+        final distance = _distance.as(
+          LengthUnit.Meter,
+          center,
+          LatLng(lat, lon),
+        );
+
+        if (!distance.isFinite || distance > radiusMeters) continue;
+
+        hits.add(
+          _NearbyObservationHit(
+            name: row['name']?.toString().trim().isNotEmpty == true
+                ? row['name'].toString().trim()
+                : 'Локальная запись',
+            source: 'история',
+            distanceMeters: distance,
+            createdAt: row['created_at']?.toString(),
+          ),
+        );
+      }
+    } catch (e, st) {
+      AppLogger.instance.warning(
+        'AddPlantScreen',
+        'Nearby local observation check failed',
+        error: e,
+        stackTrace: st,
+      );
+    }
+
+    if (!widget.isGuest) {
+      try {
+        final session = await SessionManager.instance.getSession();
+        if (session != null && !session.isGuest && session.accessToken != null) {
+          final remote = await ExplorerService.instance
+              .loadPointsByRadius(
+            session: session,
+            centerLatitude: latitude,
+            centerLongitude: longitude,
+            radiusMeters: radiusMeters,
+          )
+              .timeout(
+            const Duration(seconds: 4),
+            onTimeout: () => const <ExplorerPoint>[],
+          );
+
+          for (final point in remote) {
+            final distance = _distance.as(
+              LengthUnit.Meter,
+              center,
+              point.latLng,
+            );
+
+            if (!distance.isFinite || distance > radiusMeters) continue;
+
+            hits.add(
+              _NearbyObservationHit(
+                name: point.name.trim().isNotEmpty
+                    ? point.name.trim()
+                    : 'Точка геопортала',
+                source: point.userLogin == widget.userLogin.toLowerCase()
+                    ? 'геопортал, ваш слой'
+                    : 'геопортал, ${point.userLogin}',
+                distanceMeters: distance,
+                createdAt: point.createdAt,
+              ),
+            );
+          }
+        }
+      } catch (e, st) {
+        AppLogger.instance.warning(
+          'AddPlantScreen',
+          'Nearby remote observation check failed',
+          error: e,
+          stackTrace: st,
+        );
+      }
+    }
+
+    hits.sort((a, b) => a.distanceMeters.compareTo(b.distanceMeters));
+
+    final unique = <_NearbyObservationHit>[];
+    final seen = <String>{};
+
+    for (final hit in hits) {
+      final key = [
+        hit.name.toLowerCase(),
+        hit.source.toLowerCase(),
+        hit.distanceMeters.round(),
+      ].join('|');
+
+      if (seen.add(key)) {
+        unique.add(hit);
+      }
+
+      if (unique.length >= 5) break;
+    }
+
+    return unique;
+  }
+
+  _ObservationQualityReport _buildObservationQualityReport({
+    required double? latitude,
+    required double? longitude,
+    required double? accuracy,
+    required Map<String, Object?> attributes,
+    required List<_NearbyObservationHit> nearbyHits,
+  }) {
+    final items = <_QualityItem>[];
+    int score = 0;
+
+    void add({
+      required String title,
+      required String subtitle,
+      required _QualitySeverity severity,
+      required int points,
+    }) {
+      items.add(
+        _QualityItem(
+          title: title,
+          subtitle: subtitle,
+          severity: severity,
+        ),
+      );
+      score += points;
+    }
+
+    final hasCoordinates = latitude != null &&
+        longitude != null &&
+        latitude.isFinite &&
+        longitude.isFinite;
+
+    if (!hasCoordinates) {
+      add(
+        title: 'Координаты',
+        subtitle: 'Координаты не определены.',
+        severity: _QualitySeverity.problem,
+        points: 0,
+      );
+    } else if (_isManualEntry) {
+      add(
+        title: 'Координаты',
+        subtitle: 'Ручной ввод. Координаты сохранены, но точность не оценивалась датчиком.',
+        severity: _QualitySeverity.warning,
+        points: 22,
+      );
+    } else if (accuracy == null || !accuracy.isFinite) {
+      add(
+        title: 'Координаты',
+        subtitle: 'Координаты есть, но точность не рассчитана.',
+        severity: _QualitySeverity.warning,
+        points: 18,
+      );
+    } else if (accuracy <= _targetAccuracyMeters) {
+      add(
+        title: 'Координаты',
+        subtitle:
+        'Итоговая точность ±${accuracy.toStringAsFixed(1)} м. Цель выполнена.',
+        severity: _QualitySeverity.good,
+        points: 30,
+      );
+    } else if (accuracy <= _targetAccuracyMeters * 2) {
+      add(
+        title: 'Координаты',
+        subtitle:
+        'Точность ±${accuracy.toStringAsFixed(1)} м. Пригодно, но можно уточнить лучше.',
+        severity: _QualitySeverity.warning,
+        points: 23,
+      );
+    } else {
+      add(
+        title: 'Координаты',
+        subtitle:
+        'Точность ±${accuracy.toStringAsFixed(1)} м. Для редких растений лучше уточнить.',
+        severity: _QualitySeverity.problem,
+        points: 12,
+      );
+    }
+
+    final rejectedSpatialOutliers =
+        _locationProgress?.rejectedSpatialOutlierCount ?? 0;
+    final lastRejectedDistance =
+        _locationProgress?.lastRejectedSpatialDistanceMeters;
+
+    if (!_isManualEntry && rejectedSpatialOutliers > 0) {
+      final distanceText = lastRejectedDistance == null
+          ? ''
+          : ' Последний скачок: ${lastRejectedDistance.toStringAsFixed(1)} м.';
+
+      add(
+        title: 'Антискачок координат',
+        subtitle:
+        'Отклонено $rejectedSpatialOutliers пространственных выбросов.$distanceText',
+        severity: _QualitySeverity.good,
+        points: 0,
+      );
+    }
+
+    if (nearbyHits.isEmpty) {
+      add(
+        title: 'Похожие точки рядом',
+        subtitle: 'В радиусе проверки похожих записей не найдено.',
+        severity: _QualitySeverity.good,
+        points: 5,
+      );
+    } else {
+      final nearest = nearbyHits.first;
+      final details = nearbyHits.take(3).map((hit) {
+        final date = _formatNearbyDate(hit.createdAt);
+        final datePart = date.isEmpty ? '' : ', $date';
+        return '${hit.name} — ${hit.distanceMeters.toStringAsFixed(1)} м (${hit.source}$datePart)';
+      }).join('; ');
+
+      add(
+        title: 'Похожие точки рядом',
+        subtitle:
+        'Найдено рядом: ${nearbyHits.length}. Ближайшая ${nearest.distanceMeters.toStringAsFixed(1)} м. Проверьте, это новая особь или повторная запись. $details',
+        severity: _QualitySeverity.warning,
+        points: 1,
+      );
+    }
+
+    if (_images.isEmpty) {
+      add(
+        title: 'Фотографии',
+        subtitle: 'Фото не добавлены. Проверить запись позже будет сложнее.',
+        severity: _QualitySeverity.problem,
+        points: 0,
+      );
+    } else if (_images.length == 1) {
+      add(
+        title: 'Фотографии',
+        subtitle: 'Добавлено 1 фото. Лучше иметь общий вид и крупный план.',
+        severity: _QualitySeverity.warning,
+        points: 13,
+      );
+    } else {
+      add(
+        title: 'Фотографии',
+        subtitle: 'Добавлено ${_images.length} фото. Этого достаточно для проверки.',
+        severity: _QualitySeverity.good,
+        points: 20,
+      );
+    }
+
+    final description = _descriptionController.text.trim();
+    if (description.isEmpty) {
+      add(
+        title: 'Описание',
+        subtitle: 'Свободное описание пустое. Можно оставить так, если атрибутов хватает.',
+        severity: _QualitySeverity.warning,
+        points: 4,
+      );
+    } else if (description.length < 20) {
+      add(
+        title: 'Описание',
+        subtitle: 'Описание короткое. При необходимости добавьте детали наблюдения.',
+        severity: _QualitySeverity.warning,
+        points: 7,
+      );
+    } else {
+      add(
+        title: 'Описание',
+        subtitle: 'Описание заполнено.',
+        severity: _QualitySeverity.good,
+        points: 10,
+      );
+    }
+
+    final filledAttributes = _countFilledPlantAttributes(attributes);
+    final attributePoints = ((filledAttributes / _attributeOrder.length) * 25)
+        .round()
+        .clamp(0, 25)
+        .toInt();
+
+    if (filledAttributes >= 9) {
+      add(
+        title: 'Атрибуты',
+        subtitle: 'Заполнено $filledAttributes из ${_attributeOrder.length} характеристик.',
+        severity: _QualitySeverity.good,
+        points: attributePoints,
+      );
+    } else if (filledAttributes >= 5) {
+      add(
+        title: 'Атрибуты',
+        subtitle: 'Заполнено $filledAttributes из ${_attributeOrder.length}. Можно добавить ещё важные признаки.',
+        severity: _QualitySeverity.warning,
+        points: attributePoints,
+      );
+    } else {
+      add(
+        title: 'Атрибуты',
+        subtitle: 'Заполнено только $filledAttributes из ${_attributeOrder.length}. Запись будет менее полезной.',
+        severity: _QualitySeverity.problem,
+        points: attributePoints,
+      );
+    }
+
+    final keyFields = <String>[
+      PlantAttributeKeys.habitat,
+      PlantAttributeKeys.lifeStage,
+      PlantAttributeKeys.plantCondition,
+      PlantAttributeKeys.abundanceCategory,
+    ];
+    final filledKeyFields = keyFields
+        .where((key) => _hasFilledAttribute(attributes, key))
+        .length;
+
+    if (filledKeyFields == keyFields.length) {
+      add(
+        title: 'Ключевые признаки',
+        subtitle: 'Местообитание, стадия, состояние и численность заполнены.',
+        severity: _QualitySeverity.good,
+        points: 15,
+      );
+    } else if (filledKeyFields >= 2) {
+      add(
+        title: 'Ключевые признаки',
+        subtitle: 'Заполнено $filledKeyFields из ${keyFields.length} ключевых признаков.',
+        severity: _QualitySeverity.warning,
+        points: 9,
+      );
+    } else {
+      add(
+        title: 'Ключевые признаки',
+        subtitle: 'Заполните хотя бы местообитание, состояние или численность.',
+        severity: _QualitySeverity.problem,
+        points: 3,
+      );
+    }
+
+    return _ObservationQualityReport(
+      score: score.clamp(0, 100).toInt(),
+      items: items,
+    );
+  }
+
+  Color _qualityScoreColor(
+      BuildContext context,
+      _ObservationQualityReport report,
+      ) {
+    final colors = WildColors.of(context);
+
+    if (report.score >= 80 && !report.hasProblems) {
+      return AppColors.success;
+    }
+    if (report.score >= 55) {
+      return AppColors.warning;
+    }
+    return colors.danger;
+  }
+
+  IconData _qualityIcon(_QualitySeverity severity) {
+    switch (severity) {
+      case _QualitySeverity.good:
+        return Icons.check_circle_rounded;
+      case _QualitySeverity.warning:
+        return Icons.info_rounded;
+      case _QualitySeverity.problem:
+        return Icons.warning_amber_rounded;
+    }
+  }
+
+  Color _qualityItemColor(
+      BuildContext context,
+      _QualitySeverity severity,
+      ) {
+    final colors = WildColors.of(context);
+
+    switch (severity) {
+      case _QualitySeverity.good:
+        return AppColors.success;
+      case _QualitySeverity.warning:
+        return AppColors.warning;
+      case _QualitySeverity.problem:
+        return colors.danger;
+    }
+  }
+
+  Widget _qualityItemTile(_QualityItem item) {
+    final colors = WildColors.of(context);
+    final color = _qualityItemColor(context, item.severity);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(_qualityIcon(item.severity), color: color, size: 22),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.title,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                    color: colors.primaryDark,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  item.subtitle,
+                  style: TextStyle(
+                    fontSize: 13,
+                    height: 1.28,
+                    fontWeight: FontWeight.w600,
+                    color: colors.muted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<bool> _showObservationQualityPassport(
+      _ObservationQualityReport report,
+      ) async {
+    if (!mounted) return false;
+
+    FocusScope.of(context).unfocus();
+
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        final colors = WildColors.of(context);
+        final scoreColor = _qualityScoreColor(context, report);
+        final actionLabel = report.hasWarnings ? 'Отправить' : 'Продолжить';
+
+        return SafeArea(
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: 14,
+              right: 14,
+              bottom: MediaQuery.viewInsetsOf(context).bottom + 12,
+            ),
+            child: Container(
+              decoration: BoxDecoration(
+                color: colors.surface,
+                borderRadius: BorderRadius.circular(AppRadius.sheet),
+              ),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 68,
+                          height: 68,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: scoreColor.withValues(alpha: 0.13),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Text(
+                            '${report.score}',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w900,
+                              color: scoreColor,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Паспорт качества наблюдения',
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  height: 1.05,
+                                  fontWeight: FontWeight.w900,
+                                  color: colors.primaryDark,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                report.hasWarnings
+                                    ? 'Проверьте предупреждения перед сохранением.'
+                                    : 'Запись выглядит готовой к сохранению.',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  height: 1.25,
+                                  fontWeight: FontWeight.w700,
+                                  color: colors.muted,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Divider(height: 1, color: colors.border),
+                    const SizedBox(height: 4),
+                    ...report.items.map(_qualityItemTile),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.of(context).pop(false),
+                            child: Text(report.hasWarnings ? 'Доработать' : 'Вернуться'),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: FilledButton(
+                            onPressed: () => Navigator.of(context).pop(true),
+                            child: Text(actionLabel),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    return result == true;
+  }
+
   Future<void> _saveObservation() async {
     if (_isSaving) return;
 
@@ -731,6 +1462,34 @@ class _AddPlantScreenState extends State<AddPlantScreen>
         return;
       }
 
+      final attributes = _collectAttributes();
+      final nearbyHits = await _findNearbyObservationHits(
+        latitude: latitude,
+        longitude: longitude,
+        accuracy: accuracy,
+      );
+
+      final qualityReport = _buildObservationQualityReport(
+        latitude: latitude,
+        longitude: longitude,
+        accuracy: accuracy,
+        attributes: attributes,
+        nearbyHits: nearbyHits,
+      );
+
+      final shouldContinue = await _showObservationQualityPassport(qualityReport);
+      if (!shouldContinue) {
+        AppLogger.instance.info(
+          'AddPlantScreen',
+          'Save cancelled from quality passport',
+          data: {
+            'score': qualityReport.score,
+            'hasWarnings': qualityReport.hasWarnings,
+          },
+        );
+        return;
+      }
+
       double? gaussX;
       double? gaussY;
       int? zone;
@@ -803,8 +1562,6 @@ class _AddPlantScreenState extends State<AddPlantScreen>
           'createdAt': createdAt,
         },
       );
-
-      final attributes = _collectAttributes();
 
       final observationId = await DatabaseHelper.instance.insertObservation(
         observation: observation,
@@ -885,6 +1642,7 @@ class _AddPlantScreenState extends State<AddPlantScreen>
   void _clearForm() {
     setState(() {
       _images.clear();
+      _imageLabels.clear();
       _setCurrentPhotoIndex(0);
       _nameController.clear();
       _descriptionController.clear();
@@ -935,6 +1693,9 @@ class _AddPlantScreenState extends State<AddPlantScreen>
     if (_images.isEmpty || index < 0 || index >= _images.length) return;
 
     _images.removeAt(index);
+    if (index < _imageLabels.length) {
+      _imageLabels.removeAt(index);
+    }
 
     if (_images.isEmpty) {
       _setCurrentPhotoIndex(0);
@@ -959,10 +1720,22 @@ class _AddPlantScreenState extends State<AddPlantScreen>
           children: [
             ListTile(
               leading: Icon(
+                Icons.checklist_rounded,
+                color: WildColors.of(context).primary,
+              ),
+              title: const Text('Серия по чек-листу'),
+              subtitle: const Text('Общий вид, листья, цветок или плод, место произрастания'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _openGuidedPhotoCapture();
+              },
+            ),
+            ListTile(
+              leading: Icon(
                 Icons.camera_alt,
                 color: WildColors.of(context).primary,
               ),
-              title: Text('Сделать фото'),
+              title: const Text('Одно фото'),
               onTap: () {
                 Navigator.of(context).pop();
                 _pickImage(ImageSource.camera);
@@ -973,7 +1746,7 @@ class _AddPlantScreenState extends State<AddPlantScreen>
                 Icons.photo_library,
                 color: WildColors.of(context).primary,
               ),
-              title: Text('Выбрать из галереи'),
+              title: const Text('Выбрать из галереи'),
               onTap: () {
                 Navigator.of(context).pop();
                 _pickImage(ImageSource.gallery);
@@ -1451,7 +2224,9 @@ class _AddPlantScreenState extends State<AddPlantScreen>
                           foregroundColor: Colors.white,
                           disabledBackgroundColor: Colors.grey.shade500,
                           disabledForegroundColor: Colors.white70,
-                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          padding: EdgeInsets.symmetric(
+                            vertical: WildColors.of(context).fieldMode ? 22 : 18,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
@@ -1510,6 +2285,16 @@ class _AddPlantScreenState extends State<AddPlantScreen>
     );
   }
 
+
+  String _photoLabelAt(int index) {
+    if (index >= 0 && index < _imageLabels.length) {
+      final value = _imageLabels[index].trim();
+      if (value.isNotEmpty) return value;
+    }
+
+    return 'Фото ${index + 1}';
+  }
+
   Widget _buildPhotoCarousel() {
     final colors = WildColors.of(context);
     final hasImages = _images.isNotEmpty;
@@ -1542,6 +2327,7 @@ class _AddPlantScreenState extends State<AddPlantScreen>
                         itemBuilder: (context, index) {
                           return Image.file(
                             _images[index],
+                            key: ValueKey<String>('main_photo_${_images[index].path}'),
                             fit: BoxFit.cover,
                             cacheWidth: 900,
                             filterQuality: FilterQuality.low,
@@ -1558,6 +2344,40 @@ class _AddPlantScreenState extends State<AddPlantScreen>
                           icon: Icons.delete_outline,
                           foregroundColor: Colors.redAccent,
                           onTap: () => _removePhoto(_currentPhotoIndex),
+                        ),
+                      ),
+                    if (hasImages)
+                      Positioned(
+                        left: 14,
+                        right: 72,
+                        bottom: 14,
+                        child: ValueListenableBuilder<int>(
+                          valueListenable: _photoIndexNotifier,
+                          builder: (context, currentIndex, child) {
+                            return Align(
+                              alignment: Alignment.centerLeft,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: colors.primaryDark.withValues(alpha: 0.72),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Text(
+                                  _photoLabelAt(currentIndex),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: colors.surface,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
                   ],
@@ -1620,7 +2440,7 @@ class _AddPlantScreenState extends State<AddPlantScreen>
                         : Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        'Добавьте фотографии растения',
+                        'Добавьте фото или пройдите чек-лист',
                         style: TextStyle(
                           color: colors.primary,
                           fontWeight: FontWeight.w700,
@@ -1765,6 +2585,124 @@ class _AddPlantScreenState extends State<AddPlantScreen>
           ),
         ),
       ],
+    );
+  }
+
+
+  double _locationQualityValue() {
+    final progress = _locationProgress;
+    if (_isManualEntry || progress == null) return 0;
+
+    final accuracy = progress.accuracy;
+    final sampleScore = (progress.usedSampleCount / 6.0).clamp(0.0, 1.0);
+
+    if (accuracy == null || !accuracy.isFinite || accuracy <= 0) {
+      return (sampleScore * 0.35).toDouble();
+    }
+
+    final accuracyScore = (_targetAccuracyMeters / accuracy).clamp(0.0, 1.0);
+    return (accuracyScore * 0.72 + sampleScore * 0.28).clamp(0.0, 1.0).toDouble();
+  }
+
+  String _locationQualityTitle() {
+    if (_isManualEntry) return 'Ручной ввод';
+    final value = _locationQualityValue();
+
+    if (value >= 0.92) return 'Отличный сигнал';
+    if (value >= 0.74) return 'Хороший сигнал';
+    if (value >= 0.48) return 'Средний сигнал';
+    if (_isLocating) return 'Идёт уточнение';
+    return 'Слабый сигнал';
+  }
+
+  String _locationQualitySubtitle() {
+    final progress = _locationProgress;
+    if (_isManualEntry) {
+      return 'Точность задана пользователем вручную';
+    }
+
+    if (progress == null) {
+      return 'Дождитесь первых измерений GNSS';
+    }
+
+    final rejected = progress.rejectedSpatialOutlierCount;
+    final rejectedText = rejected > 0 ? ' • антискачок: $rejected' : '';
+
+    return 'Принято: ${progress.sampleCount} • в расчёте: ${progress.usedSampleCount}$rejectedText';
+  }
+
+  Color _locationQualityColor() {
+    final value = _locationQualityValue();
+
+    if (value >= 0.74) return AppColors.success;
+    if (value >= 0.48) return AppColors.warning;
+    return WildColors.of(context).danger;
+  }
+
+  Widget _buildLocationQualityIndicator() {
+    final colors = WildColors.of(context);
+    final value = _locationQualityValue();
+    final color = _locationQualityColor();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Color.alphaBlend(
+          color.withValues(alpha: 0.08),
+          colors.surface,
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: color.withValues(alpha: colors.sunlightContrast ? 0.62 : 0.30),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.sensors_rounded, size: 19, color: color),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _locationQualityTitle(),
+                  style: TextStyle(
+                    color: colors.primaryDark,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+              Text(
+                '${(value * 100).round()}%',
+                style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 9),
+          LinearProgressIndicator(
+            value: value,
+            minHeight: 7,
+            borderRadius: BorderRadius.circular(99),
+            backgroundColor: colors.border,
+            color: color,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _locationQualitySubtitle(),
+            style: TextStyle(
+              color: colors.muted,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1947,7 +2885,9 @@ class _AddPlantScreenState extends State<AddPlantScreen>
                 ),
               ),
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
+            _buildLocationQualityIndicator(),
+            const SizedBox(height: 10),
             Row(
               children: [
                 Expanded(
@@ -1962,7 +2902,9 @@ class _AddPlantScreenState extends State<AddPlantScreen>
                       style: ElevatedButton.styleFrom(
                         backgroundColor: WildColors.of(context).primary,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding: EdgeInsets.symmetric(
+                          vertical: WildColors.of(context).fieldMode ? 18 : 14,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -1983,7 +2925,9 @@ class _AddPlantScreenState extends State<AddPlantScreen>
                       onPressed: _restartLocationCapture,
                       style: OutlinedButton.styleFrom(
                         foregroundColor: WildColors.of(context).primary,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding: EdgeInsets.symmetric(
+                          vertical: WildColors.of(context).fieldMode ? 18 : 14,
+                        ),
                         side: BorderSide(
                           color: WildColors.of(context).primary,
                           width: 1.4,
