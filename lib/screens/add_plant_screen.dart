@@ -19,6 +19,7 @@ import '../services/gauss_kruger_service.dart';
 import '../services/app_logger.dart';
 import '../theme/app_theme.dart';
 import '../widgets/wild_page_header.dart';
+import '../widgets/app_svg_icon.dart';
 import 'guided_photo_capture_screen.dart';
 
 void _showWildTopMessage(BuildContext context, String text) {
@@ -2002,7 +2003,8 @@ class _AddPlantScreenState extends State<AddPlantScreen>
         attributeKey: attributeKey,
         controller: controller,
       ),
-      icon: allowMultiple ? Icons.sell_outlined : Icons.label_outline_rounded,
+      iconAssetName: AppIconAssets.forAttribute(attributeKey),
+      fallbackIcon: allowMultiple ? Icons.sell_outlined : Icons.label_outline_rounded,
       expanded: isExpanded,
       showDivider: !_isLastAttribute(attributeKey),
       onTap: () => _toggleAttribute(attributeKey),
@@ -2031,7 +2033,8 @@ class _AddPlantScreenState extends State<AddPlantScreen>
     return _LazyAttributeTile(
       title: label,
       summary: value.isEmpty ? 'Не заполнено' : value,
-      icon: Icons.pin_outlined,
+      iconAssetName: AppIconAssets.forAttribute(attributeKey),
+      fallbackIcon: Icons.pin_outlined,
       expanded: isExpanded,
       showDivider: !_isLastAttribute(attributeKey),
       onTap: () => _toggleAttribute(attributeKey),
@@ -2662,7 +2665,7 @@ class _AddPlantScreenState extends State<AddPlantScreen>
         children: [
           Row(
             children: [
-              Icon(Icons.sensors_rounded, size: 19, color: color),
+              AppSvgIcon(AppIconAssets.geolocation, size: 19, color: color, fallbackIcon: Icons.sensors_rounded),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -2969,7 +2972,8 @@ class _AddPlantScreenState extends State<AddPlantScreen>
 class _LazyAttributeTile extends StatelessWidget {
   final String title;
   final String summary;
-  final IconData icon;
+  final String iconAssetName;
+  final IconData fallbackIcon;
   final bool expanded;
   final bool showDivider;
   final VoidCallback onTap;
@@ -2978,7 +2982,8 @@ class _LazyAttributeTile extends StatelessWidget {
   const _LazyAttributeTile({
     required this.title,
     required this.summary,
-    required this.icon,
+    required this.iconAssetName,
+    required this.fallbackIcon,
     required this.expanded,
     required this.showDivider,
     required this.onTap,
@@ -3006,7 +3011,12 @@ class _LazyAttributeTile extends StatelessWidget {
                     color: colors.softGreen,
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: Icon(icon, size: 19, color: colors.primary),
+                  child: AppSvgIcon(
+                    iconAssetName,
+                    size: 19,
+                    color: colors.primary,
+                    fallbackIcon: fallbackIcon,
+                  ),
                 ),
                 const SizedBox(width: 11),
                 Expanded(

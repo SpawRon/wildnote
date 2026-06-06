@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/app_appearance_settings.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_svg_icon.dart';
 import 'add_plant_screen.dart' as add_screen;
 import 'explorer_screen.dart';
 import 'history_screen.dart';
@@ -135,29 +136,33 @@ class _WildBottomIslandNav extends StatelessWidget {
           child: Row(
             children: [
               _WildNavItem(
-                icon: Icons.local_florist_outlined,
-                selectedIcon: Icons.local_florist_rounded,
+                iconAssetName: AppIconAssets.navAdd,
+                fallbackIcon: Icons.local_florist_outlined,
+                selectedFallbackIcon: Icons.local_florist_rounded,
                 label: 'Добавить',
                 selected: selectedIndex == 0,
                 onTap: () => onDestinationSelected(0),
               ),
               _WildNavItem(
-                icon: Icons.article_outlined,
-                selectedIcon: Icons.article_rounded,
+                iconAssetName: AppIconAssets.navHistory,
+                fallbackIcon: Icons.article_outlined,
+                selectedFallbackIcon: Icons.article_rounded,
                 label: 'История',
                 selected: selectedIndex == 1,
                 onTap: () => onDestinationSelected(1),
               ),
               _WildNavItem(
-                icon: Icons.map_outlined,
-                selectedIcon: Icons.map_rounded,
+                iconAssetName: AppIconAssets.navExplorer,
+                fallbackIcon: Icons.map_outlined,
+                selectedFallbackIcon: Icons.map_rounded,
                 label: 'Обзор',
                 selected: selectedIndex == 2,
                 onTap: () => onDestinationSelected(2),
               ),
               _WildNavItem(
-                icon: Icons.settings_outlined,
-                selectedIcon: Icons.settings_rounded,
+                iconAssetName: AppIconAssets.navSettings,
+                fallbackIcon: Icons.settings_outlined,
+                selectedFallbackIcon: Icons.settings_rounded,
                 label: 'Настройки',
                 selected: selectedIndex == 3,
                 onTap: () => onDestinationSelected(3),
@@ -171,15 +176,17 @@ class _WildBottomIslandNav extends StatelessWidget {
 }
 
 class _WildNavItem extends StatelessWidget {
-  final IconData icon;
-  final IconData selectedIcon;
+  final String iconAssetName;
+  final IconData fallbackIcon;
+  final IconData selectedFallbackIcon;
   final String label;
   final bool selected;
   final VoidCallback onTap;
 
   const _WildNavItem({
-    required this.icon,
-    required this.selectedIcon,
+    required this.iconAssetName,
+    required this.fallbackIcon,
+    required this.selectedFallbackIcon,
     required this.label,
     required this.selected,
     required this.onTap,
@@ -206,10 +213,11 @@ class _WildNavItem extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                selected ? selectedIcon : icon,
+              AppSvgIcon(
+                iconAssetName,
                 size: fieldMode ? (selected ? 25 : 23) : (selected ? 22 : 20),
                 color: color,
+                fallbackIcon: selected ? selectedFallbackIcon : fallbackIcon,
               ),
               const SizedBox(height: 2),
               Text(

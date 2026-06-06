@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart' as picker;
 
 import '../theme/app_theme.dart';
+import '../widgets/app_svg_icon.dart';
 
 class GuidedPhotoCaptureResult {
   final picker.XFile file;
@@ -51,22 +52,26 @@ class _GuidedPhotoCaptureScreenState extends State<GuidedPhotoCaptureScreen>
     _PhotoGuideStep(
       title: 'Общий вид растения',
       subtitle: 'Снимите растение целиком, чтобы было понятно расположение и форма.',
-      icon: Icons.local_florist_rounded,
+      iconAssetName: AppIconAssets.lifeStage,
+      fallbackIcon: Icons.local_florist_rounded,
     ),
     _PhotoGuideStep(
       title: 'Листья крупным планом',
       subtitle: 'Покажите форму листа, жилкование и край.',
-      icon: Icons.eco_rounded,
+      iconAssetName: AppIconAssets.habitat,
+      fallbackIcon: Icons.eco_rounded,
     ),
     _PhotoGuideStep(
       title: 'Цветок или плод',
       subtitle: 'Если цветка или плода нет, этот шаг можно пропустить.',
-      icon: Icons.filter_vintage_rounded,
+      iconAssetName: AppIconAssets.phenophase,
+      fallbackIcon: Icons.filter_vintage_rounded,
     ),
     _PhotoGuideStep(
       title: 'Место произрастания',
       subtitle: 'Снимите окружение: почву, камни, травостой или склон.',
-      icon: Icons.landscape_rounded,
+      iconAssetName: AppIconAssets.soilType,
+      fallbackIcon: Icons.landscape_rounded,
     ),
   ];
 
@@ -741,7 +746,12 @@ class _InstructionCard extends StatelessWidget {
               color: colors.softGreen,
               borderRadius: BorderRadius.circular(18),
             ),
-            child: Icon(step.icon, color: colors.primary, size: 28),
+            child: AppSvgIcon(
+              step.iconAssetName,
+              color: colors.primary,
+              size: 28,
+              fallbackIcon: step.fallbackIcon,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -1115,11 +1125,13 @@ class _CapturedStrip extends StatelessWidget {
 class _PhotoGuideStep {
   final String title;
   final String subtitle;
-  final IconData icon;
+  final String iconAssetName;
+  final IconData fallbackIcon;
 
   const _PhotoGuideStep({
     required this.title,
     required this.subtitle,
-    required this.icon,
+    required this.iconAssetName,
+    required this.fallbackIcon,
   });
 }
