@@ -1,8 +1,7 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
-import 'package:light_sensor/light_sensor.dart';
+import 'package:flutter/services.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 
 class AmbientLightSnapshot {
@@ -26,27 +25,39 @@ class DeviceBrightnessService {
 
   static final DeviceBrightnessService instance = DeviceBrightnessService._();
 
-  /// Порог включения ультраконтраста.
-  /// По справочным значениям прямой солнечный свет обычно сильно выше 30 000 lx,
-  /// а тень в солнечный день часто около 10 000-20 000 lx, поэтому здесь
-  /// используется гистерезис, чтобы тема не мигала около границы.
-  static const double sunlightContrastOnLux = 35000;
-  static const double sunlightContrastOffLux = 22000;
+  static const EventChannel _ambientLightChannel =
+  EventChannel('wildnote/ambient_light');
+
+  /// До этого уровня приложение не трогает яркость вообще.
+  /// В помещении должна работать системная автояркость Android.
+  static const double _brightnessBoostOnLux = 5200;
+  static const double _brightnessBoostOffLux = 2200;
+
+  /// Контраст включается только при ярком внешнем освещении.
+  /// Пороги разнесены, чтобы тема не мигала на границе света и тени.
+  static const double _contrastOnLux = 6500;
+  static const double _contrastOffLux = 2600;
+
+  final StreamController<AmbientLightSnapshot> _snapshotController =
+  StreamController<AmbientLightSnapshot>.broadcast();
 
   StreamSubscription<dynamic>? _luxSubscription;
+  Timer? _sensorWatchdog;
 
   bool _sensorAvailable = false;
-  bool _sensorChecked = false;
-
   bool _autoBrightness = false;
   bool _autoContrast = false;
   bool _darkTheme = false;
   bool _sunlightContrast = false;
+  bool _brightnessBoostActive = false;
 
+  double? _rawLux;
   double? _smoothedLux;
   double? _lastBrightness;
   DateTime? _lastBrightnessSetAt;
+  DateTime? _lastBrightnessResetAt;
   DateTime? _lastContrastSwitchAt;
+  AmbientLightSnapshot? _lastSnapshot;
 
   void Function(bool active)? _onSunlightContrastChanged;
   void Function(AmbientLightSnapshot snapshot)? _onSnapshot;
@@ -56,6 +67,8 @@ class DeviceBrightnessService {
   double? get currentLux => _smoothedLux;
   double? get currentBrightness => _lastBrightness;
   bool get sensorAvailable => _sensorAvailable;
+  AmbientLightSnapshot? get lastSnapshot => _lastSnapshot;
+  Stream<AmbientLightSnapshot> get snapshots => _snapshotController.stream;
 
   Future<bool> applyAdaptiveSettings({
     required bool autoBrightness,
@@ -64,6 +77,10 @@ class DeviceBrightnessService {
     void Function(bool active)? onSunlightContrastChanged,
     void Function(AmbientLightSnapshot snapshot)? onSnapshot,
   }) async {
+    final previousAutoBrightness = _autoBrightness;
+    final previousAutoContrast = _autoContrast;
+    final previousDarkTheme = _darkTheme;
+
     _autoBrightness = autoBrightness;
     _autoContrast = autoContrast;
     _darkTheme = darkTheme;
@@ -80,19 +97,44 @@ class DeviceBrightnessService {
       return true;
     }
 
-    await _ensureSensorAvailability();
+    _startListening();
 
-    if (!_sensorAvailable) {
+    final lux = _smoothedLux;
+    final rawLux = _rawLux ?? lux;
+
+    if (lux == null || rawLux == null) {
+      // Без реального значения с датчика не поднимаем яркость и не включаем контраст.
       if (_autoBrightness) {
-        // Без датчика света нельзя сделать честную автояркость.
-        // Сбрасываем к системной яркости, чтобы не держать принудительный максимум.
-        await _resetApplicationBrightness();
+        await _resetApplicationBrightnessIfNeeded();
       }
       _emitSnapshot();
-      return false;
+      return true;
     }
 
-    _startListening();
+    final brightnessSettingChanged = previousAutoBrightness != _autoBrightness;
+    final contrastSettingChanged = previousAutoContrast != _autoContrast ||
+        previousDarkTheme != _darkTheme;
+
+    if (_autoBrightness) {
+      unawaited(
+        _updateBrightnessForLux(
+          lux: lux,
+          rawLux: rawLux,
+          force: brightnessSettingChanged,
+        ),
+      );
+    } else if (previousAutoBrightness) {
+      unawaited(_resetApplicationBrightnessIfNeeded());
+    }
+
+    if (_autoContrast && !_darkTheme) {
+      _updateSunlightContrast(
+        lux: lux,
+        rawLux: rawLux,
+        force: contrastSettingChanged,
+      );
+    }
+
     _emitSnapshot();
     return true;
   }
@@ -106,57 +148,119 @@ class DeviceBrightnessService {
     await _stopSensorAndResetBrightness();
   }
 
-  Future<void> _ensureSensorAvailability() async {
-    if (_sensorChecked) return;
-
-    try {
-      _sensorAvailable = await LightSensor.hasSensor();
-    } catch (error, stackTrace) {
-      debugPrint('DeviceBrightnessService sensor check failed: $error');
-      debugPrintStack(stackTrace: stackTrace);
-      _sensorAvailable = false;
-    } finally {
-      _sensorChecked = true;
-    }
+  Future<void> resetForBackground() async {
+    _brightnessBoostActive = false;
+    await _resetApplicationBrightnessIfNeeded(force: true);
   }
 
   void _startListening() {
-    if (_luxSubscription != null) return;
+    if (_luxSubscription != null) {
+      _startSensorWatchdog();
+      return;
+    }
 
-    _luxSubscription = LightSensor.luxStream().listen(
-      _handleLux,
-      onError: (Object error, StackTrace stackTrace) {
-        debugPrint('DeviceBrightnessService lux stream failed: $error');
-        debugPrintStack(stackTrace: stackTrace);
-      },
-      cancelOnError: false,
-    );
+    _sensorAvailable = false;
+
+    try {
+      _luxSubscription = _ambientLightChannel.receiveBroadcastStream().listen(
+        _handleLux,
+        onError: (Object error, StackTrace stackTrace) {
+          debugPrint('DeviceBrightnessService native lux stream failed: $error');
+          debugPrintStack(stackTrace: stackTrace);
+          _sensorAvailable = false;
+          _emitSnapshot();
+          if (_autoBrightness) {
+            unawaited(_resetApplicationBrightnessIfNeeded(force: true));
+          }
+        },
+        cancelOnError: false,
+      );
+
+      _startSensorWatchdog();
+    } catch (error, stackTrace) {
+      debugPrint('DeviceBrightnessService native lux start failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      _sensorAvailable = false;
+      _emitSnapshot();
+      if (_autoBrightness) {
+        unawaited(_resetApplicationBrightnessIfNeeded(force: true));
+      }
+    }
+  }
+
+  void _startSensorWatchdog() {
+    _sensorWatchdog?.cancel();
+
+    if (_smoothedLux != null || !enabled) return;
+
+    _sensorWatchdog = Timer(const Duration(milliseconds: 1800), () {
+      if (_smoothedLux == null && enabled) {
+        _sensorAvailable = false;
+        _emitSnapshot();
+        if (_autoBrightness) {
+          unawaited(_resetApplicationBrightnessIfNeeded(force: true));
+        }
+      }
+    });
   }
 
   Future<void> _stopSensorAndResetBrightness() async {
+    _sensorWatchdog?.cancel();
+    _sensorWatchdog = null;
+
     await _luxSubscription?.cancel();
     _luxSubscription = null;
+
+    _sensorAvailable = false;
+    _rawLux = null;
     _smoothedLux = null;
-    _lastBrightness = null;
     _lastBrightnessSetAt = null;
+    _brightnessBoostActive = false;
+
     _setSunlightContrast(false, force: true);
-    await _resetApplicationBrightness();
+    await _resetApplicationBrightnessIfNeeded(force: true);
   }
 
   void _handleLux(dynamic value) {
     final rawLux = _toFiniteLux(value);
     if (rawLux == null) return;
 
-    _smoothedLux = _smoothedLux == null
-        ? rawLux
-        : (_smoothedLux! * 0.65) + (rawLux * 0.35);
+    _sensorWatchdog?.cancel();
+    _sensorWatchdog = null;
+
+    final isFirstValue = _smoothedLux == null;
+
+    _sensorAvailable = true;
+    _rawLux = rawLux;
+
+    if (isFirstValue) {
+      _smoothedLux = rawLux;
+    } else if (rawLux > _smoothedLux!) {
+      // Быстро реагируем на выход на свет.
+      _smoothedLux = (_smoothedLux! * 0.30) + (rawLux * 0.70);
+    } else {
+      // Понижение должно тоже происходить быстро, иначе яркость зависает.
+      _smoothedLux = (_smoothedLux! * 0.38) + (rawLux * 0.62);
+    }
+
+    final lux = _smoothedLux!;
 
     if (_autoBrightness) {
-      unawaited(_applyBrightnessForLux(_smoothedLux!));
+      unawaited(
+        _updateBrightnessForLux(
+          lux: lux,
+          rawLux: rawLux,
+          force: isFirstValue,
+        ),
+      );
     }
 
     if (_autoContrast && !_darkTheme) {
-      _updateSunlightContrast(_smoothedLux!);
+      _updateSunlightContrast(
+        lux: lux,
+        rawLux: rawLux,
+        force: isFirstValue,
+      );
     }
 
     _emitSnapshot();
@@ -175,19 +279,14 @@ class DeviceBrightnessService {
     return parsed;
   }
 
-  /// Плавная шкала под полевой режим:
-  /// помещение/пасмурно — комфортная середина, улица — выше, прямое солнце — максимум.
-  double _brightnessForLux(double lux) {
+  double _brightnessForOutdoorLux(double lux) {
     const points = <({double lux, double brightness})>[
-      (lux: 0, brightness: 0.46),
-      (lux: 50, brightness: 0.50),
-      (lux: 150, brightness: 0.56),
-      (lux: 400, brightness: 0.62),
-      (lux: 1000, brightness: 0.70),
-      (lux: 3000, brightness: 0.80),
-      (lux: 10000, brightness: 0.90),
-      (lux: 22000, brightness: 0.96),
-      (lux: 35000, brightness: 1.00),
+      (lux: 2200, brightness: 0.48),
+      (lux: 5200, brightness: 0.60),
+      (lux: 9000, brightness: 0.70),
+      (lux: 16000, brightness: 0.82),
+      (lux: 28000, brightness: 0.94),
+      (lux: 45000, brightness: 1.00),
     ];
 
     if (lux <= points.first.lux) return points.first.brightness;
@@ -203,19 +302,50 @@ class DeviceBrightnessService {
       }
     }
 
-    return 0.75;
+    return 0.65;
   }
 
-  Future<void> _applyBrightnessForLux(double lux) async {
-    final next = _brightnessForLux(lux).clamp(0.0, 1.0).toDouble();
-    final now = DateTime.now();
+  Future<void> _updateBrightnessForLux({
+    required double lux,
+    required double rawLux,
+    bool force = false,
+  }) async {
+    if (!_brightnessBoostActive) {
+      if (lux < _brightnessBoostOnLux && rawLux < _brightnessBoostOnLux) {
+        await _resetApplicationBrightnessIfNeeded();
+        return;
+      }
+      _brightnessBoostActive = true;
+    }
 
-    if (_lastBrightness != null && (next - _lastBrightness!).abs() < 0.04) {
+    if (_brightnessBoostActive &&
+        lux <= _brightnessBoostOffLux &&
+        rawLux <= _brightnessBoostOffLux) {
+      _brightnessBoostActive = false;
+      await _resetApplicationBrightnessIfNeeded(force: true);
       return;
     }
 
-    if (_lastBrightnessSetAt != null &&
-        now.difference(_lastBrightnessSetAt!) < const Duration(milliseconds: 900)) {
+    final next = _brightnessForOutdoorLux(lux).clamp(0.0, 1.0).toDouble();
+    final now = DateTime.now();
+    final delta = _lastBrightness == null
+        ? 1.0
+        : (next - _lastBrightness!).abs();
+    final isDecreasing = _lastBrightness != null && next < _lastBrightness!;
+
+    if (!force && delta < 0.018) return;
+
+    if (!force &&
+        !isDecreasing &&
+        _lastBrightnessSetAt != null &&
+        now.difference(_lastBrightnessSetAt!) < const Duration(milliseconds: 700)) {
+      return;
+    }
+
+    if (!force &&
+        isDecreasing &&
+        _lastBrightnessSetAt != null &&
+        now.difference(_lastBrightnessSetAt!) < const Duration(milliseconds: 280)) {
       return;
     }
 
@@ -229,20 +359,28 @@ class DeviceBrightnessService {
     }
   }
 
-  void _updateSunlightContrast(double lux) {
+  void _updateSunlightContrast({
+    required double lux,
+    required double rawLux,
+    bool force = false,
+  }) {
     final now = DateTime.now();
 
-    if (_lastContrastSwitchAt != null &&
-        now.difference(_lastContrastSwitchAt!) < const Duration(seconds: 5)) {
+    if (!force &&
+        _lastContrastSwitchAt != null &&
+        now.difference(_lastContrastSwitchAt!) < const Duration(milliseconds: 900)) {
       return;
     }
 
-    if (!_sunlightContrast && lux >= sunlightContrastOnLux) {
+    final shouldEnable = lux >= _contrastOnLux || rawLux >= _contrastOnLux;
+    final shouldDisable = lux <= _contrastOffLux && rawLux <= _contrastOffLux;
+
+    if (!_sunlightContrast && shouldEnable) {
       _setSunlightContrast(true);
       return;
     }
 
-    if (_sunlightContrast && lux <= sunlightContrastOffLux) {
+    if (_sunlightContrast && shouldDisable) {
       _setSunlightContrast(false);
     }
   }
@@ -256,9 +394,24 @@ class DeviceBrightnessService {
     _emitSnapshot();
   }
 
-  Future<void> _resetApplicationBrightness() async {
+  Future<void> _resetApplicationBrightnessIfNeeded({bool force = false}) async {
+    final now = DateTime.now();
+
+    if (!force && _lastBrightness == null) {
+      return;
+    }
+
+    if (!force &&
+        _lastBrightnessResetAt != null &&
+        now.difference(_lastBrightnessResetAt!) < const Duration(seconds: 2)) {
+      return;
+    }
+
     try {
       await ScreenBrightness.instance.resetApplicationScreenBrightness();
+      _lastBrightness = null;
+      _lastBrightnessSetAt = null;
+      _lastBrightnessResetAt = now;
     } catch (error, stackTrace) {
       debugPrint('DeviceBrightnessService reset failed: $error');
       debugPrintStack(stackTrace: stackTrace);
@@ -266,14 +419,19 @@ class DeviceBrightnessService {
   }
 
   void _emitSnapshot() {
-    _onSnapshot?.call(
-      AmbientLightSnapshot(
-        enabled: enabled,
-        sensorAvailable: _sensorAvailable,
-        lux: _smoothedLux,
-        brightness: _lastBrightness,
-        sunlightContrast: _sunlightContrast,
-      ),
+    final snapshot = AmbientLightSnapshot(
+      enabled: enabled,
+      sensorAvailable: _sensorAvailable,
+      lux: _smoothedLux,
+      brightness: _lastBrightness,
+      sunlightContrast: _sunlightContrast,
     );
+
+    _lastSnapshot = snapshot;
+    _onSnapshot?.call(snapshot);
+
+    if (!_snapshotController.isClosed) {
+      _snapshotController.add(snapshot);
+    }
   }
 }

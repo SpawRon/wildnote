@@ -260,7 +260,9 @@ class AppAppearanceController extends ChangeNotifier {
     await update(
       _data.copyWith(
         autoContrast: value,
-        sunlightContrast: value ? _data.sunlightContrast : false,
+        // При включении автоконтрастности оставляем обычную тему.
+        // Ультраконтраст включит только датчик освещенности.
+        sunlightContrast: false,
         fieldMode: nextFieldMode,
       ),
     );

@@ -28,6 +28,13 @@ class AppSpacing {
 }
 
 class AppTheme {
+  static Color _boostAccentForSunlight(Color color) {
+    final hsl = HSLColor.fromColor(color);
+    final saturation = (hsl.saturation + 0.18).clamp(0.0, 1.0).toDouble();
+    final lightness = (hsl.lightness - 0.08).clamp(0.22, 0.58).toDouble();
+    return hsl.withSaturation(saturation).withLightness(lightness).toColor();
+  }
+
   static ThemeData get light {
     return build(
       brightness: Brightness.light,
@@ -50,41 +57,50 @@ class AppTheme {
     bool fieldMode = false,
   }) {
     final isDark = brightness == Brightness.dark;
-    final contrast = highContrast && !isDark;
-    final ultraContrast = contrast && sunlightContrast;
+    // Само включение автоконтрастности не должно менять обычную тему.
+    // Тема усиливается только когда датчик реально определил яркое уличное освещение.
+    final contrast = highContrast && sunlightContrast && !isDark;
+    final ultraContrast = contrast;
+    final themeAccent = ultraContrast ? _boostAccentForSunlight(accent) : accent;
 
     final background = isDark
         ? Color.alphaBlend(
-      accent.withValues(alpha: 0.045),
+      themeAccent.withValues(alpha: 0.045),
       const Color(0xFF09100C),
     )
         : ultraContrast
-        ? Colors.white
+        ? Color.alphaBlend(
+      themeAccent.withValues(alpha: 0.018),
+      Colors.white,
+    )
         : Color.alphaBlend(
-      accent.withValues(alpha: contrast ? 0.006 : 0.025),
+      themeAccent.withValues(alpha: contrast ? 0.006 : 0.025),
       const Color(0xFFFFFEFA),
     );
 
     final surface = isDark
         ? Color.alphaBlend(
-      accent.withValues(alpha: 0.035),
+      themeAccent.withValues(alpha: 0.035),
       const Color(0xFF111A14),
     )
         : Colors.white;
 
     final surfaceSoft = isDark
         ? Color.alphaBlend(
-      accent.withValues(alpha: 0.075),
+      themeAccent.withValues(alpha: 0.075),
       const Color(0xFF18231B),
     )
         : ultraContrast
-        ? Colors.white
+        ? Color.alphaBlend(
+      themeAccent.withValues(alpha: 0.040),
+      Colors.white,
+    )
         : (contrast ? Colors.white : const Color(0xFFFBFCF8));
 
     final primaryText = isDark
         ? const Color(0xFFF4FBF4)
         : ultraContrast
-        ? Colors.black
+        ? const Color(0xFF050A07)
         : const Color(0xFF07110C);
 
     final mutedText = isDark
@@ -95,35 +111,35 @@ class AppTheme {
 
     final border = isDark
         ? Color.alphaBlend(
-      accent.withValues(alpha: 0.14),
+      themeAccent.withValues(alpha: 0.14),
       const Color(0xFF263229),
     )
         : ultraContrast
         ? Color.alphaBlend(
-      accent.withValues(alpha: 0.58),
+      themeAccent.withValues(alpha: 0.58),
       const Color(0xFFD5DDD5),
     )
         : (contrast
         ? Color.alphaBlend(
-      accent.withValues(alpha: 0.22),
+      themeAccent.withValues(alpha: 0.22),
       const Color(0xFFD8DDD6),
     )
         : Color.alphaBlend(
-      accent.withValues(alpha: 0.07),
+      themeAccent.withValues(alpha: 0.07),
       const Color(0xFFE7EAE2),
     ));
 
     final softAccent = Color.alphaBlend(
-      accent.withValues(alpha: isDark ? 0.23 : (ultraContrast ? 0.23 : 0.14)),
+      themeAccent.withValues(alpha: isDark ? 0.23 : (ultraContrast ? 0.23 : 0.14)),
       surface,
     );
 
     final fieldFill = surfaceSoft;
 
     final scheme = ColorScheme.fromSeed(
-      seedColor: accent,
+      seedColor: themeAccent,
       brightness: brightness,
-      primary: accent,
+      primary: themeAccent,
       surface: surface,
       error: AppColors.danger,
     );
@@ -137,7 +153,7 @@ class AppTheme {
     final inputVerticalPadding = fieldMode ? 17.0 : 14.0;
 
     final focusedBorderSide = BorderSide(
-      color: accent.withValues(alpha: ultraContrast ? 0.86 : 0.36),
+      color: themeAccent.withValues(alpha: ultraContrast ? 0.86 : 0.36),
       width: ultraContrast ? 1.35 : 1.0,
     );
 
@@ -154,7 +170,7 @@ class AppTheme {
           surface: surface,
           surfaceSoft: surfaceSoft,
           fieldFill: fieldFill,
-          primary: accent,
+          primary: themeAccent,
           primaryDark: primaryText,
           muted: mutedText,
           border: border,
@@ -196,7 +212,7 @@ class AppTheme {
           color: mutedText,
           fontWeight: ultraContrast ? FontWeight.w800 : FontWeight.w600,
         ),
-        prefixIconColor: accent,
+        prefixIconColor: themeAccent,
         suffixIconColor: mutedText,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.medium),
@@ -236,7 +252,7 @@ class AppTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           elevation: 0,
-          backgroundColor: accent,
+          backgroundColor: themeAccent,
           foregroundColor: Colors.white,
           disabledBackgroundColor: mutedText.withValues(alpha: 0.36),
           disabledForegroundColor: Colors.white70,
@@ -250,7 +266,7 @@ class AppTheme {
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           elevation: 0,
-          backgroundColor: accent,
+          backgroundColor: themeAccent,
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.medium),
@@ -260,10 +276,10 @@ class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: ultraContrast ? primaryText : accent,
+          foregroundColor: themeAccent,
           minimumSize: Size.fromHeight(compactButtonMinHeight),
           side: BorderSide(
-            color: accent.withValues(alpha: ultraContrast ? 0.88 : 0.55),
+            color: themeAccent.withValues(alpha: ultraContrast ? 0.88 : 0.55),
             width: ultraContrast ? 1.5 : 1.2,
           ),
           shape: RoundedRectangleBorder(
@@ -274,7 +290,7 @@ class AppTheme {
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: ultraContrast ? primaryText : accent,
+          foregroundColor: themeAccent,
           textStyle: const TextStyle(fontWeight: FontWeight.w800),
         ),
       ),
@@ -285,7 +301,7 @@ class AppTheme {
       ),
       chipTheme: ChipThemeData(
         backgroundColor: softAccent,
-        selectedColor: accent.withValues(alpha: isDark ? 0.36 : 0.20),
+        selectedColor: themeAccent.withValues(alpha: isDark ? 0.36 : 0.20),
         labelStyle: TextStyle(
           color: primaryText,
           fontWeight: ultraContrast ? FontWeight.w800 : FontWeight.w700,
@@ -309,24 +325,42 @@ class AppTheme {
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.disabled)) {
-            return mutedText.withValues(alpha: 0.42);
+            return isDark
+                ? const Color(0xFF5B635D)
+                : const Color(0xFFF4F7F2);
           }
-          if (states.contains(WidgetState.selected)) return accent;
-          return mutedText;
+          if (states.contains(WidgetState.selected)) {
+            return themeAccent;
+          }
+          return isDark
+              ? const Color(0xFFCAD2CB)
+              : const Color(0xFFF8FAF6);
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.disabled)) {
-            return border.withValues(alpha: 0.56);
+            return isDark
+                ? const Color(0xFF303833)
+                : const Color(0xFFE5EAE3);
           }
           if (states.contains(WidgetState.selected)) {
-            return accent.withValues(alpha: ultraContrast ? 0.42 : 0.30);
+            return themeAccent.withValues(alpha: ultraContrast ? 0.50 : 0.32);
           }
-          return border;
+          return isDark
+              ? const Color(0xFF3A433D)
+              : const Color(0xFFE3E9E1);
+        }),
+        trackOutlineColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return Colors.transparent;
+          }
+          return isDark
+              ? const Color(0xFF566158)
+              : const Color(0xFFC9D4CA);
         }),
       ),
       sliderTheme: SliderThemeData(
-        activeTrackColor: accent,
-        thumbColor: accent,
+        activeTrackColor: themeAccent,
+        thumbColor: themeAccent,
         inactiveTrackColor: border,
       ),
       navigationBarTheme: NavigationBarThemeData(
@@ -345,7 +379,7 @@ class AppTheme {
           final selected = states.contains(WidgetState.selected);
           return IconThemeData(
             size: fieldMode ? (selected ? 29 : 27) : (selected ? 27 : 25),
-            color: selected ? accent : mutedText,
+            color: selected ? themeAccent : mutedText,
           );
         }),
       ),

@@ -84,7 +84,7 @@ class WildNoteApp extends StatefulWidget {
   State<WildNoteApp> createState() => _WildNoteAppState();
 }
 
-class _WildNoteAppState extends State<WildNoteApp> {
+class _WildNoteAppState extends State<WildNoteApp> with WidgetsBindingObserver {
   final AppAppearanceController _appearanceController =
       AppAppearance.controller;
 
@@ -92,8 +92,18 @@ class _WildNoteAppState extends State<WildNoteApp> {
   void initState() {
     super.initState();
 
+    WidgetsBinding.instance.addObserver(this);
     _appearanceController.addListener(_applyDeviceBrightness);
-    unawaited(_appearanceController.load());
+
+    unawaited(
+      _appearanceController.load().whenComplete(() {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _applyDeviceBrightness();
+          }
+        });
+      }),
+    );
   }
 
   void _applyDeviceBrightness() {
@@ -110,7 +120,22 @@ class _WildNoteAppState extends State<WildNoteApp> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      unawaited(DeviceBrightnessService.instance.resetForBackground());
+      return;
+    }
+
+    if (state == AppLifecycleState.resumed) {
+      _applyDeviceBrightness();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _appearanceController.removeListener(_applyDeviceBrightness);
     unawaited(DeviceBrightnessService.instance.stop());
     super.dispose();

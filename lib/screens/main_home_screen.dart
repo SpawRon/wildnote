@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../services/app_appearance_settings.dart';
 import '../theme/app_theme.dart';
-import '../widgets/app_svg_icon.dart';
 import 'add_plant_screen.dart' as add_screen;
 import 'explorer_screen.dart';
 import 'history_screen.dart';
@@ -124,69 +123,92 @@ class _WildBottomIslandNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = WildColors.of(context);
+    final items = const <(IconData, IconData, String)>[
+      (Icons.local_florist_outlined, Icons.local_florist_rounded, 'Добавить'),
+      (Icons.article_outlined, Icons.article_rounded, 'История'),
+      (Icons.map_outlined, Icons.map_rounded, 'Обзор'),
+      (Icons.settings_outlined, Icons.settings_rounded, 'Настройки'),
+    ];
 
     return RepaintBoundary(
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: colors.surface,
-          borderRadius: BorderRadius.circular(26),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
-          child: Row(
-            children: [
-              _WildNavItem(
-                iconAssetName: AppIconAssets.navAdd,
-                fallbackIcon: Icons.local_florist_outlined,
-                selectedFallbackIcon: Icons.local_florist_rounded,
-                label: 'Добавить',
-                selected: selectedIndex == 0,
-                onTap: () => onDestinationSelected(0),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          const outerPadding = 5.0;
+          final trackWidth = constraints.maxWidth - outerPadding * 2;
+          final itemWidth = trackWidth / items.length;
+
+          return DecoratedBox(
+            decoration: BoxDecoration(
+              color: Color.alphaBlend(
+                colors.primary.withValues(alpha: colors.sunlightContrast ? 0.060 : 0.040),
+                colors.surface,
               ),
-              _WildNavItem(
-                iconAssetName: AppIconAssets.navHistory,
-                fallbackIcon: Icons.article_outlined,
-                selectedFallbackIcon: Icons.article_rounded,
-                label: 'История',
-                selected: selectedIndex == 1,
-                onTap: () => onDestinationSelected(1),
+              borderRadius: BorderRadius.circular(26),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: outerPadding,
+                vertical: 5,
               ),
-              _WildNavItem(
-                iconAssetName: AppIconAssets.navExplorer,
-                fallbackIcon: Icons.map_outlined,
-                selectedFallbackIcon: Icons.map_rounded,
-                label: 'Обзор',
-                selected: selectedIndex == 2,
-                onTap: () => onDestinationSelected(2),
+              child: SizedBox(
+                height: colors.fieldMode ? 58 : 50,
+                child: Stack(
+                  children: [
+                    AnimatedPositioned(
+                      duration: const Duration(milliseconds: 210),
+                      curve: Curves.easeOutCubic,
+                      left: itemWidth * selectedIndex,
+                      top: 0,
+                      bottom: 0,
+                      width: itemWidth,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 2),
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: Color.alphaBlend(
+                              colors.primary.withValues(
+                                alpha: colors.sunlightContrast ? 0.17 : 0.11,
+                              ),
+                              colors.surface,
+                            ),
+                            borderRadius: BorderRadius.circular(22),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Row(
+                      children: List.generate(items.length, (index) {
+                        final item = items[index];
+                        return _WildNavItem(
+                          icon: item.$1,
+                          selectedIcon: item.$2,
+                          label: item.$3,
+                          selected: selectedIndex == index,
+                          onTap: () => onDestinationSelected(index),
+                        );
+                      }),
+                    ),
+                  ],
+                ),
               ),
-              _WildNavItem(
-                iconAssetName: AppIconAssets.navSettings,
-                fallbackIcon: Icons.settings_outlined,
-                selectedFallbackIcon: Icons.settings_rounded,
-                label: 'Настройки',
-                selected: selectedIndex == 3,
-                onTap: () => onDestinationSelected(3),
-              ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
 }
 
 class _WildNavItem extends StatelessWidget {
-  final String iconAssetName;
-  final IconData fallbackIcon;
-  final IconData selectedFallbackIcon;
+  final IconData icon;
+  final IconData selectedIcon;
   final String label;
   final bool selected;
   final VoidCallback onTap;
 
   const _WildNavItem({
-    required this.iconAssetName,
-    required this.fallbackIcon,
-    required this.selectedFallbackIcon,
+    required this.icon,
+    required this.selectedIcon,
     required this.label,
     required this.selected,
     required this.onTap,
@@ -199,25 +221,18 @@ class _WildNavItem extends StatelessWidget {
     final color = selected ? colors.primary : colors.muted;
 
     return Expanded(
-      child: InkWell(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        borderRadius: BorderRadius.circular(22),
-        child: AnimatedContainer(
-          duration: fieldMode ? Duration.zero : const Duration(milliseconds: 140),
-          curve: Curves.easeOutCubic,
+        child: SizedBox(
           height: fieldMode ? 58 : 50,
-          decoration: BoxDecoration(
-            color: selected ? colors.softGreen : Colors.transparent,
-            borderRadius: BorderRadius.circular(22),
-          ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              AppSvgIcon(
-                iconAssetName,
+              Icon(
+                selected ? selectedIcon : icon,
                 size: fieldMode ? (selected ? 25 : 23) : (selected ? 22 : 20),
                 color: color,
-                fallbackIcon: selected ? selectedFallbackIcon : fallbackIcon,
               ),
               const SizedBox(height: 2),
               Text(

@@ -883,8 +883,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   subtitle: _darkTheme
                       ? 'Недоступна в тёмной теме'
                       : (_sunlightContrast
-                      ? 'Солнце на датчике: включена ультраконтрастность'
-                      : 'Обычная тема в тени и ультраконтраст при прямом солнце'),
+                      ? 'Яркий уличный свет: включено усиление читаемости'
+                      : 'Обычный вид сохраняется, усиление включается только при ярком свете'),
                   value: _darkTheme ? false : _autoContrast,
                   onChanged: _darkTheme ? null : _setAutoContrast,
                 ),
@@ -893,7 +893,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   icon: Icons.wb_sunny_outlined,
                   title: 'Автояркость',
                   subtitle:
-                  'Экран подстраивается под любое освещение',
+                  'Мягкая яркость в помещении и высокая яркость на улице',
                   value: _autoBrightness,
                   onChanged: _setAutoBrightness,
                 ),

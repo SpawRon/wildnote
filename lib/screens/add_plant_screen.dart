@@ -485,6 +485,28 @@ class _AddPlantScreenState extends State<AddPlantScreen>
 
   Future<void> _pickImage(ImageSource source) async {
     try {
+      if (source == ImageSource.gallery) {
+        final List<XFile> pickedFiles = await _picker.pickMultiImage(
+          imageQuality: 70,
+          maxWidth: 1600,
+          maxHeight: 1600,
+        );
+
+        if (pickedFiles.isEmpty || !mounted) return;
+
+        for (final pickedFile in pickedFiles) {
+          await _addPickedImage(
+            pickedFile,
+            source: source.name,
+            label: 'Фото из галереи',
+          );
+        }
+
+        if (!mounted) return;
+        _showMessage('Добавлено фото: ${pickedFiles.length}');
+        return;
+      }
+
       final XFile? pickedFile = await _picker.pickImage(
         source: source,
         imageQuality: 70,
@@ -497,7 +519,7 @@ class _AddPlantScreenState extends State<AddPlantScreen>
       await _addPickedImage(
         pickedFile,
         source: source.name,
-        label: source == ImageSource.gallery ? 'Фото из галереи' : 'Фото наблюдения',
+        label: 'Фото наблюдения',
       );
     } catch (e) {
       debugPrint("Ошибка выбора фото: $e");
@@ -1736,7 +1758,7 @@ class _AddPlantScreenState extends State<AddPlantScreen>
                 Icons.camera_alt,
                 color: WildColors.of(context).primary,
               ),
-              title: const Text('Одно фото'),
+              title: const Text(';Камера'),
               onTap: () {
                 Navigator.of(context).pop();
                 _pickImage(ImageSource.camera);
@@ -1913,6 +1935,7 @@ class _AddPlantScreenState extends State<AddPlantScreen>
     }
   }
 
+
   Widget _buildTextInputCard({
     required String title,
     required TextEditingController controller,
@@ -1921,30 +1944,54 @@ class _AddPlantScreenState extends State<AddPlantScreen>
     TextInputAction textInputAction = TextInputAction.next,
   }) {
     final colors = WildColors.of(context);
+    final fill = Color.alphaBlend(
+      colors.primary.withValues(alpha: 0.045),
+      colors.surface,
+    );
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionTitle(title),
-          TextField(
-            controller: controller,
-            maxLines: maxLines,
-            textInputAction: textInputAction,
-            decoration: InputDecoration(
-              hintText: hintText,
-              filled: true,
-              fillColor: colors.fieldFill,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle(title),
+        TextField(
+          controller: controller,
+          maxLines: maxLines,
+          textInputAction: textInputAction,
+          decoration: InputDecoration(
+            hintText: hintText,
+            filled: true,
+            fillColor: fill,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(18),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(18),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(18),
+              borderSide: BorderSide.none,
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(18),
+              borderSide: BorderSide.none,
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(18),
+              borderSide: BorderSide.none,
+            ),
+            disabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(18),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: 18,
+              vertical: maxLines > 1 ? 18 : 15,
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -2048,6 +2095,7 @@ class _AddPlantScreenState extends State<AddPlantScreen>
     );
   }
 
+
   Widget _buildNumberAttributeField({
     required String label,
     required TextEditingController controller,
@@ -2055,6 +2103,8 @@ class _AddPlantScreenState extends State<AddPlantScreen>
     bool autoFocus = false,
     VoidCallback? onDone,
   }) {
+    final colors = WildColors.of(context);
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextField(
@@ -2069,109 +2119,152 @@ class _AddPlantScreenState extends State<AddPlantScreen>
         decoration: InputDecoration(
           labelText: label,
           hintText: hintText,
+          filled: true,
+          fillColor: Color.alphaBlend(
+            colors.primary.withValues(alpha: 0.045),
+            colors.surface,
+          ),
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          errorBorder: InputBorder.none,
+          focusedErrorBorder: InputBorder.none,
+          disabledBorder: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
         ),
       ),
     );
   }
 
   Widget _buildAttributesBlock() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
-      decoration: BoxDecoration(
-        color: WildColors.of(context).surface,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionTitle('Характеристики растения'),
-          _buildTagAttributeTile(
-            label: 'Статус определения',
-            attributeKey: PlantAttributeKeys.identificationStatus,
-            controller: _identificationStatusController,
-          ),
-          _buildTagAttributeTile(
-            label: 'Местообитание',
-            attributeKey: PlantAttributeKeys.habitat,
-            controller: _habitatController,
-            allowMultiple: true,
-          ),
-          _buildTagAttributeTile(
-            label: 'Тип почвы',
-            attributeKey: PlantAttributeKeys.soilType,
-            controller: _soilTypeController,
-            allowMultiple: true,
-          ),
-          _buildTagAttributeTile(
-            label: 'Увлажнение',
-            attributeKey: PlantAttributeKeys.moisture,
-            controller: _moistureController,
-            allowMultiple: true,
-          ),
-          _buildTagAttributeTile(
-            label: 'Освещенность',
-            attributeKey: PlantAttributeKeys.lightCondition,
-            controller: _lightConditionController,
-            allowMultiple: true,
-          ),
-          _buildTagAttributeTile(
-            label: 'Жизненная стадия',
-            attributeKey: PlantAttributeKeys.lifeStage,
-            controller: _lifeStageController,
-          ),
-          _buildTagAttributeTile(
-            label: 'Фенологическая фаза',
-            attributeKey: PlantAttributeKeys.phenophase,
-            controller: _phenophaseController,
-          ),
-          _buildTagAttributeTile(
-            label: 'Состояние растения',
-            attributeKey: PlantAttributeKeys.plantCondition,
-            controller: _plantConditionController,
-          ),
-          _buildTagAttributeTile(
-            label: 'Категория численности',
-            attributeKey: PlantAttributeKeys.abundanceCategory,
-            controller: _abundanceCategoryController,
-          ),
-          _buildNumberAttributeTile(
-            label: 'Количество особей',
-            attributeKey: PlantAttributeKeys.individualCount,
-            controller: _individualCountController,
-            hintText: 'Например: 1, 5, 20',
-          ),
-          _buildNumberAttributeTile(
-            label: 'Площадь участка, м²',
-            attributeKey: PlantAttributeKeys.areaOccupied,
-            controller: _areaOccupiedController,
-            hintText: 'Например: 0.5, 2, 10',
-          ),
-          _buildTagAttributeTile(
-            label: 'Антропогенное воздействие',
-            attributeKey: PlantAttributeKeys.anthropogenicImpact,
-            controller: _anthropogenicImpactController,
-          ),
-          _buildTagAttributeTile(
-            label: 'Угрожающий фактор',
-            attributeKey: PlantAttributeKeys.threatFactor,
-            controller: _threatFactorController,
-            allowMultiple: true,
-          ),
-          _buildTagAttributeTile(
-            label: 'Охранный статус',
-            attributeKey: PlantAttributeKeys.protectionStatus,
-            controller: _protectionStatusController,
-          ),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('Характеристики растения'),
+        _buildTagAttributeTile(
+          label: 'Статус определения',
+          attributeKey: PlantAttributeKeys.identificationStatus,
+          controller: _identificationStatusController,
+        ),
+        _buildTagAttributeTile(
+          label: 'Местообитание',
+          attributeKey: PlantAttributeKeys.habitat,
+          controller: _habitatController,
+          allowMultiple: true,
+        ),
+        _buildTagAttributeTile(
+          label: 'Тип почвы',
+          attributeKey: PlantAttributeKeys.soilType,
+          controller: _soilTypeController,
+          allowMultiple: true,
+        ),
+        _buildTagAttributeTile(
+          label: 'Увлажнение',
+          attributeKey: PlantAttributeKeys.moisture,
+          controller: _moistureController,
+          allowMultiple: true,
+        ),
+        _buildTagAttributeTile(
+          label: 'Освещенность',
+          attributeKey: PlantAttributeKeys.lightCondition,
+          controller: _lightConditionController,
+          allowMultiple: true,
+        ),
+        _buildTagAttributeTile(
+          label: 'Жизненная стадия',
+          attributeKey: PlantAttributeKeys.lifeStage,
+          controller: _lifeStageController,
+        ),
+        _buildTagAttributeTile(
+          label: 'Фенологическая фаза',
+          attributeKey: PlantAttributeKeys.phenophase,
+          controller: _phenophaseController,
+        ),
+        _buildTagAttributeTile(
+          label: 'Состояние растения',
+          attributeKey: PlantAttributeKeys.plantCondition,
+          controller: _plantConditionController,
+        ),
+        _buildTagAttributeTile(
+          label: 'Категория численности',
+          attributeKey: PlantAttributeKeys.abundanceCategory,
+          controller: _abundanceCategoryController,
+        ),
+        _buildNumberAttributeTile(
+          label: 'Количество особей',
+          attributeKey: PlantAttributeKeys.individualCount,
+          controller: _individualCountController,
+          hintText: 'Например: 1, 5, 20',
+        ),
+        _buildNumberAttributeTile(
+          label: 'Площадь участка, м²',
+          attributeKey: PlantAttributeKeys.areaOccupied,
+          controller: _areaOccupiedController,
+          hintText: 'Например: 0.5, 2, 10',
+        ),
+        _buildTagAttributeTile(
+          label: 'Антропогенное воздействие',
+          attributeKey: PlantAttributeKeys.anthropogenicImpact,
+          controller: _anthropogenicImpactController,
+        ),
+        _buildTagAttributeTile(
+          label: 'Угрожающий фактор',
+          attributeKey: PlantAttributeKeys.threatFactor,
+          controller: _threatFactorController,
+          allowMultiple: true,
+        ),
+        _buildTagAttributeTile(
+          label: 'Охранный статус',
+          attributeKey: PlantAttributeKeys.protectionStatus,
+          controller: _protectionStatusController,
+        ),
+      ],
     );
   }
 
+  Widget _buildMainObservationPanel() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ValueListenableBuilder<int>(
+          valueListenable: _photoRevisionNotifier,
+          builder: (context, revision, child) => _buildPhotoCarousel(),
+        ),
+        const SizedBox(height: 26),
+        _buildTextInputCard(
+          title: 'Название',
+          controller: _nameController,
+          hintText: 'Введите название...',
+        ),
+        const SizedBox(height: 26),
+        _buildTextInputCard(
+          title: 'Описание',
+          controller: _descriptionController,
+          hintText: 'Свободное описание наблюдения...',
+          maxLines: 3,
+          textInputAction: TextInputAction.done,
+        ),
+        const SizedBox(height: 28),
+        ValueListenableBuilder<int>(
+          valueListenable: _attributesRevisionNotifier,
+          builder: (context, revision, child) => RepaintBoundary(
+            child: _buildAttributesBlock(),
+          ),
+        ),
+      ],
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
+    final colors = WildColors.of(context);
+
     return Scaffold(
-      backgroundColor: WildColors.of(context).background,
+      backgroundColor: colors.surface,
       body: SafeArea(
         child: CustomScrollView(
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.manual,
@@ -2186,53 +2279,30 @@ class _AddPlantScreenState extends State<AddPlantScreen>
                       padding: EdgeInsets.zero,
                     ),
                     const SizedBox(height: 18),
-                    ValueListenableBuilder<int>(
-                      valueListenable: _photoRevisionNotifier,
-                      builder: (context, revision, child) => _buildPhotoCarousel(),
-                    ),
-                    const SizedBox(height: 20),
-                    _buildTextInputCard(
-                      title: 'Название',
-                      controller: _nameController,
-                      hintText: 'Введите название...',
-                    ),
-                    const SizedBox(height: 16),
-                    _buildTextInputCard(
-                      title: 'Описание',
-                      controller: _descriptionController,
-                      hintText: 'Свободное описание наблюдения...',
-                      maxLines: 3,
-                      textInputAction: TextInputAction.done,
-                    ),
-                    const SizedBox(height: 20),
-                    ValueListenableBuilder<int>(
-                      valueListenable: _attributesRevisionNotifier,
-                      builder: (context, revision, child) => RepaintBoundary(
-                        child: _buildAttributesBlock(),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
+                    _buildMainObservationPanel(),
+                    const SizedBox(height: 28),
                     ValueListenableBuilder<int>(
                       valueListenable: _locationRevisionNotifier,
                       builder: (context, revision, child) => RepaintBoundary(
                         child: _buildLocationBlock(),
                       ),
                     ),
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 28),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: WildColors.of(context).primary,
+                          backgroundColor: colors.primary,
                           foregroundColor: Colors.white,
-                          disabledBackgroundColor: Colors.grey.shade500,
+                          disabledBackgroundColor: colors.muted.withValues(alpha: 0.36),
                           disabledForegroundColor: Colors.white70,
                           padding: EdgeInsets.symmetric(
-                            vertical: WildColors.of(context).fieldMode ? 22 : 18,
+                            vertical: colors.fieldMode ? 22 : 18,
                           ),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(18),
                           ),
+                          elevation: 0,
                         ),
                         onPressed: _isSaving
                             ? null
@@ -2255,7 +2325,7 @@ class _AddPlantScreenState extends State<AddPlantScreen>
                           await _saveObservation();
                         },
                         child: _isSaving
-                            ? Row(
+                            ? const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -2289,6 +2359,7 @@ class _AddPlantScreenState extends State<AddPlantScreen>
   }
 
 
+
   String _photoLabelAt(int index) {
     if (index >= 0 && index < _imageLabels.length) {
       final value = _imageLabels[index].trim();
@@ -2298,141 +2369,156 @@ class _AddPlantScreenState extends State<AddPlantScreen>
     return 'Фото ${index + 1}';
   }
 
+
   Widget _buildPhotoCarousel() {
     final colors = WildColors.of(context);
     final hasImages = _images.isNotEmpty;
 
     return RepaintBoundary(
-      child: Container(
+      child: SizedBox(
         width: double.infinity,
-        height: 330,
-        decoration: BoxDecoration(
-          color: colors.surface,
-          borderRadius: BorderRadius.circular(AppRadius.card),
-        ),
-        clipBehavior: Clip.antiAlias,
+        height: 356,
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: ColoredBox(
-                color: Color.alphaBlend(
-                  colors.primary.withValues(alpha: 0.045),
-                  colors.surface,
-                ),
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: hasImages
-                          ? PageView.builder(
-                        controller: _pageController,
-                        itemCount: _images.length,
-                        onPageChanged: _setCurrentPhotoIndex,
-                        itemBuilder: (context, index) {
-                          return Image.file(
-                            _images[index],
-                            key: ValueKey<String>('main_photo_${_images[index].path}'),
-                            fit: BoxFit.cover,
-                            cacheWidth: 900,
-                            filterQuality: FilterQuality.low,
-                          );
-                        },
-                      )
-                          : _buildCameraPlaceholder(),
-                    ),
-                    if (hasImages)
-                      Positioned(
-                        right: 14,
-                        top: 14,
-                        child: _roundPhotoButton(
-                          icon: Icons.delete_outline,
-                          foregroundColor: Colors.redAccent,
-                          onTap: () => _removePhoto(_currentPhotoIndex),
-                        ),
-                      ),
-                    if (hasImages)
-                      Positioned(
-                        left: 14,
-                        right: 72,
-                        bottom: 14,
-                        child: ValueListenableBuilder<int>(
-                          valueListenable: _photoIndexNotifier,
-                          builder: (context, currentIndex, child) {
-                            return Align(
-                              alignment: Alignment.centerLeft,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: colors.primaryDark.withValues(alpha: 0.72),
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Text(
-                                  _photoLabelAt(currentIndex),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: colors.surface,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: ColoredBox(
+                  color: Color.alphaBlend(
+                    colors.primary.withValues(alpha: 0.045),
+                    colors.surface,
+                  ),
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: hasImages
+                            ? PageView.builder(
+                          controller: _pageController,
+                          itemCount: _images.length,
+                          onPageChanged: _setCurrentPhotoIndex,
+                          itemBuilder: (context, index) {
+                            return Image.file(
+                              _images[index],
+                              key: ValueKey<String>('main_photo_${_images[index].path}'),
+                              fit: BoxFit.cover,
+                              cacheWidth: 1000,
+                              filterQuality: FilterQuality.low,
                             );
                           },
-                        ),
+                        )
+                            : _buildCameraPlaceholder(),
                       ),
-                  ],
+                      if (hasImages)
+                        Positioned(
+                          right: 16,
+                          top: 16,
+                          child: _roundPhotoButton(
+                            icon: Icons.delete_outline,
+                            foregroundColor: colors.danger,
+                            onTap: () => _removePhoto(_currentPhotoIndex),
+                          ),
+                        ),
+                      if (hasImages)
+                        Positioned(
+                          left: 16,
+                          right: 74,
+                          bottom: 16,
+                          child: ValueListenableBuilder<int>(
+                            valueListenable: _photoIndexNotifier,
+                            builder: (context, currentIndex, child) {
+                              return Align(
+                                alignment: Alignment.centerLeft,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: colors.primaryDark.withValues(alpha: 0.72),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Text(
+                                    _photoLabelAt(currentIndex),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: colors.surface,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),
-            Container(
-              height: 88,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              color: colors.surface,
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 72,
               child: Row(
                 children: [
                   GestureDetector(
                     onTap: () => _showImageSourceActionSheet(context),
                     child: Container(
-                      width: 62,
-                      height: 62,
+                      width: 52,
+                      height: 52,
                       decoration: BoxDecoration(
-                        color: colors.softGreen,
-                        borderRadius: BorderRadius.circular(18),
+                        color: Color.alphaBlend(
+                          colors.primary.withValues(alpha: 0.12),
+                          colors.surface,
+                        ),
+                        shape: BoxShape.circle,
                       ),
                       child: Icon(
                         Icons.camera_alt_outlined,
                         color: colors.primary,
-                        size: 32,
+                        size: 26,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: hasImages
                         ? ListView.separated(
                       scrollDirection: Axis.horizontal,
                       itemCount: _images.length,
                       separatorBuilder: (context, index) =>
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 10),
                       itemBuilder: (context, index) {
                         return GestureDetector(
                           onTap: () {
                             _pageController.jumpToPage(index);
                             _setCurrentPhotoIndex(index);
                           },
-                          child: SizedBox(
-                            width: 62,
-                            height: 62,
-                            child: ClipRRect(
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            curve: Curves.easeOutCubic,
+                            width: 56,
+                            height: 56,
+                            padding: EdgeInsets.all(
+                              _currentPhotoIndex == index ? 2 : 0,
+                            ),
+                            decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: _currentPhotoIndex == index
+                                    ? colors.primary.withValues(alpha: 0.38)
+                                    : Colors.transparent,
+                              ),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(14),
                               child: Image.file(
                                 _images[index],
                                 fit: BoxFit.cover,
-                                cacheWidth: 186,
-                                cacheHeight: 186,
+                                cacheWidth: 180,
+                                cacheHeight: 180,
                                 filterQuality: FilterQuality.low,
                               ),
                             ),
@@ -2494,12 +2580,13 @@ class _AddPlantScreenState extends State<AddPlantScreen>
     );
   }
 
+
   Widget _buildCameraPlaceholder() {
     final colors = WildColors.of(context);
 
     return Container(
       color: Color.alphaBlend(
-        colors.primary.withValues(alpha: 0.045),
+        colors.primary.withValues(alpha: 0.05),
         colors.surface,
       ),
       child: Column(
@@ -2507,8 +2594,8 @@ class _AddPlantScreenState extends State<AddPlantScreen>
         children: [
           Icon(
             Icons.not_interested_rounded,
-            size: 56,
-            color: colors.muted,
+            size: 58,
+            color: colors.primary.withValues(alpha: 0.70),
           ),
           const SizedBox(height: 12),
           Text(
@@ -2524,73 +2611,151 @@ class _AddPlantScreenState extends State<AddPlantScreen>
     );
   }
 
+  Widget _buildManualCoordinateField({
+    required String label,
+    required TextEditingController controller,
+  }) {
+    final colors = WildColors.of(context);
 
-  Widget _buildManualMapSelector() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(height: 12),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: SizedBox(
-            height: 190,
-            child: ValueListenableBuilder<int>(
-              valueListenable: _manualMapRevisionNotifier,
-              builder: (context, revision, child) {
-                final point = _manualPoint ??
-                    _manualPointFromControllers() ??
-                    (_currentPosition == null
-                        ? const LatLng(68.9707, 33.0749)
-                        : LatLng(
-                      _currentPosition!.latitude,
-                      _currentPosition!.longitude,
-                    ));
-
-                return FlutterMap(
-                  mapController: _manualMapController,
-                  options: MapOptions(
-                    initialCenter: point,
-                    initialZoom: 15,
-                    onTap: (_, tappedPoint) => _setManualPointFromMap(tappedPoint),
-                  ),
-                  children: [
-                    TileLayer(
-                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      //noinspection SpellCheckingInspection
-                      userAgentPackageName: 'ru.mauniver.wildnote',
-                    ),
-                    MarkerLayer(
-                      markers: [
-                        Marker(
-                          point: point,
-                          width: 38,
-                          height: 38,
-                          child: Icon(
-                            Icons.location_on_rounded,
-                            color: AppColors.danger,
-                            size: 34,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-        ),
-        SizedBox(height: 8),
         Text(
-          'Нажмите на карту или введите широту и долготу вручную',
+          label,
           style: TextStyle(
             fontSize: 12,
-            color: WildColors.of(context).muted,
+            fontWeight: FontWeight.w800,
+            color: colors.muted,
+          ),
+        ),
+        const SizedBox(height: 7),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: Color.alphaBlend(
+              colors.primary.withValues(alpha: 0.045),
+              colors.surface,
+            ),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: TextField(
+            controller: controller,
+            decoration: const InputDecoration(
+              isDense: true,
+              filled: false,
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              errorBorder: InputBorder.none,
+              focusedErrorBorder: InputBorder.none,
+              disabledBorder: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 13,
+                vertical: 12,
+              ),
+            ),
+            keyboardType: const TextInputType.numberWithOptions(
+              decimal: true,
+              signed: true,
+            ),
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w900,
+              color: colors.primaryDark,
+            ),
           ),
         ),
       ],
     );
   }
 
+  Widget _buildManualMapSelector() {
+    final colors = WildColors.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 14),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: SizedBox(
+            height: 196,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: ValueListenableBuilder<int>(
+                    valueListenable: _manualMapRevisionNotifier,
+                    builder: (context, revision, child) {
+                      final point = _manualPoint ??
+                          _manualPointFromControllers() ??
+                          (_currentPosition == null
+                              ? const LatLng(68.9707, 33.0749)
+                              : LatLng(
+                            _currentPosition!.latitude,
+                            _currentPosition!.longitude,
+                          ));
+
+                      return FlutterMap(
+                        mapController: _manualMapController,
+                        options: MapOptions(
+                          initialCenter: point,
+                          initialZoom: 15,
+                          onTap: (_, tappedPoint) => _setManualPointFromMap(tappedPoint),
+                        ),
+                        children: [
+                          TileLayer(
+                            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                            userAgentPackageName: 'ru.mauniver.wildnote',
+                          ),
+                          MarkerLayer(
+                            markers: [
+                              Marker(
+                                point: point,
+                                width: 38,
+                                height: 38,
+                                child: Icon(
+                                  Icons.location_on_rounded,
+                                  color: colors.danger,
+                                  size: 34,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+                Positioned(
+                  left: 10,
+                  right: 10,
+                  bottom: 10,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: colors.surface.withValues(alpha: 0.88),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+                      child: Text(
+                        'Нажмите на карту, чтобы переставить точку',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: colors.muted,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 
   double _locationQualityValue() {
     final progress = _locationProgress;
@@ -2634,13 +2799,11 @@ class _AddPlantScreenState extends State<AddPlantScreen>
     return 'Принято: ${progress.sampleCount} • в расчёте: ${progress.usedSampleCount}$rejectedText';
   }
 
-  Color _locationQualityColor() {
-    final value = _locationQualityValue();
 
-    if (value >= 0.74) return AppColors.success;
-    if (value >= 0.48) return AppColors.warning;
-    return WildColors.of(context).danger;
+  Color _locationQualityColor() {
+    return WildColors.of(context).primary;
   }
+
 
   Widget _buildLocationQualityIndicator() {
     final colors = WildColors.of(context);
@@ -2649,15 +2812,15 @@ class _AddPlantScreenState extends State<AddPlantScreen>
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.fromLTRB(12, 11, 12, 12),
       decoration: BoxDecoration(
         color: Color.alphaBlend(
-          color.withValues(alpha: 0.08),
+          color.withValues(alpha: 0.065),
           colors.surface,
         ),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: color.withValues(alpha: colors.sunlightContrast ? 0.62 : 0.30),
+          color: color.withValues(alpha: colors.sunlightContrast ? 0.55 : 0.22),
         ),
       ),
       child: Column(
@@ -2665,8 +2828,6 @@ class _AddPlantScreenState extends State<AddPlantScreen>
         children: [
           Row(
             children: [
-              AppSvgIcon(AppIconAssets.geolocation, size: 19, color: color, fallbackIcon: Icons.sensors_rounded),
-              const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   _locationQualityTitle(),
@@ -2692,7 +2853,10 @@ class _AddPlantScreenState extends State<AddPlantScreen>
             value: value,
             minHeight: 7,
             borderRadius: BorderRadius.circular(99),
-            backgroundColor: colors.border,
+            backgroundColor: Color.alphaBlend(
+              colors.primary.withValues(alpha: 0.10),
+              colors.surface,
+            ),
             color: color,
           ),
           const SizedBox(height: 8),
@@ -2708,6 +2872,8 @@ class _AddPlantScreenState extends State<AddPlantScreen>
       ),
     );
   }
+
+
 
   Widget _buildLocationBlock() {
     final bool locationReady = _isManualEntry || _isLocationFixed;
@@ -2727,94 +2893,112 @@ class _AddPlantScreenState extends State<AddPlantScreen>
     final String targetAccuracyText =
         'Цель: ±${LocationAccuracySettings.formatMeters(_targetAccuracyMeters)} м';
 
-    return Container(
-      padding: const EdgeInsets.all(16),
+    final colors = WildColors.of(context);
+    final borderColor = locationReady
+        ? colors.primary.withValues(alpha: 0.36)
+        : colors.warning.withValues(alpha: 0.55);
+
+    final container = Container(
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 16),
       decoration: BoxDecoration(
-        color: WildColors.of(context).surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: locationReady
-              ? AppColors.success.withValues(alpha: 0.48)
-              : AppColors.warning.withValues(alpha: 0.62),
-        ),
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: borderColor, width: 1.0),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Icon(
-                    _isManualEntry ? Icons.edit_location_alt : Icons.gps_fixed,
-                    color: locationReady ? AppColors.success : AppColors.warning,
-                  ),
-                  SizedBox(width: 10),
-                  Text(
-                    "Местоположение",
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ],
+              AppSvgIcon(
+                AppIconAssets.geolocation,
+                size: 20,
+                color: locationReady ? colors.primary : colors.warning,
+                fallbackIcon: _isManualEntry
+                    ? Icons.edit_location_alt
+                    : Icons.gps_fixed,
               ),
-              Row(
-                children: [
-                  Text(
-                    "Ручной ввод",
-                    style: TextStyle(fontSize: 12),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Местоположение',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    color: colors.primaryDark,
+                    fontSize: 15,
                   ),
-                  Switch(
-                    value: _isManualEntry,
-                    onChanged: (value) => _toggleManualEntry(value),
-                    activeThumbColor: WildColors.of(context).primary,
-                  ),
-                ],
+                ),
+              ),
+              Text(
+                'Ручной ввод',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: colors.primaryDark,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Switch(
+                value: _isManualEntry,
+                onChanged: (value) => _toggleManualEntry(value),
+                activeThumbColor: colors.primary,
               ),
             ],
           ),
-          Divider(),
+          const SizedBox(height: 12),
           if (_isManualEntry) ...[
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: Color.alphaBlend(
+                  colors.primary.withValues(alpha: 0.045),
+                  colors.surface,
+                ),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.touch_app_rounded,
+                      color: colors.primary,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 9),
+                    Expanded(
+                      child: Text(
+                        'Задайте координаты числом или выберите точку на карте.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          height: 1.22,
+                          color: colors.muted,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
             Row(
               children: [
                 Expanded(
-                  child: TextField(
+                  child: _buildManualCoordinateField(
+                    label: 'Широта',
                     controller: _latController,
-                    decoration: InputDecoration(
-                      labelText: 'Широта',
-                      isDense: true,
-                    ),
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                      signed: true,
-                    ),
                   ),
                 ),
-                SizedBox(width: 10),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: TextField(
+                  child: _buildManualCoordinateField(
+                    label: 'Долгота',
                     controller: _lngController,
-                    decoration: InputDecoration(
-                      labelText: 'Долгота',
-                      isDense: true,
-                    ),
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                      signed: true,
-                    ),
                   ),
                 ),
               ],
             ),
             _buildManualMapSelector(),
-            SizedBox(height: 10),
-            Text(
-              'Точка будет помечена как введённая вручную',
-              style: TextStyle(
-                fontSize: 12,
-                color: WildColors.of(context).muted,
-                fontStyle: FontStyle.italic,
-              ),
-            ),
           ] else ...[
             GestureDetector(
               onTap: () {
@@ -2824,64 +3008,67 @@ class _AddPlantScreenState extends State<AddPlantScreen>
               },
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: WildColors.of(context).surfaceSoft,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: WildColors.of(context).border),
+                  color: Color.alphaBlend(
+                    colors.primary.withValues(alpha: 0.045),
+                    colors.surface,
+                  ),
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Статус: $_geoStatus",
+                      'Статус: $_geoStatus',
                       style: TextStyle(
                         fontSize: 11,
-                        color: WildColors.of(context).muted,
+                        color: colors.primaryDark,
                         fontStyle: FontStyle.italic,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                    SizedBox(height: 6),
+                    const SizedBox(height: 7),
                     Text(
                       finalAccuracyText,
                       style: TextStyle(
                         fontSize: 11,
-                        color: WildColors.of(context).muted,
-                        fontWeight: FontWeight.w600,
+                        color: colors.muted,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-                    SizedBox(height: 4),
+                    const SizedBox(height: 4),
                     Text(
                       bestAccuracyText,
                       style: TextStyle(
                         fontSize: 11,
-                        color: WildColors.of(context).muted,
+                        color: colors.muted,
                       ),
                     ),
-                    SizedBox(height: 4),
+                    const SizedBox(height: 4),
                     Text(
                       targetAccuracyText,
                       style: TextStyle(
                         fontSize: 11,
-                        color: WildColors.of(context).muted,
+                        color: colors.muted,
                       ),
                     ),
-                    SizedBox(height: 4),
+                    const SizedBox(height: 4),
                     Text(
                       coordinatesText,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 10,
-                        color: WildColors.of(context).muted,
+                        color: colors.muted,
                       ),
                     ),
-                    SizedBox(height: 4),
+                    const SizedBox(height: 4),
                     Text(
-                      'Нажмите, чтобы продолжить уточнение',
+                      'Нажмите, чтобы продолжить уточнение.',
                       style: TextStyle(
                         fontSize: 10,
-                        color: WildColors.of(context).muted,
+                        color: colors.muted,
                       ),
                     ),
                   ],
@@ -2903,13 +3090,13 @@ class _AddPlantScreenState extends State<AddPlantScreen>
                           ? _stopAndAcceptCurrentLocation
                           : () => _startLocationCapture(reset: false),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: WildColors.of(context).primary,
+                        backgroundColor: colors.primary,
                         foregroundColor: Colors.white,
                         padding: EdgeInsets.symmetric(
-                          vertical: WildColors.of(context).fieldMode ? 18 : 14,
+                          vertical: colors.fieldMode ? 18 : 14,
                         ),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(14),
                         ),
                         elevation: 0,
                       ),
@@ -2920,26 +3107,26 @@ class _AddPlantScreenState extends State<AddPlantScreen>
                     ),
                   ),
                 ),
-                SizedBox(width: 10),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Tooltip(
                     message: 'Начать заново',
                     child: OutlinedButton(
                       onPressed: _restartLocationCapture,
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: WildColors.of(context).primary,
+                        foregroundColor: colors.primary,
                         padding: EdgeInsets.symmetric(
-                          vertical: WildColors.of(context).fieldMode ? 18 : 14,
+                          vertical: colors.fieldMode ? 18 : 14,
                         ),
                         side: BorderSide(
-                          color: WildColors.of(context).primary,
-                          width: 1.4,
+                          color: colors.primary,
+                          width: 1.3,
                         ),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                      child: Icon(
+                      child: const Icon(
                         Icons.restart_alt_rounded,
                         size: 28,
                       ),
@@ -2948,7 +3135,7 @@ class _AddPlantScreenState extends State<AddPlantScreen>
                 ),
               ],
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
               _locationProgress != null
                   ? 'Принято: ${_locationProgress!.sampleCount} • В расчёте: ${_locationProgress!.usedSampleCount}'
@@ -2956,15 +3143,41 @@ class _AddPlantScreenState extends State<AddPlantScreen>
                   : 'Сбор ещё не начат',
               style: TextStyle(
                 fontSize: 12,
-                color: WildColors.of(context).muted,
+                color: colors.muted,
               ),
             ),
           ],
         ],
       ),
     );
+
+    if (!_isManualEntry) {
+      return container;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        container,
+        const SizedBox(height: 8),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Text(
+            'Точка будет отмечена как введенная вручную.',
+            style: TextStyle(
+              fontSize: 12,
+              height: 1.25,
+              color: colors.danger,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
+    );
   }
+
 }
+
 
 
 
@@ -2997,68 +3210,77 @@ class _LazyAttributeTile extends StatelessWidget {
 
     return Column(
       children: [
-        InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(14),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 10),
-            child: Row(
-              children: [
-                Container(
-                  width: 34,
-                  height: 34,
-                  decoration: BoxDecoration(
-                    color: colors.softGreen,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: AppSvgIcon(
-                    iconAssetName,
-                    size: 19,
-                    color: colors.primary,
-                    fallbackIcon: fallbackIcon,
-                  ),
-                ),
-                const SizedBox(width: 11),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w900,
-                          color: colors.primaryDark,
-                        ),
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.zero,
+            splashColor: colors.primary.withValues(alpha: 0.06),
+            highlightColor: colors.primary.withValues(alpha: 0.03),
+            hoverColor: Colors.transparent,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 10),
+              child: Row(
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: Color.alphaBlend(
+                        colors.primary.withValues(alpha: 0.12),
+                        colors.surface,
                       ),
-                      const SizedBox(height: 3),
-                      Text(
-                        summary,
-                        maxLines: expanded ? 2 : 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 12,
-                          height: 1.12,
-                          fontWeight:
-                          filled ? FontWeight.w700 : FontWeight.w500,
-                          color: filled ? colors.primary : colors.muted,
+                      shape: BoxShape.circle,
+                    ),
+                    child: AppSvgIcon(
+                      iconAssetName,
+                      size: 17,
+                      color: colors.primary,
+                      fallbackIcon: fallbackIcon,
+                    ),
+                  ),
+                  const SizedBox(width: 11),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
+                            color: colors.primaryDark,
+                          ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 3),
+                        Text(
+                          summary,
+                          maxLines: expanded ? 2 : 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            height: 1.12,
+                            fontWeight:
+                            filled ? FontWeight.w700 : FontWeight.w500,
+                            color: filled ? colors.primary : colors.muted,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                AnimatedRotation(
-                  turns: expanded ? 0.5 : 0,
-                  duration: const Duration(milliseconds: 150),
-                  curve: Curves.easeOutCubic,
-                  child: Icon(
-                    Icons.keyboard_arrow_down_rounded,
-                    color: colors.muted,
+                  AnimatedRotation(
+                    turns: expanded ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 150),
+                    curve: Curves.easeOutCubic,
+                    child: Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: colors.muted,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -3441,6 +3663,7 @@ class _AttributeTagFieldState extends State<_AttributeTagField> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = WildColors.of(context);
     final input = widget.controller.text.trim();
     final suggestions = _visibleSuggestions();
     final canShare = input.isNotEmpty &&
@@ -3448,16 +3671,23 @@ class _AttributeTagFieldState extends State<_AttributeTagField> {
         !_containsValue(_sharedPending, input);
     final isMarkedForShare =
         input.isNotEmpty && _containsValue(_sharedPending, input);
+    final fill = Color.alphaBlend(
+      colors.primary.withValues(alpha: 0.045),
+      colors.surface,
+    );
+    final chipFill = Color.alphaBlend(
+      colors.primary.withValues(alpha: 0.075),
+      colors.surface,
+    );
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: DecoratedBox(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           color: Colors.transparent,
-          borderRadius: BorderRadius.circular(14),
         ),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+          padding: const EdgeInsets.fromLTRB(8, 8, 8, 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -3467,10 +3697,10 @@ class _AttributeTagFieldState extends State<_AttributeTagField> {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: WildColors.of(context).primaryDark,
+                    color: colors.primaryDark,
                   ),
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
               ],
               if (_selected.isNotEmpty) ...[
                 Wrap(
@@ -3480,7 +3710,20 @@ class _AttributeTagFieldState extends State<_AttributeTagField> {
                       .map(
                         (value) => InputChip(
                       label: Text(value),
-                      deleteIcon: Icon(Icons.close, size: 17),
+                      labelStyle: TextStyle(
+                        color: colors.primaryDark,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      backgroundColor: chipFill,
+                      side: BorderSide.none,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      deleteIcon: Icon(
+                        Icons.close,
+                        size: 17,
+                        color: colors.primary,
+                      ),
                       onDeleted: () => _handleSelectedDelete(value),
                       materialTapTargetSize:
                       MaterialTapTargetSize.shrinkWrap,
@@ -3488,52 +3731,70 @@ class _AttributeTagFieldState extends State<_AttributeTagField> {
                   )
                       .toList(),
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
               ],
-              TextField(
-                controller: widget.controller,
-                focusNode: _focusNode,
-                textInputAction: TextInputAction.done,
-                onSubmitted: (value) {
-                  _commitLocal(value);
-                  widget.onDone?.call();
-                },
-                decoration: InputDecoration(
-                  isDense: true,
-                  hintText: widget.hintText ??
-                      (widget.allowMultiple
-                          ? 'Выберите несколько или напишите'
-                          : 'Выберите или напишите'),
-                  suffixIcon: IconButton(
-                    tooltip: 'Добавить в общий список при сохранении',
-                    onPressed:
-                    canShare ? () => _commitAndMarkForShare(input) : null,
-                    icon: Icon(
-                      isMarkedForShare
-                          ? Icons.add_circle
-                          : Icons.add_circle_outline,
-                      color: canShare || isMarkedForShare
-                          ? const Color(0xFF2E7D32)
-                          : Colors.grey,
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: fill,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: TextField(
+                  controller: widget.controller,
+                  focusNode: _focusNode,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (value) {
+                    _commitLocal(value);
+                    widget.onDone?.call();
+                  },
+                  decoration: InputDecoration(
+                    isDense: true,
+                    hintText: widget.hintText ??
+                        (widget.allowMultiple
+                            ? 'Выберите несколько или напишите'
+                            : 'Выберите или напишите'),
+                    filled: false,
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    errorBorder: InputBorder.none,
+                    focusedErrorBorder: InputBorder.none,
+                    disabledBorder: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    suffixIcon: IconButton(
+                      tooltip: 'Добавить в общий список при сохранении',
+                      onPressed:
+                      canShare ? () => _commitAndMarkForShare(input) : null,
+                      icon: Icon(
+                        isMarkedForShare
+                            ? Icons.add_circle
+                            : Icons.add_circle_outline,
+                        color: canShare || isMarkedForShare
+                            ? colors.primary
+                            : colors.muted,
+                      ),
                     ),
                   ),
                 ),
               ),
               if (canShare || isMarkedForShare) ...[
-                SizedBox(height: 6),
+                const SizedBox(height: 6),
                 Text(
                   isMarkedForShare
                       ? 'Будет добавлено в общий словарь при сохранении'
                       : 'Нажмите +, чтобы добавить вариант в общий словарь',
                   style: TextStyle(
                     fontSize: 11,
-                    color: isMarkedForShare ? AppColors.success : WildColors.of(context).muted,
-                    fontWeight: isMarkedForShare ? FontWeight.w700 : FontWeight.w500,
+                    color: isMarkedForShare ? colors.primary : colors.muted,
+                    fontWeight:
+                    isMarkedForShare ? FontWeight.w700 : FontWeight.w500,
                   ),
                 ),
               ],
               if (_isFocused && (_isLoading || suggestions.isNotEmpty)) ...[
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 if (_isLoading)
                   SizedBox(
                     height: 22,
@@ -3554,7 +3815,8 @@ class _AttributeTagFieldState extends State<_AttributeTagField> {
                       keyboardDismissBehavior:
                       ScrollViewKeyboardDismissBehavior.manual,
                       itemCount: suggestions.length,
-                      separatorBuilder: (context, index) => SizedBox(width: 8),
+                      separatorBuilder: (context, index) =>
+                      const SizedBox(width: 8),
                       itemBuilder: (context, index) {
                         final option = suggestions[index];
                         final canDelete =
@@ -3562,6 +3824,15 @@ class _AttributeTagFieldState extends State<_AttributeTagField> {
 
                         return InputChip(
                           label: Text(option.value),
+                          labelStyle: TextStyle(
+                            color: colors.primaryDark,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          backgroundColor: chipFill,
+                          side: BorderSide.none,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
                           onPressed: () => _commitLocal(option.value),
                           onDeleted: canDelete
                               ? () => _deleteOwnPublishedOption(option.value)

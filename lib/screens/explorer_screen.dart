@@ -8,6 +8,7 @@ import '../services/session_manager.dart';
 import '../theme/app_theme.dart';
 import 'observation_detail_screen.dart';
 import '../widgets/wild_page_header.dart';
+import '../widgets/app_svg_icon.dart';
 
 enum ExplorerMode { user, area }
 
@@ -681,10 +682,11 @@ class ExplorerScreenState extends State<ExplorerScreen> {
                               point: areaCenter,
                               width: 34,
                               height: 34,
-                              child: Icon(
-                                Icons.my_location,
-                                color: Color(0xFF1E88E5),
+                              child: AppSvgIcon(
+                                AppIconAssets.navigationArrow,
                                 size: 28,
+                                color: const Color(0xFF1E88E5),
+                                fallbackIcon: Icons.my_location,
                               ),
                             ),
                           ...visiblePoints.map(_buildMarker),
@@ -918,7 +920,12 @@ class ExplorerScreenState extends State<ExplorerScreen> {
               IconButton(
                 tooltip: 'Моё местоположение',
                 onPressed: _isLoading ? null : _useCurrentLocation,
-                icon: Icon(Icons.my_location_rounded),
+                icon: AppSvgIcon(
+                  AppIconAssets.navigationArrow,
+                  size: 22,
+                  color: _isLoading ? WildColors.of(context).muted : WildColors.of(context).primary,
+                  fallbackIcon: Icons.my_location_rounded,
+                ),
               ),
               IconButton(
                 tooltip: 'Искать',

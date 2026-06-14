@@ -52,25 +52,25 @@ class _GuidedPhotoCaptureScreenState extends State<GuidedPhotoCaptureScreen>
     _PhotoGuideStep(
       title: 'Общий вид растения',
       subtitle: 'Снимите растение целиком, чтобы было понятно расположение и форма.',
-      iconAssetName: AppIconAssets.lifeStage,
+      iconAssetName: AppIconAssets.photoGeneral,
       fallbackIcon: Icons.local_florist_rounded,
     ),
     _PhotoGuideStep(
       title: 'Листья крупным планом',
       subtitle: 'Покажите форму листа, жилкование и край.',
-      iconAssetName: AppIconAssets.habitat,
+      iconAssetName: AppIconAssets.photoLeaves,
       fallbackIcon: Icons.eco_rounded,
     ),
     _PhotoGuideStep(
       title: 'Цветок или плод',
       subtitle: 'Если цветка или плода нет, этот шаг можно пропустить.',
-      iconAssetName: AppIconAssets.phenophase,
+      iconAssetName: AppIconAssets.photoFlowerOrFruit,
       fallbackIcon: Icons.filter_vintage_rounded,
     ),
     _PhotoGuideStep(
       title: 'Место произрастания',
       subtitle: 'Снимите окружение: почву, камни, травостой или склон.',
-      iconAssetName: AppIconAssets.soilType,
+      iconAssetName: AppIconAssets.photoHabitat,
       fallbackIcon: Icons.landscape_rounded,
     ),
   ];
@@ -749,7 +749,7 @@ class _InstructionCard extends StatelessWidget {
             child: AppSvgIcon(
               step.iconAssetName,
               color: colors.primary,
-              size: 28,
+              size: 24,
               fallbackIcon: step.fallbackIcon,
             ),
           ),

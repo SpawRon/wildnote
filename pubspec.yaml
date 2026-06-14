@@ -82,12 +82,12 @@ flutter:
     - assets/mlogo.svg
     - assets/sql/
     - assets/icon/
-    - assets/icon/minimal2/
+    - assets/icon/standard/
 
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/logo.png"
+  image_path: "assets/img.png"
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
