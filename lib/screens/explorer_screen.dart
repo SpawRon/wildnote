@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
@@ -375,7 +376,7 @@ class ExplorerScreenState extends State<ExplorerScreen> {
                       controller: scrollController,
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 108),
                       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-                      cacheExtent: 420,
+                      scrollCacheExtent: const ScrollCacheExtent.pixels(420.0),
                       itemCount: _points.length,
                       separatorBuilder: (context, index) => SizedBox(height: 8),
                       itemBuilder: (context, index) {
@@ -605,7 +606,7 @@ class ExplorerScreenState extends State<ExplorerScreen> {
     return SafeArea(
       child: ListView(
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-        cacheExtent: 520,
+        scrollCacheExtent: const ScrollCacheExtent.pixels(520.0),
         padding: const EdgeInsets.fromLTRB(
           AppSpacing.screen,
           20,

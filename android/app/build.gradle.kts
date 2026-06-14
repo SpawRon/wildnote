@@ -10,7 +10,7 @@ if (hasKeyProperties) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
-// Извлекаем значения с безопасным приведением типов
+//извлечение значения с безопасным приведением типов
 val myKeyAlias = (keystoreProperties["keyAlias"] as? String) ?: ""
 val myKeyPassword = (keystoreProperties["keyPassword"] as? String) ?: ""
 val myStoreFile = (keystoreProperties["storeFile"] as? String) ?: ""
@@ -55,7 +55,7 @@ android {
 
     buildTypes {
         getByName("release") {
-            //ключей нет используем стандартную debug-подпись, чтобы сборка не ломалась
+            //ключей нет. используем стандартную debug-подпись
             signingConfig = if (hasKeyProperties) {
                 signingConfigs.getByName("release")
             } else {
