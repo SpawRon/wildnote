@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -807,7 +808,7 @@ class HistoryScreenState extends State<HistoryScreen> {
               child: ListView.builder(
                 padding: const EdgeInsets.fromLTRB(AppSpacing.screen, 0, AppSpacing.screen, 116),
                 keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-                cacheExtent: 420,
+                scrollCacheExtent: const ScrollCacheExtent.pixels(420.0),
                 itemCount: _observations.length,
                 itemBuilder: (context, index) {
                   final item = _observations[index];

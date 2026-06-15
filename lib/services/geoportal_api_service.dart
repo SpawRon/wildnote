@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -1840,22 +1839,6 @@ class GeoportalApiService {
 
     if (parsed == null || !parsed.isFinite) return null;
     return parsed;
-  }
-
-  double _approxDistanceMeters(
-      double lat1,
-      double lon1,
-      double lat2,
-      double lon2,
-      ) {
-    const earthRadius = 6371000.0;
-    final lat1Rad = lat1 * 3.141592653589793 / 180.0;
-    final lat2Rad = lat2 * 3.141592653589793 / 180.0;
-    final dLat = (lat2 - lat1) * 3.141592653589793 / 180.0;
-    final dLon = (lon2 - lon1) * 3.141592653589793 / 180.0;
-    final x = dLon * math.cos((lat1Rad + lat2Rad) / 2.0);
-    final y = dLat;
-    return earthRadius * math.sqrt((x * x) + (y * y));
   }
 
 
