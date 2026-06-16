@@ -4,10 +4,7 @@ class LocationAccuracySettings {
   LocationAccuracySettings._();
 
   static const String storageKey = 'location_target_accuracy_meters';
-
-  // Стандартное значение приложения. Пользователь может изменить его в настройках.
   static const double defaultTargetAccuracyMeters = 15;
-
   static const double minTargetAccuracyMeters = 3;
   static const double maxTargetAccuracyMeters = 60;
 

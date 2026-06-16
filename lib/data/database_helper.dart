@@ -38,10 +38,8 @@ class DatabaseHelper {
 
   static const String _databaseName = 'wildnote.db';
 
-  // Версия файла БД. Поднята до 6: убраны лишние примечания и добавлена синхронизация справочников.
   static const int _databaseVersion = 6;
 
-  // Версия логической схемы данных приложения.
   static const int _plantSchemaVersion = 4;
 
   static const Set<String> _numberAttributeKeys = <String>{
@@ -112,9 +110,6 @@ class DatabaseHelper {
       whereArgs: [PlantAttributeKeys.comment, normalizeOptionValue('Другое')],
     );
 
-    // До v6 любое значение из записи автоматически попадало в справочник.
-    // Теперь общий справочник пополняется только по кнопке "+", поэтому
-    // старые пользовательские варианты оставляем локальными и не публикуем.
     await db.update(
       'attribute_options',
       {

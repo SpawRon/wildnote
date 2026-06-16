@@ -18,17 +18,17 @@ class PreciseLocationConfig {
   final bool autoStopWhenTargetReached;
 
   /// Пространственный антискачок: после формирования кластера
-  /// новая точка отклоняется, если она слишком далеко от основной группы,
-  /// даже если сама заявляет хорошую accuracy.
+  /// новая точка отклоняется, если она слишком далеко от основной группы
+  /// даже если сама заявляет хорошую accuracy
   final bool rejectSpatialOutliers;
 
   /// Сколько уже принятых точек нужно накопить до включения антискачка.
   final int minSamplesBeforeSpatialFilter;
 
-  /// Минимально допустимый радиус кластера для антискачка.
+  /// допустимый радиус кластера для антискачка.
   final double minSpatialJumpMeters;
 
-  /// Максимально допустимый радиус кластера для антискачка.
+  /// допустимый радиус кластера для антискачка.
   final double maxSpatialJumpMeters;
 
   const PreciseLocationConfig({
@@ -64,7 +64,7 @@ class PreciseLocationProgress {
   /// сколько лучших точек использовано в итоговом расчёте.
   final int usedSampleCount;
 
-  /// Сколько точек было отклонено пространственным антискачком.
+  /// сколько точек было отклонено пространственным антискачком.
   final int rejectedSpatialOutlierCount;
 
   /// Последнее расстояние отклонённой точки от текущего кластера.
@@ -507,7 +507,7 @@ class LocationCaptureService {
         );
       }
     } catch (_) {
-      // Прогрев не критичен.
+      // прогрев не критичен.
     }
 
     await _positionSubscription?.cancel();

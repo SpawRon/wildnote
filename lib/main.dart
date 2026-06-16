@@ -35,7 +35,7 @@ Future<void> main() async {
         stackTrace: stackTrace,
       );
     } catch (_) {
-      // Ошибка логгера не должна мешать запуску приложения.
+      // ошибки логгера не должны мешать запуску приложения
     }
   }
 
@@ -151,9 +151,6 @@ class _WildNoteAppState extends State<WildNoteApp> with WidgetsBindingObserver {
         return MaterialApp(
           title: 'WildNote',
           debugShowCheckedModeBanner: false,
-          // Отключаем встроенную анимацию ThemeData.
-          // Иначе Flutter плавно пересчитывает цвета всего дерева: IndexedStack,
-          // карты, фото и подробные карточки. Это и давало сильный фриз.
           themeAnimationDuration: Duration.zero,
           themeAnimationCurve: Curves.linear,
           theme: AppTheme.build(

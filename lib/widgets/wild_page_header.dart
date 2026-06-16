@@ -5,8 +5,8 @@ import '../theme/app_theme.dart';
 class WildPageHeader extends StatelessWidget {
   final String title;
 
-  // Оставлено для совместимости со старыми вызовами.
-  // В интерфейсе больше не выводится.
+  // для совместимости со старыми вызовами
+  // в интерфейсе больше не выводится
   final String? subtitle;
 
   final Widget? trailing;

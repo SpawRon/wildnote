@@ -29,7 +29,7 @@ class DeviceBrightnessService {
   EventChannel('wildnote/ambient_light');
 
   /// До этого уровня приложение не трогает яркость вообще.
-  /// В помещении должна работать системная автояркость Android.
+  /// В помещении должна работать системная автояркость.
   static const double _brightnessBoostOnLux = 5200;
   static const double _brightnessBoostOffLux = 2200;
 

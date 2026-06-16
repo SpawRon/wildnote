@@ -4,22 +4,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 class AppAppearanceSettingsData {
   final bool darkTheme;
 
-  /// Пользовательская настройка: включить автоматический режим контраста.
-  /// Сам факт "солнце сейчас попало на датчик" не сохраняется.
   final bool autoContrast;
 
-  /// Пользовательская настройка: включить автоматическую яркость от датчика света.
   final bool autoBrightness;
 
-  /// Временное runtime-состояние от датчика света.
-  /// true только когда autoContrast включён, тема светлая и датчик видит прямое солнце.
   final bool sunlightContrast;
 
-  /// Общий переключатель "Полевой режим".
-  /// Он включает набор полевых настроек, но отдельные пункты можно выключить вручную.
+  /// Общий переключатель.
   final bool fieldMode;
 
-  /// Отдельная настройка крупных кнопок.
   final bool largeButtons;
 
   final Color accentColor;
@@ -95,14 +88,13 @@ class AppAppearanceSettings {
   static const String largeButtonsKey = 'app_large_buttons_enabled';
   static const String accentColorKey = 'app_accent_color_value';
 
-  /// Красивый короткий ряд: 6 готовых цветов + отдельный круг "свой".
   static const List<Color> accentPalette = <Color>[
-    Color(0xFF6F8F77), // мягкий зелёный
-    Color(0xFF24863B), // насыщенный зелёный
-    Color(0xFF00897B), // бирюза
-    Color(0xFF1565C0), // синий
-    Color(0xFF6A5AE0), // фиолетово-синий
-    Color(0xFFE4772D), // тёплый оранжевый
+    Color(0xFF6F8F77),
+    Color(0xFF24863B),
+    Color(0xFF00897B),
+    Color(0xFF1565C0),
+    Color(0xFF6A5AE0),
+    Color(0xFFE4772D),
   ];
 
   static Future<AppAppearanceSettingsData> load() async {
@@ -260,8 +252,6 @@ class AppAppearanceController extends ChangeNotifier {
     await update(
       _data.copyWith(
         autoContrast: value,
-        // При включении автоконтрастности оставляем обычную тему.
-        // Ультраконтраст включит только датчик освещенности.
         sunlightContrast: false,
         fieldMode: nextFieldMode,
       ),
@@ -316,7 +306,6 @@ class AppAppearanceController extends ChangeNotifier {
     await update(_data.copyWith(accentColor: color));
   }
 
-  /// Runtime-переключатель от датчика света.
   /// не сохраняется в SharedPreferences чтобы приложение не просыпалось в ультраконтрасте без реального солнца
   void setSunlightContrast(bool value) {
     final next = _data.copyWith(sunlightContrast: value).normalized();

@@ -43,27 +43,20 @@ class AppIconName {
   static const String threatFactor = 'threat_factor';
 }
 
-/// Semantic icon aliases used by screens.
-///
-/// If you want to replace an icon variant, edit the alias here only.
-/// Screens should not use raw file names directly.
 class AppIconAssets {
   AppIconAssets._();
 
-  // General icons used inside screens.
   static const String button = AppIconName.button;
   static const String button2 = AppIconName.button2;
   static const String favoriteButton = AppIconName.favoriteButton;
   static const String geolocation = AppIconName.geolocationV2;
   static const String navigationArrow = AppIconName.button;
 
-  // Photo checklist icons.
   static const String photoGeneral = AppIconName.lifeStageV2;
   static const String photoLeaves = AppIconName.habitat;
   static const String photoFlowerOrFruit = AppIconName.phenophase;
   static const String photoHabitat = AppIconName.soilTypeV2;
 
-  // Plant observation attributes.
   static const String abundanceCategory = AppIconName.abundanceCategoryV2;
   static const String anthropogenicImpact = AppIconName.anthropogenicImpactV2;
   static const String areaOccupied = AppIconName.areaOccupied;
@@ -108,8 +101,6 @@ class AppSvgIcon extends StatelessWidget {
   final IconData? fallbackIcon;
   final BoxFit fit;
 
-  /// Keep this at 1.0 for normalized 24x24 icons.
-  /// Use only for temporary one-off correction while source SVG is adjusted.
   final double visualScale;
 
   const AppSvgIcon(
@@ -122,10 +113,7 @@ class AppSvgIcon extends StatelessWidget {
         this.visualScale = 1.0,
       });
 
-  /// Convenience constructor for attribute rows.
-  ///
-  /// Example:
-  /// AppSvgIcon.attribute(PlantAttributeKeys.habitat, size: 18)
+
   factory AppSvgIcon.attribute(
       String attributeKey, {
         Key? key,

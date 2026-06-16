@@ -1758,7 +1758,7 @@ class _AddPlantScreenState extends State<AddPlantScreen>
                 Icons.camera_alt,
                 color: WildColors.of(context).primary,
               ),
-              title: const Text(';Камера'),
+              title: const Text('Камера'),
               onTap: () {
                 Navigator.of(context).pop();
                 _pickImage(ImageSource.camera);
