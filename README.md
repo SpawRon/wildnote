@@ -1,17 +1,136 @@
-# wildnote
+Мобильное приложение для регистрации наблюдений редких видов растений и передачи данных на геоинформационный портал университета.
 
-ГИС-системы и экологический мониторинг
+Проект разработан в рамках выпускной квалификационной работы по направлению 09.03.01 Информатика и вычислительная техника.
 
-## Getting Started
+Репозиторий проекта: https://github.com/SpawRon/wildnote
 
-This project is a starting point for a Flutter application.
+---
 
-A few resources to get you started if this is your first Flutter project:
+## Технологический стек
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+| Компонент            | Назначение                                  |
+|----------------------|---------------------------------------------|
+| Flutter / Dart       | разработка мобильного приложения            |
+| sqflite              | локальная база данных SQLite                |
+| http                 | HTTP-запросы к API геопортала               |
+| geolocator           | получение координат устройства              |
+| image_picker         | выбор и добавление изображений              |
+| camera               | работа с камерой                            |
+| flutter_map          | отображение карты                           |
+| latlong2             | работа с географическими координатами       |
+| proj4dart / dart_crs | преобразование координат                    |
+| shared_preferences   | хранение пользовательских настроек и сессии |
+| screen_brightness    | управление яркостью экрана                  |
+| package_info_plus    | получение сведений о версии приложения      |
+| flutter_svg          | отображение SVG-иконок                      |
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Версия приложения в `pubspec.yaml`:
+
+```yaml
+version: 1.0.2+3
+```
+
+---
+
+## Требования для запуска
+
+- Flutter SDK;
+- Dart SDK, совместимый с настройкой проекта;
+- Android Studio или другой редактор с поддержкой Flutter;
+- Android SDK;
+- устройство Android или эмулятор;
+- доступ к интернету для установки зависимостей;
+- при сборке release-версии — ключ подписи Android-приложения.
+
+Проверка установленного окружения:
+```bash
+flutter doctor
+```
+
+---
+
+## зависимости
+
+Склонировать репозиторий:
+
+```bash
+git clone https://github.com/SpawRon/wildnote.git
+cd wildnote
+```
+
+Установить зависимости:
+
+```bash
+flutter pub get
+```
+
+Проверить код анализатором:
+
+```bash
+flutter analyze
+```
+
+---
+
+## запуск
+
+Запуск на подключённом Android-устройстве или эмуляторе:
+
+```bash
+flutter run
+```
+
+Список доступных устройств:
+
+```bash
+flutter devices
+```
+
+Запуск на конкретном устройстве:
+
+```bash
+flutter run -d <device_id>
+```
+
+---
+
+## сборка
+
+Сборка release APK:
+
+```bash
+flutter clean
+flutter pub get
+flutter analyze
+flutter build apk --release
+```
+
+Файл будет расположен по пути:
+
+```text
+build/app/outputs/flutter-apk/app-release.apk
+```
+
+Установка на подключённое устройство:
+
+```bash
+adb install -r build/app/outputs/flutter-apk/app-release.apk
+```
+
+---
+
+## тесты
+
+Предусмотрены тесты для отдельных сервисов и виджетов.
+
+запуск тестов:
+
+```bash
+flutter test
+```
+
+тестируемые части:
+- преобразование координат Гаусса-Крюгера;
+- настройки точности местоположения;
+- базовые виджет-тесты.
+
