@@ -160,7 +160,7 @@ class GeoportalSyncService {
       refreshRemote: true,
     );
 
-    final observation =
+    var observation =
     await DatabaseHelper.instance.getObservationById(observationId);
 
     if (observation == null) {
@@ -173,6 +173,35 @@ class GeoportalSyncService {
       return const SyncResult(
         success: false,
         message: 'Запись не найдена',
+      );
+    }
+
+    final observationUserLogin =
+        observation['user_login']?.toString().trim() ?? '';
+
+    if (observationUserLogin.toLowerCase() == 'guest') {
+      await DatabaseHelper.instance.attachObservationToUser(
+        id: observationId,
+        userLogin: workingSession.userLogin,
+      );
+
+      observation =
+      await DatabaseHelper.instance.getObservationById(observationId);
+
+      if (observation == null) {
+        return const SyncResult(
+          success: false,
+          message: 'Запись не найдена после привязки к аккаунту',
+        );
+      }
+
+      AppLogger.instance.info(
+        'GeoportalSyncService',
+        'Guest observation attached to current user before send',
+        data: {
+          'observationId': observationId,
+          'sessionUser': workingSession.userLogin,
+        },
       );
     }
 
@@ -406,6 +435,7 @@ class GeoportalSyncService {
 
       final pending = await DatabaseHelper.instance.getPendingObservations(
         userLogin: workingSession.userLogin,
+        includeGuestLocal: true,
       );
 
       AppLogger.instance.info(
@@ -768,7 +798,7 @@ class GeoportalSyncService {
 
     final session = await SessionManager.instance.getSession();
 
-    final observation =
+    var observation =
     await DatabaseHelper.instance.getObservationById(observationId);
 
     if (observation == null) {
@@ -920,6 +950,7 @@ class GeoportalSyncService {
   }) async {
     final local = await DatabaseHelper.instance.getObservations(
       userLogin: userLogin,
+      includeGuestLocal: true,
     );
 
     final session = await SessionManager.instance.getSession();
@@ -1011,6 +1042,9 @@ class GeoportalSyncService {
   }) async {
     if (!includeServer) {
       await DatabaseHelper.instance.clearAllObservations(userLogin: userLogin);
+      if (userLogin.trim().toLowerCase() != 'guest') {
+        await DatabaseHelper.instance.clearAllObservations(userLogin: 'guest');
+      }
       return const SyncResult(
         success: true,
         message: 'Локальная история очищена',
@@ -1020,6 +1054,9 @@ class GeoportalSyncService {
     final session = await SessionManager.instance.getSession();
     if (session == null || session.isGuest) {
       await DatabaseHelper.instance.clearAllObservations(userLogin: userLogin);
+      if (userLogin.trim().toLowerCase() != 'guest') {
+        await DatabaseHelper.instance.clearAllObservations(userLogin: 'guest');
+      }
       return const SyncResult(
         success: true,
         message: 'Локальная история очищена',
@@ -1043,6 +1080,9 @@ class GeoportalSyncService {
       );
 
       await DatabaseHelper.instance.clearAllObservations(userLogin: userLogin);
+      if (userLogin.trim().toLowerCase() != 'guest') {
+        await DatabaseHelper.instance.clearAllObservations(userLogin: 'guest');
+      }
 
       return SyncResult(
         success: true,

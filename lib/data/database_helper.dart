@@ -38,7 +38,7 @@ class DatabaseHelper {
 
   static const String _databaseName = 'wildnote.db';
 
-  static const int _databaseVersion = 6;
+  static const int _databaseVersion = 7;
 
   static const int _plantSchemaVersion = 4;
 
@@ -121,7 +121,35 @@ class DatabaseHelper {
   }
 
   Future<void> _migrateToV7(Database db) async {
-    // место для будущей миграции без пересоздания всей базы
+    await _addColumnIfMissing(
+      db,
+      table: 'observations',
+      column: 'is_edited',
+      definition: 'INTEGER NOT NULL DEFAULT 0',
+    );
+
+    await _addColumnIfMissing(
+      db,
+      table: 'observations',
+      column: 'edited_at',
+      definition: 'TEXT',
+    );
+  }
+
+  Future<void> _addColumnIfMissing(
+      Database db, {
+        required String table,
+        required String column,
+        required String definition,
+      }) async {
+    final info = await db.rawQuery('PRAGMA table_info($table)');
+    final exists = info.any(
+          (row) => row['name']?.toString().toLowerCase() == column.toLowerCase(),
+    );
+
+    if (!exists) {
+      await db.execute('ALTER TABLE $table ADD COLUMN $column $definition');
+    }
   }
 
   Future<void> _dropAllKnownTables(Database db) async {
@@ -159,6 +187,9 @@ class DatabaseHelper {
         remote_folder TEXT,
         sync_error TEXT,
         synced_at TEXT,
+
+        is_edited INTEGER NOT NULL DEFAULT 0,
+        edited_at TEXT,
 
         deleted_at TEXT,
         schema_version INTEGER NOT NULL DEFAULT 4
@@ -689,6 +720,8 @@ class DatabaseHelper {
           'remote_folder': observation['remote_folder']?.toString(),
           'sync_error': observation['sync_error']?.toString(),
           'synced_at': observation['synced_at']?.toString(),
+          'is_edited': _toInt(observation['is_edited']) ?? 0,
+          'edited_at': observation['edited_at']?.toString(),
           'deleted_at': observation['deleted_at']?.toString(),
           'schema_version': _plantSchemaVersion,
         },
@@ -1006,13 +1039,23 @@ class DatabaseHelper {
 
   Future<List<Map<String, dynamic>>> getObservations({
     required String userLogin,
+    bool includeGuestLocal = false,
   }) async {
     final db = await database;
+    final normalizedUserLogin = userLogin.trim();
+
+    final whereArgs = <Object?>[normalizedUserLogin];
+    var where = 'user_login = ? AND deleted_at IS NULL';
+
+    if (includeGuestLocal && normalizedUserLogin.toLowerCase() != 'guest') {
+      where = '(user_login = ? OR user_login = ?) AND deleted_at IS NULL';
+      whereArgs.add('guest');
+    }
 
     final observationRows = await db.query(
       'observations',
-      where: 'user_login = ? AND deleted_at IS NULL',
-      whereArgs: [userLogin],
+      where: where,
+      whereArgs: whereArgs,
       orderBy: 'datetime(created_at) DESC',
     );
 
@@ -1137,15 +1180,173 @@ class DatabaseHelper {
 
   Future<List<Map<String, dynamic>>> getPendingObservations({
     required String userLogin,
+    bool includeGuestLocal = false,
   }) async {
     final db = await database;
+    final normalizedUserLogin = userLogin.trim();
+
+    final whereArgs = <Object?>[
+      normalizedUserLogin,
+      ObservationStatus.queued,
+      ObservationStatus.error,
+    ];
+    var where =
+        'user_login = ? AND deleted_at IS NULL AND (status = ? OR status = ?)';
+
+    if (includeGuestLocal && normalizedUserLogin.toLowerCase() != 'guest') {
+      where =
+      '(user_login = ? OR user_login = ?) AND deleted_at IS NULL AND (status = ? OR status = ?)';
+      whereArgs.insert(1, 'guest');
+    }
 
     return db.query(
       'observations',
-      where: 'user_login = ? AND deleted_at IS NULL AND (status = ? OR status = ?)',
-      whereArgs: [userLogin, ObservationStatus.queued, ObservationStatus.error],
+      where: where,
+      whereArgs: whereArgs,
       orderBy: 'datetime(created_at) DESC',
     );
+  }
+
+  Future<void> attachObservationToUser({
+    required int id,
+    required String userLogin,
+  }) async {
+    final normalizedUserLogin = userLogin.trim();
+    if (normalizedUserLogin.isEmpty ||
+        normalizedUserLogin.toLowerCase() == 'guest') {
+      return;
+    }
+
+    final db = await database;
+    await db.update(
+      'observations',
+      {
+        'user_login': normalizedUserLogin,
+        'updated_at': DateTime.now().toIso8601String(),
+      },
+      where: 'id = ? AND user_login = ?',
+      whereArgs: [id, 'guest'],
+    );
+  }
+
+  Future<void> updateObservation({
+    required int id,
+    required Map<String, dynamic> observation,
+    required List<String> photoPaths,
+    required Map<String, Object?> attributes,
+  }) async {
+    final db = await database;
+
+    await db.transaction<void>((txn) async {
+      final now = DateTime.now().toIso8601String();
+
+      final currentRows = await txn.query(
+        'observations',
+        where: 'id = ? AND deleted_at IS NULL',
+        whereArgs: [id],
+        limit: 1,
+      );
+
+      if (currentRows.isEmpty) {
+        throw Exception('Запись для редактирования не найдена');
+      }
+
+      final current = currentRows.first;
+      final oldPhotoRows = await txn.query(
+        'photos',
+        where: 'observation_id = ?',
+        whereArgs: [id],
+        orderBy: 'order_index ASC',
+      );
+
+      final oldPhotosByPath = <String, Map<String, Object?>>{};
+      for (final row in oldPhotoRows) {
+        final path = row['file_path']?.toString().trim();
+        if (path != null && path.isNotEmpty) {
+          oldPhotosByPath[path] = row;
+        }
+      }
+
+      final latitude = _toDouble(observation['latitude']);
+      final longitude = _toDouble(observation['longitude']);
+
+      if (latitude == null || longitude == null) {
+        throw Exception('Нельзя сохранить изменения без координат');
+      }
+
+      final currentStatus = _toInt(current['status']) ?? ObservationStatus.localOnly;
+      final remoteFeatureId = _toInt(current['remote_feature_id']);
+      final requestedStatus = _toInt(observation['status']);
+      final nextStatus = requestedStatus ??
+          (currentStatus == ObservationStatus.localOnly
+              ? ObservationStatus.localOnly
+              : ObservationStatus.queued);
+
+      await txn.update(
+        'observations',
+        {
+          'user_login': observation['user_login']?.toString().trim().isNotEmpty == true
+              ? observation['user_login'].toString().trim()
+              : current['user_login'],
+          'observed_at': observation['observed_at']?.toString() ?? current['observed_at'],
+          'updated_at': now,
+          'latitude': latitude,
+          'longitude': longitude,
+          'is_manual': _toInt(observation['is_manual']) ?? 0,
+          'accuracy': _toDouble(observation['accuracy']),
+          'altitude': _toDouble(observation['altitude']),
+          'gauss_x': _toDouble(observation['gauss_x']),
+          'gauss_y': _toDouble(observation['gauss_y']),
+          'zone': _toInt(observation['zone']),
+          'status': nextStatus,
+          'remote_feature_id': remoteFeatureId ?? _toInt(observation['remote_feature_id']),
+          'remote_folder': observation['remote_folder']?.toString() ?? current['remote_folder'],
+          'sync_error': null,
+          'synced_at': nextStatus == ObservationStatus.synced
+              ? (observation['synced_at']?.toString() ?? current['synced_at']?.toString())
+              : null,
+          'is_edited': 1,
+          'edited_at': now,
+          'schema_version': _plantSchemaVersion,
+        },
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+
+      await txn.delete(
+        'observation_attributes',
+        where: 'observation_id = ?',
+        whereArgs: [id],
+      );
+
+      await _insertAttributesInTransaction(
+        txn: txn,
+        observationId: id,
+        attributes: attributes,
+        now: now,
+      );
+
+      await txn.delete(
+        'photos',
+        where: 'observation_id = ?',
+        whereArgs: [id],
+      );
+
+      for (int i = 0; i < photoPaths.length; i++) {
+        final path = photoPaths[i].trim();
+        if (path.isEmpty) continue;
+
+        final old = oldPhotosByPath[path];
+        await txn.insert('photos', {
+          'observation_id': id,
+          'file_path': path,
+          'uploaded_url': old?['uploaded_url']?.toString(),
+          'remote_attachment_id': _toInt(old?['remote_attachment_id']),
+          'order_index': i,
+          'created_at': old?['created_at']?.toString() ?? now,
+        });
+      }
+    });
   }
 
   Future<void> updateObservationStatus({
@@ -1186,7 +1387,7 @@ class DatabaseHelper {
       'photos',
       {
         'uploaded_url': uploadedUrl,
-        'remote_attachment_id': ?remoteAttachmentId,
+        'remote_attachment_id': remoteAttachmentId,
       },
       where: 'id = ?',
       whereArgs: [photoId],

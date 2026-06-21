@@ -17,6 +17,7 @@ import '../services/session_manager.dart';
 import '../services/location_accuracy_settings.dart';
 import '../services/gauss_kruger_service.dart';
 import '../services/app_logger.dart';
+import '../services/taxon_name_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/wild_page_header.dart';
 import '../widgets/app_svg_icon.dart';
@@ -149,6 +150,7 @@ class AddPlantScreen extends StatefulWidget {
   final bool isGuest;
   final String userLogin;
   final VoidCallback? onSaved;
+  final int? editObservationId;
 
 
   const AddPlantScreen({
@@ -156,6 +158,7 @@ class AddPlantScreen extends StatefulWidget {
     required this.isGuest,
     required this.userLogin,
     this.onSaved,
+    this.editObservationId,
   });
 
   @override
@@ -170,6 +173,12 @@ class _AddPlantScreenState extends State<AddPlantScreen>
   final PageController _pageController = PageController();
 
   final TextEditingController _nameController = TextEditingController();
+  final FocusNode _taxonNameFocusNode = FocusNode();
+  Timer? _taxonNameSearchDebounce;
+  List<TaxonNameSuggestion> _taxonNameSuggestions = const <TaxonNameSuggestion>[];
+  TaxonNameSuggestion? _selectedTaxonName;
+  bool _isTaxonNameSearching = false;
+  String? _taxonNameSearchError;
   final TextEditingController _descriptionController =
   TextEditingController();
   final TextEditingController _latController = TextEditingController();
@@ -218,6 +227,11 @@ class _AddPlantScreenState extends State<AddPlantScreen>
   bool _isManualEntry = false;
   bool _isSaving = false;
   Position? _currentPosition;
+  double? _editLatitude;
+  double? _editLongitude;
+  double? _editAccuracy;
+
+  bool get _isEditMode => widget.editObservationId != null;
 
   StreamSubscription<PreciseLocationProgress>? _locationSubscription;
   Timer? _manualPointDebounce;
@@ -255,7 +269,12 @@ class _AddPlantScreenState extends State<AddPlantScreen>
     _latController.addListener(_syncManualPointFromText);
     _lngController.addListener(_syncManualPointFromText);
     unawaited(_loadTargetAccuracy());
-    _startLocationCapture(reset: true);
+    unawaited(TaxonNameService.instance.warmUp());
+    if (_isEditMode) {
+      unawaited(_loadObservationForEdit());
+    } else {
+      _startLocationCapture(reset: true);
+    }
     if (!widget.isGuest) {
       unawaited(
         GeoportalSyncService.instance.syncAttributeOptions(
@@ -265,16 +284,187 @@ class _AddPlantScreenState extends State<AddPlantScreen>
     }
   }
 
+  Future<void> _loadObservationForEdit() async {
+    final id = widget.editObservationId;
+    if (id == null) return;
+
+    try {
+      final item = await DatabaseHelper.instance.getObservationById(id);
+      if (item == null) {
+        if (mounted) _showMessage('Запись для редактирования не найдена');
+        return;
+      }
+
+      final attributes = item['attributes'] is Map
+          ? Map<String, Object?>.from(item['attributes'] as Map)
+          : <String, Object?>{};
+
+      String scalarText(Object? value) {
+        if (value == null) return '';
+        if (value is List) return value.join(', ');
+        return value.toString();
+      }
+
+      void setText(String key, TextEditingController controller) {
+        controller.text = scalarText(attributes[key]);
+      }
+
+      void setTags(String key, TextEditingController controller) {
+        final raw = attributes[key];
+        final values = <String>[];
+
+        if (raw is Iterable) {
+          for (final item in raw) {
+            final value = item.toString().trim();
+            if (value.isNotEmpty && !values.contains(value)) values.add(value);
+          }
+        } else if (raw != null) {
+          final value = raw.toString().trim();
+          if (value.isNotEmpty) values.add(value);
+        }
+
+        controller.clear();
+        if (values.isEmpty) {
+          _selectedAttributeTags.remove(key);
+        } else {
+          _selectedAttributeTags[key] = values;
+        }
+      }
+
+      final latitude = _asFiniteDouble(item['latitude']);
+      final longitude = _asFiniteDouble(item['longitude']);
+      final accuracy = _asFiniteDouble(item['accuracy']);
+      final isManual = _toInt(item['is_manual']) == 1;
+
+      final photoRows = item['photos'] is List
+          ? List<Map<String, dynamic>>.from(item['photos'] as List)
+          : <Map<String, dynamic>>[];
+
+      final loadedImages = <File>[];
+      for (final photo in photoRows) {
+        final path = photo['file_path']?.toString().trim();
+        if (path == null || path.isEmpty) continue;
+        final file = File(path);
+        if (await file.exists()) loadedImages.add(file);
+      }
+
+      final existingName = scalarText(attributes[PlantAttributeKeys.plantName]);
+      final existingTaxonId = scalarText(attributes['taxon_id']);
+      final existingScientificName = scalarText(attributes['taxon_scientific_name']);
+      final existingTaxonGroup = scalarText(attributes['taxon_group']);
+      final existingTaxonSource = scalarText(attributes['taxon_source']);
+      final existingTaxon = existingName.trim().isEmpty
+          ? null
+          : TaxonNameSuggestion(
+        id: existingTaxonId.trim().isNotEmpty
+            ? existingTaxonId.trim()
+            : 'legacy:${TaxonNameService.normalizeSearchQuery(existingName)}',
+        acceptedNameRu: TaxonNameService.normalizeDisplayName(existingName),
+        scientificName: existingScientificName.trim(),
+        group: existingTaxonGroup.trim().isNotEmpty
+            ? existingTaxonGroup.trim()
+            : 'plant',
+        source: existingTaxonSource.trim().isNotEmpty
+            ? existingTaxonSource.trim()
+            : 'Ранее сохранённая запись',
+        priority: 0,
+        synonymsRu: const <String>[],
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _images
+          ..clear()
+          ..addAll(loadedImages);
+        _imageLabels
+          ..clear()
+          ..addAll(List<String>.filled(loadedImages.length, ''));
+        _setCurrentPhotoIndex(0);
+
+        _selectedTaxonName = existingTaxon;
+        _nameController.text = existingTaxon?.acceptedNameRu ?? existingName;
+        _taxonNameSuggestions = const <TaxonNameSuggestion>[];
+        _taxonNameSearchError = null;
+        _isTaxonNameSearching = false;
+        _descriptionController.text = scalarText(attributes[PlantAttributeKeys.description]);
+        setTags(PlantAttributeKeys.identificationStatus, _identificationStatusController);
+        setTags(PlantAttributeKeys.habitat, _habitatController);
+        setTags(PlantAttributeKeys.soilType, _soilTypeController);
+        setTags(PlantAttributeKeys.moisture, _moistureController);
+        setTags(PlantAttributeKeys.lightCondition, _lightConditionController);
+        setTags(PlantAttributeKeys.lifeStage, _lifeStageController);
+        setTags(PlantAttributeKeys.phenophase, _phenophaseController);
+        setTags(PlantAttributeKeys.plantCondition, _plantConditionController);
+        setTags(PlantAttributeKeys.abundanceCategory, _abundanceCategoryController);
+        setText(PlantAttributeKeys.individualCount, _individualCountController);
+        setText(PlantAttributeKeys.areaOccupied, _areaOccupiedController);
+        setTags(PlantAttributeKeys.anthropogenicImpact, _anthropogenicImpactController);
+        setTags(PlantAttributeKeys.threatFactor, _threatFactorController);
+        setTags(PlantAttributeKeys.protectionStatus, _protectionStatusController);
+
+        _editLatitude = latitude;
+        _editLongitude = longitude;
+        _editAccuracy = accuracy;
+        _isManualEntry = isManual;
+        _isLocationFixed = latitude != null && longitude != null;
+
+        if (latitude != null && longitude != null) {
+          _latController.text = latitude.toStringAsFixed(7);
+          _lngController.text = longitude.toStringAsFixed(7);
+          _manualPoint = LatLng(latitude, longitude);
+          _coordinatesLabel = 'Шир: ${latitude.toStringAsFixed(7)}, Долг: ${longitude.toStringAsFixed(7)}';
+          _geoStatus = isManual
+              ? 'Координаты введены вручную'
+              : 'Используются сохранённые координаты';
+        }
+      });
+
+      _notifyPhotoListChanged();
+      _notifyLocationChanged();
+      _notifyManualMapChanged();
+      _notifyAttributesChanged();
+    } catch (e, st) {
+      AppLogger.instance.error(
+        'AddPlantScreen',
+        'Load observation for edit failed',
+        error: e,
+        stackTrace: st,
+        data: {'observationId': id},
+      );
+
+      if (mounted) _showMessage('Не удалось открыть запись для редактирования');
+    }
+  }
+
+  double? _asFiniteDouble(dynamic value) {
+    if (value == null) return null;
+    final parsed = value is num
+        ? value.toDouble()
+        : double.tryParse(value.toString().replaceAll(',', '.'));
+    if (parsed == null || !parsed.isFinite) return null;
+    return parsed;
+  }
+
+  int? _toInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value.toString());
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
 
     _locationSubscription?.cancel();
     _manualPointDebounce?.cancel();
+    _taxonNameSearchDebounce?.cancel();
     unawaited(_locationService.dispose());
     _latController.removeListener(_syncManualPointFromText);
     _lngController.removeListener(_syncManualPointFromText);
 
+    _taxonNameFocusNode.dispose();
     _nameController.dispose();
     _descriptionController.dispose();
     _latController.dispose();
@@ -1422,12 +1612,12 @@ class _AddPlantScreenState extends State<AddPlantScreen>
         },
       );
 
-      if (_nameController.text.trim().isEmpty) {
+      if (_selectedTaxonName == null || _nameController.text.trim().isEmpty) {
         AppLogger.instance.warning(
           'AddPlantScreen',
-          'Save blocked: empty plant name',
+          'Save blocked: plant name is not selected from dictionary',
         );
-        _showMessage('Введите название растения');
+        _showMessage('Выберите название из справочника');
         return;
       }
 
@@ -1455,20 +1645,26 @@ class _AddPlantScreenState extends State<AddPlantScreen>
         });
       } else {
         if (_currentPosition == null) {
-          AppLogger.instance.warning(
-            'AddPlantScreen',
-            'Save blocked: current position is null',
-          );
-          _showMessage('Сначала дождитесь определения геолокации');
-          return;
+          if (_isEditMode && _editLatitude != null && _editLongitude != null) {
+            latitude = _editLatitude;
+            longitude = _editLongitude;
+            accuracy = _editAccuracy;
+          } else {
+            AppLogger.instance.warning(
+              'AddPlantScreen',
+              'Save blocked: current position is null',
+            );
+            _showMessage('Сначала дождитесь определения геолокации');
+            return;
+          }
+        } else {
+          latitude = _currentPosition!.latitude;
+          longitude = _currentPosition!.longitude;
+          accuracy = _currentPosition!.accuracy;
         }
-
-        latitude = _currentPosition!.latitude;
-        longitude = _currentPosition!.longitude;
-        accuracy = _currentPosition!.accuracy;
       }
 
-      if (!_isManualEntry && !_isLocationFixed) {
+      if (!_isManualEntry && !_isLocationFixed && !_isEditMode) {
         AppLogger.instance.warning(
           'AddPlantScreen',
           'Save blocked: accuracy is not enough',
@@ -1485,16 +1681,34 @@ class _AddPlantScreenState extends State<AddPlantScreen>
         return;
       }
 
+      if (latitude == null || longitude == null) {
+        AppLogger.instance.warning(
+          'AddPlantScreen',
+          'Save blocked: coordinates are null after location branch',
+          data: {
+            'latitude': latitude,
+            'longitude': longitude,
+            'isManual': _isManualEntry,
+            'isEditMode': _isEditMode,
+          },
+        );
+        _showMessage('Не удалось получить координаты наблюдения');
+        return;
+      }
+
+      final saveLatitude = latitude;
+      final saveLongitude = longitude;
+
       final attributes = _collectAttributes();
       final nearbyHits = await _findNearbyObservationHits(
-        latitude: latitude,
-        longitude: longitude,
+        latitude: saveLatitude,
+        longitude: saveLongitude,
         accuracy: accuracy,
       );
 
       final qualityReport = _buildObservationQualityReport(
-        latitude: latitude,
-        longitude: longitude,
+        latitude: saveLatitude,
+        longitude: saveLongitude,
         accuracy: accuracy,
         attributes: attributes,
         nearbyHits: nearbyHits,
@@ -1519,8 +1733,8 @@ class _AddPlantScreenState extends State<AddPlantScreen>
 
       try {
         final gk = await _gaussKrugerService.transform(
-          latitude: latitude,
-          longitude: longitude,
+          latitude: saveLatitude,
+          longitude: saveLongitude,
         );
 
         gaussX = gk.x;
@@ -1547,17 +1761,17 @@ class _AddPlantScreenState extends State<AddPlantScreen>
         );
       }
 
-      final createdAt = DateTime.now().toIso8601String();
+      final nowIso = DateTime.now().toIso8601String();
+      final createdAt = _isEditMode ? null : nowIso;
 
-      final observation = {
+      final observation = <String, Object?>{
         'user_login': widget.userLogin,
-        'name': _nameController.text.trim(),
+        'name': _selectedTaxonName?.acceptedNameRu ?? _nameController.text.trim(),
         'description': _descriptionController.text.trim(),
-        'latitude': latitude,
-        'longitude': longitude,
+        'latitude': saveLatitude,
+        'longitude': saveLongitude,
         'is_manual': _isManualEntry ? 1 : 0,
         'accuracy': accuracy,
-        'created_at': createdAt,
         'status': widget.isGuest
             ? ObservationStatus.localOnly
             : ObservationStatus.queued,
@@ -1571,6 +1785,10 @@ class _AddPlantScreenState extends State<AddPlantScreen>
         'sync_error': null,
         'synced_at': null,
       };
+
+      if (createdAt != null) {
+        observation['created_at'] = createdAt;
+      }
 
       final photoPaths = _images.map((e) => e.path).toList();
 
@@ -1586,24 +1804,47 @@ class _AddPlantScreenState extends State<AddPlantScreen>
         },
       );
 
-      final observationId = await DatabaseHelper.instance.insertObservation(
-        observation: observation,
-        photoPaths: photoPaths,
-        attributes: attributes,
-      );
+      late final int observationId;
 
-      AppLogger.instance.info(
-        'AddPlantScreen',
-        'Observation inserted into local database',
-        data: {
-          'localObservationId': observationId,
-          'photoCount': photoPaths.length,
-        },
-      );
+      if (_isEditMode) {
+        observationId = widget.editObservationId!;
+        await DatabaseHelper.instance.updateObservation(
+          id: observationId,
+          observation: observation,
+          photoPaths: photoPaths,
+          attributes: attributes,
+        );
 
-      String message = widget.isGuest
+        AppLogger.instance.info(
+          'AddPlantScreen',
+          'Observation updated in local database',
+          data: {
+            'localObservationId': observationId,
+            'photoCount': photoPaths.length,
+          },
+        );
+      } else {
+        observationId = await DatabaseHelper.instance.insertObservation(
+          observation: observation,
+          photoPaths: photoPaths,
+          attributes: attributes,
+        );
+
+        AppLogger.instance.info(
+          'AddPlantScreen',
+          'Observation inserted into local database',
+          data: {
+            'localObservationId': observationId,
+            'photoCount': photoPaths.length,
+          },
+        );
+      }
+
+      String message = _isEditMode
+          ? (widget.isGuest ? 'Изменения сохранены локально' : 'Изменения сохранены и добавлены в очередь')
+          : (widget.isGuest
           ? 'Запись сохранена локально'
-          : 'Запись добавлена в очередь на отправку';
+          : 'Запись добавлена в очередь на отправку');
 
       if (!widget.isGuest) {
         await _publishMarkedAttributeOptions();
@@ -1630,9 +1871,13 @@ class _AddPlantScreenState extends State<AddPlantScreen>
         );
 
         if (syncResult.success) {
-          message = 'Запись отправлена на геопортал';
+          message = _isEditMode
+              ? 'Изменения отправлены на геопортал'
+              : 'Запись отправлена на геопортал';
         } else {
-          message = 'Сохранено локально. ${syncResult.message}';
+          message = _isEditMode
+              ? 'Изменения сохранены локально. ${syncResult.message}'
+              : 'Сохранено локально. ${syncResult.message}';
         }
       }
 
@@ -1641,7 +1886,11 @@ class _AddPlantScreenState extends State<AddPlantScreen>
       _showWildTopMessage(context, message);
 
       widget.onSaved?.call();
-      _clearForm();
+      if (_isEditMode) {
+        Navigator.of(context).pop(true);
+      } else {
+        _clearForm();
+      }
     } catch (e, st) {
       debugPrint("Ошибка сохранения в БД: $e");
 
@@ -1667,6 +1916,10 @@ class _AddPlantScreenState extends State<AddPlantScreen>
       _images.clear();
       _imageLabels.clear();
       _setCurrentPhotoIndex(0);
+      _selectedTaxonName = null;
+      _taxonNameSuggestions = const <TaxonNameSuggestion>[];
+      _taxonNameSearchError = null;
+      _isTaxonNameSearching = false;
       _nameController.clear();
       _descriptionController.clear();
       _latController.clear();
@@ -1702,7 +1955,12 @@ class _AddPlantScreenState extends State<AddPlantScreen>
     _notifyManualMapChanged();
     _notifyAttributesChanged();
     unawaited(_loadTargetAccuracy());
-    _startLocationCapture(reset: true);
+    unawaited(TaxonNameService.instance.warmUp());
+    if (_isEditMode) {
+      unawaited(_loadObservationForEdit());
+    } else {
+      _startLocationCapture(reset: true);
+    }
     if (!widget.isGuest) {
       unawaited(
         GeoportalSyncService.instance.syncAttributeOptions(
@@ -1823,7 +2081,14 @@ class _AddPlantScreenState extends State<AddPlantScreen>
       }
     }
 
-    addText(PlantAttributeKeys.plantName, _nameController);
+    final selectedTaxon = _selectedTaxonName;
+    if (selectedTaxon != null) {
+      result[PlantAttributeKeys.plantName] = selectedTaxon.acceptedNameRu;
+      result['taxon_id'] = selectedTaxon.id;
+      result['taxon_scientific_name'] = selectedTaxon.scientificName;
+      result['taxon_group'] = selectedTaxon.group;
+      result['taxon_source'] = selectedTaxon.source;
+    }
     addText(PlantAttributeKeys.description, _descriptionController);
 
     addTags(
@@ -2225,6 +2490,304 @@ class _AddPlantScreenState extends State<AddPlantScreen>
     );
   }
 
+  void _onTaxonNameQueryChanged(String value) {
+    if (_selectedTaxonName != null) return;
+
+    final query = TaxonNameService.normalizeSearchQuery(value);
+    _taxonNameSearchDebounce?.cancel();
+
+    if (query.length < 2) {
+      setState(() {
+        _taxonNameSuggestions = const <TaxonNameSuggestion>[];
+        _isTaxonNameSearching = false;
+        _taxonNameSearchError = null;
+      });
+      return;
+    }
+
+    _taxonNameSearchDebounce = Timer(
+      const Duration(milliseconds: 180),
+          () => _searchTaxonNames(query),
+    );
+  }
+
+  Future<void> _searchTaxonNames(String query) async {
+    setState(() {
+      _isTaxonNameSearching = true;
+      _taxonNameSearchError = null;
+    });
+
+    try {
+      final suggestions = await TaxonNameService.instance.search(query);
+      if (!mounted) return;
+
+      setState(() {
+        _taxonNameSuggestions = suggestions;
+        _isTaxonNameSearching = false;
+        _taxonNameSearchError = suggestions.isEmpty
+            ? 'В справочнике нет совпадений. Уточните русское или латинское название.'
+            : null;
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() {
+        _taxonNameSuggestions = const <TaxonNameSuggestion>[];
+        _isTaxonNameSearching = false;
+        _taxonNameSearchError = 'Не удалось загрузить локальный справочник видов.';
+      });
+    }
+  }
+
+  void _selectTaxonName(TaxonNameSuggestion suggestion) {
+    final normalized = TaxonNameService.normalizeDisplayName(
+      suggestion.acceptedNameRu,
+    );
+
+    setState(() {
+      _selectedTaxonName = suggestion.copyWith(acceptedNameRu: normalized);
+      _nameController.text = normalized;
+      _taxonNameSuggestions = const <TaxonNameSuggestion>[];
+      _taxonNameSearchError = null;
+      _isTaxonNameSearching = false;
+    });
+
+    FocusScope.of(context).unfocus();
+  }
+
+  void _submitTaxonNameQuery(String value) {
+    if (_selectedTaxonName != null) return;
+
+    if (_taxonNameSuggestions.isNotEmpty) {
+      _selectTaxonName(_taxonNameSuggestions.first);
+      return;
+    }
+
+    final query = TaxonNameService.normalizeSearchQuery(value);
+    if (query.length >= 2) {
+      unawaited(_searchTaxonNames(query));
+    }
+  }
+
+  void _clearTaxonNameSelection() {
+    setState(() {
+      _selectedTaxonName = null;
+      _nameController.clear();
+      _taxonNameSuggestions = const <TaxonNameSuggestion>[];
+      _taxonNameSearchError = null;
+      _isTaxonNameSearching = false;
+    });
+
+    _taxonNameFocusNode.requestFocus();
+  }
+
+  Widget _buildTaxonNameSelector() {
+    final colors = WildColors.of(context);
+    final selected = _selectedTaxonName;
+    final fill = Color.alphaBlend(
+      colors.primary.withValues(alpha: 0.045),
+      colors.surface,
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('Название'),
+        if (selected != null)
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(18),
+              onTap: _clearTaxonNameSelection,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
+                decoration: BoxDecoration(
+                  color: fill,
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            selected.acceptedNameRu,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                              color: colors.primaryDark,
+                            ),
+                          ),
+                          if (selected.scientificName.trim().isNotEmpty) ...[
+                            const SizedBox(height: 3),
+                            Text(
+                              selected.scientificName,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                fontStyle: FontStyle.italic,
+                                color: colors.muted,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 6),
+                          Text(
+                            selected.groupLabel,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: colors.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Выбрать другое название',
+                      onPressed: _clearTaxonNameSelection,
+                      icon: Icon(
+                        Icons.close_rounded,
+                        color: colors.muted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          )
+        else ...[
+          TextField(
+            controller: _nameController,
+            focusNode: _taxonNameFocusNode,
+            textInputAction: TextInputAction.search,
+            onChanged: _onTaxonNameQueryChanged,
+            onSubmitted: _submitTaxonNameQuery,
+            decoration: InputDecoration(
+              hintText: 'Начните вводить русское название...',
+              filled: true,
+              fillColor: fill,
+              suffixIcon: _isTaxonNameSearching
+                  ? const Padding(
+                padding: EdgeInsets.all(14),
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              )
+                  : Icon(Icons.search_rounded, color: colors.muted),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(18),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(18),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(18),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 18,
+                vertical: 15,
+              ),
+            ),
+          ),
+          if (_taxonNameSearchError != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              _taxonNameSearchError!,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: colors.muted,
+              ),
+            ),
+          ],
+          if (_taxonNameSuggestions.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Container(
+              decoration: BoxDecoration(
+                color: colors.surface,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: colors.border),
+              ),
+              child: Column(
+                children: _taxonNameSuggestions.asMap().entries.map((entry) {
+                  final item = entry.value;
+                  final isLast = entry.key == _taxonNameSuggestions.length - 1;
+
+                  return InkWell(
+                    borderRadius: BorderRadius.vertical(
+                      top: entry.key == 0
+                          ? const Radius.circular(18)
+                          : Radius.zero,
+                      bottom: isLast
+                          ? const Radius.circular(18)
+                          : Radius.zero,
+                    ),
+                    onTap: () => _selectTaxonName(item),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                      decoration: BoxDecoration(
+                        border: isLast
+                            ? null
+                            : Border(
+                          bottom: BorderSide(color: colors.border),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.acceptedNameRu,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w900,
+                              color: colors.primaryDark,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            item.scientificName,
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontStyle: FontStyle.italic,
+                              fontWeight: FontWeight.w700,
+                              color: colors.muted,
+                            ),
+                          ),
+                          if (item.synonymsRu.isNotEmpty) ...[
+                            const SizedBox(height: 3),
+                            Text(
+                              'Также: ${item.synonymsRu.take(4).join(', ')}',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: colors.muted,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        ],
+      ],
+    );
+  }
+
   Widget _buildMainObservationPanel() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2234,11 +2797,7 @@ class _AddPlantScreenState extends State<AddPlantScreen>
           builder: (context, revision, child) => _buildPhotoCarousel(),
         ),
         const SizedBox(height: 26),
-        _buildTextInputCard(
-          title: 'Название',
-          controller: _nameController,
-          hintText: 'Введите название...',
-        ),
+        _buildTaxonNameSelector(),
         const SizedBox(height: 26),
         _buildTextInputCard(
           title: 'Описание',
@@ -2274,8 +2833,8 @@ class _AddPlantScreenState extends State<AddPlantScreen>
               sliver: SliverList(
                 delegate: SliverChildListDelegate(
                   [
-                    const WildPageHeader(
-                      title: 'Новая запись',
+                    WildPageHeader(
+                      title: _isEditMode ? 'Редактирование записи' : 'Новая запись',
                       padding: EdgeInsets.zero,
                     ),
                     const SizedBox(height: 18),
@@ -2342,9 +2901,11 @@ class _AddPlantScreenState extends State<AddPlantScreen>
                           ],
                         )
                             : Text(
-                          widget.isGuest
+                          _isEditMode
+                              ? 'Сохранить изменения'
+                              : (widget.isGuest
                               ? 'Сохранить локально'
-                              : 'Сохранить и отправить',
+                              : 'Сохранить и отправить'),
                         ),
                       ),
                     ),

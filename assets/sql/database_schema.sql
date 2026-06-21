@@ -2,10 +2,10 @@
 
 /*
  *Логика статусов:
- * 0 — локально, не для отправки (гость)
- * 1 — в очереди на отправку
- * 2 — успешно отправлено
- * 3 — ошибка отправки
+ * 0 локально, не для отправки (гость)
+ * 1 в очереди на отправку
+ * 2 успешно отправлено
+ * 3 ошибка отправки
  */
 CREATE TABLE observations (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -28,6 +28,9 @@ CREATE TABLE observations (
   remote_folder TEXT,
   sync_error TEXT,
   synced_at TEXT,
+
+  is_edited INTEGER NOT NULL DEFAULT 0,
+  edited_at TEXT,
 
   deleted_at TEXT,
   schema_version INTEGER NOT NULL DEFAULT 4

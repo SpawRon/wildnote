@@ -10,6 +10,7 @@ import '../data/database_helper.dart';
 import '../services/app_logger.dart';
 import '../services/geoportal_sync_service.dart';
 import '../services/session_manager.dart';
+import '../services/pdf_share_service.dart';
 import '../theme/app_theme.dart';
 import 'observation_detail_screen.dart';
 import '../widgets/wild_page_header.dart';
@@ -35,6 +36,7 @@ class HistoryScreenState extends State<HistoryScreen> {
   String? _authToken;
   bool _isLoading = true;
   bool _isBusy = false;
+  bool _isSharingPdf = false;
 
   @override
   void initState() {
@@ -309,6 +311,88 @@ class HistoryScreenState extends State<HistoryScreen> {
     await reload();
   }
 
+  ObservationPdfRecord _pdfRecordFor(Map<String, dynamic> item) {
+    final status = _asInt(item['status']) ?? ObservationStatus.localOnly;
+    final isManual = _asInt(item['is_manual']) == 1;
+    final isEdited = _asInt(item['is_edited']) == 1;
+
+    return ObservationPdfRecord(
+      title: _titleFor(item),
+      description: _descriptionFor(item),
+      ownerLabel: widget.isGuest ? 'Гость' : widget.userLogin,
+      photos: _photoPaths(item),
+      imageHeaders: _imageHeaders,
+      attributes: _attributesFor(item),
+      badges: [
+        MapEntry('Дата', _formatDate(item['created_at'] as String?)),
+        MapEntry('Статус', _statusText(status)),
+        if (isManual) const MapEntry('Координаты', 'Ручной ввод'),
+        if (isEdited) const MapEntry('Редактирование', 'Изменено'),
+      ],
+      technicalRows: [
+        MapEntry('Координаты', _formatCoordinates(item)),
+        MapEntry(
+          'Точность',
+          _asFiniteDouble(item['accuracy']) == null
+              ? '—'
+              : '±${_asFiniteDouble(item['accuracy'])!.toStringAsFixed(1)} м',
+        ),
+        MapEntry('Гаусс X / Y', _gaussText(item)),
+        MapEntry('Фото', _photoPaths(item).length.toString()),
+        MapEntry('ID объекта', _remoteIdText(item)),
+      ],
+    );
+  }
+
+  Future<void> _shareHistoryPdf() async {
+    if (_isSharingPdf) return;
+
+    if (_observations.isEmpty) {
+      _showMessage('Нет записей для отчёта');
+      return;
+    }
+
+    AppLogger.instance.info(
+      'HistoryScreen',
+      'Share history PDF pressed',
+      data: {
+        'userLogin': widget.userLogin,
+        'count': _observations.length,
+      },
+    );
+
+    setState(() {
+      _isBusy = true;
+      _isSharingPdf = true;
+    });
+
+    try {
+      await PdfShareService.instance.shareHistoryReport(
+        ownerLabel: widget.isGuest ? 'Гость' : widget.userLogin,
+        observations: _observations.map(_pdfRecordFor).toList(),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 900));
+    } catch (e, st) {
+      AppLogger.instance.error(
+        'HistoryScreen',
+        'Share history PDF failed',
+        error: e,
+        stackTrace: st,
+      );
+
+      if (mounted) {
+        _showMessage('Не удалось создать PDF-отчёт: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isBusy = false;
+          _isSharingPdf = false;
+        });
+      }
+    }
+  }
+
   Widget _buildTopIconButton({
     required IconData icon,
     required VoidCallback? onPressed,
@@ -523,13 +607,17 @@ class HistoryScreenState extends State<HistoryScreen> {
     return {};
   }
 
-  void _openObservationDetails(Map<String, dynamic> item) {
+  Future<void> _openObservationDetails(Map<String, dynamic> item) async {
     final photos = _photoPaths(item);
     final status = _asInt(item['status']) ?? ObservationStatus.localOnly;
     final isManual = _asInt(item['is_manual']) == 1;
+    final remoteOnly = item['_remote_only'] == true;
+    final localId = _asInt(item['id']);
+    final isEdited = _asInt(item['is_edited']) == 1;
+    final canEdit = !remoteOnly && localId != null && localId > 0;
 
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
         builder: (_) => ObservationDetailScreen(
           data: ObservationDetailData(
             title: _titleFor(item),
@@ -552,6 +640,11 @@ class HistoryScreenState extends State<HistoryScreen> {
                   icon: Icons.edit_location_alt_outlined,
                   text: 'Ручной ввод',
                 ),
+              if (isEdited)
+                const ObservationDetailBadge(
+                  icon: Icons.edit_note_rounded,
+                  text: 'Изменено',
+                ),
             ],
             technicalRows: [
               MapEntry('Координаты', _formatCoordinates(item)),
@@ -565,10 +658,19 @@ class HistoryScreenState extends State<HistoryScreen> {
               MapEntry('Фото', photos.length.toString()),
               MapEntry('ID объекта', _remoteIdText(item)),
             ],
+            localObservationId: localId,
+            canEdit: canEdit,
+            isGuest: widget.isGuest,
+            userLogin: widget.userLogin,
+            onChanged: reload,
           ),
         ),
       ),
     );
+
+    if (changed == true && mounted) {
+      await reload();
+    }
   }
 
   String _gaussText(Map<String, dynamic> item) {
@@ -587,13 +689,47 @@ class HistoryScreenState extends State<HistoryScreen> {
     final photos = _photoPaths(item);
     final firstPhoto = photos.isEmpty ? null : photos.first;
     final remoteOnly = item['_remote_only'] == true;
-    final status = item['status'] as int? ?? 0;
+    final status = _asInt(item['status']) ?? ObservationStatus.localOnly;
     final syncError = item['sync_error'] as String?;
     final title = _titleFor(item);
+    final isEdited = _asInt(item['is_edited']) == 1;
+    final localId = _asInt(item['id']);
+    final skippedCreateWarning = _looksLikeSkippedCreateWarning(syncError);
     final canSend = !widget.isGuest &&
         !remoteOnly &&
-        (status != ObservationStatus.synced ||
-            _looksLikeSkippedCreateWarning(syncError));
+        localId != null &&
+        localId > 0 &&
+        status != ObservationStatus.synced &&
+        !skippedCreateWarning;
+    final shouldShowSyncError = syncError != null &&
+        syncError.trim().isNotEmpty &&
+        status == ObservationStatus.error &&
+        !skippedCreateWarning;
+
+    Widget metaItem({
+      required IconData icon,
+      required String text,
+      required Color color,
+      FontWeight weight = FontWeight.w800,
+    }) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 12,
+              color: color,
+              fontWeight: weight,
+            ),
+          ),
+        ],
+      );
+    }
 
     return Column(
       children: [
@@ -613,66 +749,54 @@ class HistoryScreenState extends State<HistoryScreen> {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: SizedBox(
-                      height: 76,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w900,
-                              color: WildColors.of(context).primaryDark,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w900,
+                            color: WildColors.of(context).primaryDark,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _formatDate(item['created_at'] as String?),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: WildColors.of(context).muted,
+                          ),
+                        ),
+                        const SizedBox(height: 9),
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 4,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            metaItem(
+                              icon: _statusIcon(status),
+                              text: _statusText(status),
+                              color: _statusColor(status),
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            _formatDate(item['created_at'] as String?),
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: WildColors.of(context).muted,
-                            ),
-                          ),
-                          const Spacer(),
-                          Row(
-                            children: [
-                              Icon(
-                                _statusIcon(status),
-                                size: 17,
-                                color: _statusColor(status),
+                            if (photos.isNotEmpty)
+                              metaItem(
+                                icon: Icons.photo_library_outlined,
+                                text: '${photos.length}',
+                                color: WildColors.of(context).muted,
+                                weight: FontWeight.w600,
                               ),
-                              const SizedBox(width: 6),
-                              Text(
-                                _statusText(status),
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: _statusColor(status),
-                                  fontWeight: FontWeight.w800,
-                                ),
+                            if (isEdited)
+                              metaItem(
+                                icon: Icons.edit_note_rounded,
+                                text: 'Изменено',
+                                color: WildColors.of(context).primary,
                               ),
-                              if (photos.isNotEmpty) ...[
-                                const SizedBox(width: 10),
-                                Icon(
-                                  Icons.photo_library_outlined,
-                                  size: 16,
-                                  color: WildColors.of(context).muted,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '${photos.length}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: WildColors.of(context).muted,
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ],
-                      ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 6),
@@ -680,13 +804,13 @@ class HistoryScreenState extends State<HistoryScreen> {
                     children: [
                       if (canSend)
                         IconButton(
-                          onPressed: _isBusy ? null : () => _sendOne(item['id'] as int),
-                          icon: Icon(Icons.cloud_upload_outlined),
+                          onPressed: _isBusy ? null : () => _sendOne(localId),
+                          icon: const Icon(Icons.cloud_upload_outlined),
                           tooltip: 'Отправить',
                         ),
                       IconButton(
                         onPressed: _isBusy ? null : () => _deleteObservation(item),
-                        icon: Icon(
+                        icon: const Icon(
                           Icons.delete_outline_rounded,
                           color: AppColors.danger,
                         ),
@@ -699,19 +823,16 @@ class HistoryScreenState extends State<HistoryScreen> {
             ),
           ),
         ),
-        if (syncError != null &&
-            syncError.trim().isNotEmpty &&
-            (status == ObservationStatus.error ||
-                _looksLikeSkippedCreateWarning(syncError)))
+        if (shouldShowSyncError)
           Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                syncError,
+                syncError.trim(),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 11, color: AppColors.danger),
+                style: const TextStyle(fontSize: 11, color: AppColors.danger),
               ),
             ),
           ),
@@ -777,6 +898,17 @@ class HistoryScreenState extends State<HistoryScreen> {
                   icon: Icons.description_outlined,
                   onPressed: _openDeveloperLog,
                   tooltip: 'Лог приложения',
+                  color: WildColors.of(context).primaryDark,
+                ),
+                SizedBox(width: 10),
+                _buildTopIconButton(
+                  icon: _isSharingPdf
+                      ? Icons.hourglass_top_rounded
+                      : Icons.ios_share_rounded,
+                  onPressed: (_isBusy || _isSharingPdf || !hasRecords)
+                      ? null
+                      : _shareHistoryPdf,
+                  tooltip: 'Поделиться историей PDF',
                   color: WildColors.of(context).primaryDark,
                 ),
                 const Spacer(),

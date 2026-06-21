@@ -1,0 +1,4238 @@
+[
+  {
+    "id": "absconditella_duplicella",
+    "acceptedNameRu": "Абскондителла двухместная",
+    "scientificName": "Absconditella duplicella",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "aconitum_septentrionale",
+    "acceptedNameRu": "Борец северный",
+    "scientificName": "Aconitum septentrionale",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Аконит высокий",
+      "Аконит северный",
+      "Борец высокий",
+      "Борец обыкновенный"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "acrocordia_cavata",
+    "acceptedNameRu": "Акрокордия каверновая",
+    "scientificName": "Acrocordia cavata",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Акрокордия выдолбленная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "actaea_spicata",
+    "acceptedNameRu": "Воронец колосистый",
+    "scientificName": "Actaea spicata",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Воронец густоцветковый",
+      "Воронец колосовидный"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "alchemilla_alpina",
+    "acceptedNameRu": "Манжетка альпийская",
+    "scientificName": "Alchemilla alpina",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "alchemilla_borealis",
+    "acceptedNameRu": "Манжетка северная",
+    "scientificName": "Alchemilla borealis",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "alchemilla_transpolaris",
+    "acceptedNameRu": "Манжетка заполярная",
+    "scientificName": "Alchemilla transpolaris",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "alisma_juzepczukii",
+    "acceptedNameRu": "Частуха Юзепчука",
+    "scientificName": "Alisma juzepczukii",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "aloina_brevirostris",
+    "acceptedNameRu": "Алоина короткоклювая",
+    "scientificName": "Aloina brevirostris",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "amblyodon_dealbatus",
+    "acceptedNameRu": "Амблиодон беловатый",
+    "scientificName": "Amblyodon dealbatus",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "anastrophyllum_sphenoloboides",
+    "acceptedNameRu": "Анастрофиллум сфенолобоидный",
+    "scientificName": "Anastrophyllum sphenoloboides",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [
+      "Схизофилопсис сфенолобоидный",
+      "Шизофилопсис сфенолобоидный"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "andreaea_blyttii",
+    "acceptedNameRu": "Андрея Блитта",
+    "scientificName": "Andreaea blyttii",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Андреа Блютта"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "andreaea_crassinervia",
+    "acceptedNameRu": "Андреа толстожилковая",
+    "scientificName": "Andreaea crassinervia",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Андреэа толстожилковая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "andreaea_nivalis",
+    "acceptedNameRu": "Андреа снежная",
+    "scientificName": "Andreaea nivalis",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Андреэа снеговая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "andreaea_obovata",
+    "acceptedNameRu": "Андреа обратнояйцевидная",
+    "scientificName": "Andreaea obovata",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Андреэа обратнояйцевидная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "androsace_septentrionalis",
+    "acceptedNameRu": "Проломник северный",
+    "scientificName": "Androsace septentrionalis",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Проломник бесстебельный",
+      "Проломник линейный",
+      "Проломник многоцветковый"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "anemonoides_nemorosa",
+    "acceptedNameRu": "Ветреница дубравная",
+    "scientificName": "Anemonoides nemorosa",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Анемона дубравная",
+      "Анемоноидес дубравный",
+      "Ветреничка дубравная",
+      "Ветренница дубравная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "aneura_mirabilis",
+    "acceptedNameRu": "Аневра удивительная",
+    "scientificName": "Aneura mirabilis",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [
+      "Криптоталлус удивительный"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "angelica_litoralis",
+    "acceptedNameRu": "Дягиль прибрежный",
+    "scientificName": "Angelica litoralis",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Дудник прибрежный"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "anoectangium_aestivum",
+    "acceptedNameRu": "Анектангиум летний",
+    "scientificName": "Anoectangium aestivum",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "anomobryum_julaceum",
+    "acceptedNameRu": "Аномобриум серёжчатый",
+    "scientificName": "Anomobryum julaceum",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "anomodon_longifolius",
+    "acceptedNameRu": "Аномодон длиннолистный",
+    "scientificName": "Anomodon longifolius",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "anomodon_viticulosus",
+    "acceptedNameRu": "Аномодон усатый",
+    "scientificName": "Anomodon viticulosus",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Аномодон плетевидный"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "antennaria_alpina",
+    "acceptedNameRu": "Кошачья лапка альпийская",
+    "scientificName": "Antennaria alpina",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Антеннария альпийская"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "anthyllis_kuzenevae",
+    "acceptedNameRu": "Язвенник Кузенёвой",
+    "scientificName": "Anthyllis kuzenevae",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "aongstroemia_longipes",
+    "acceptedNameRu": "Онгстремия длинноножковая",
+    "scientificName": "Aongstroemia longipes",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "arabidopsis_petraea",
+    "acceptedNameRu": "Резушка каменистая",
+    "scientificName": "Arabidopsis petraea",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Арабис амурский",
+      "Арабис северный",
+      "Кардаминопсис каменистый",
+      "Резуха амурская",
+      "Резуха каменистая",
+      "Резуха каменная северная",
+      "Резуха каменная теневая",
+      "Резуха полярная",
+      "Резуха северная",
+      "Резуха средняя",
+      "Резушка скальная",
+      "Сердечниковидник каменный",
+      "Сердечниковидник северный",
+      "Сердечниковидник средний",
+      "Сердечниковидник теневой"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "arctanthemum_hultenii",
+    "acceptedNameRu": "Арктантемум Хультена",
+    "scientificName": "Arctanthemum hultenii",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Арктантемум полярный"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "arctocetraria_nigricascens",
+    "acceptedNameRu": "Арктоцетрария чернеющая",
+    "scientificName": "Arctocetraria nigricascens",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Цетрария Еленкина",
+      "Цетрария ризоносная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "arctoparmelia_subcentrifuga",
+    "acceptedNameRu": "Арктопармелия почти центробежная",
+    "scientificName": "Arctoparmelia subcentrifuga",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "arctophila_fulva",
+    "acceptedNameRu": "Северолюбка рыжеватая",
+    "scientificName": "Arctophila fulva",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Арктофила рыжеватая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "arenaria_humifusa",
+    "acceptedNameRu": "Песчанка приземистая",
+    "scientificName": "Arenaria humifusa",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "armeria_scabra",
+    "acceptedNameRu": "Армерия шершавая",
+    "scientificName": "Armeria scabra",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Армерия арктическая",
+      "Армерия морская арктическая",
+      "Армерия шероховатая",
+      "Приморник арктический"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "arnellia_fennica",
+    "acceptedNameRu": "Арнеллия финская",
+    "scientificName": "Arnellia fennica",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "arnica_fennoscandica",
+    "acceptedNameRu": "Арника феноскандинавская",
+    "scientificName": "Arnica fennoscandica",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Арника альпийская"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "artemisia_borealis",
+    "acceptedNameRu": "Полынь северная",
+    "scientificName": "Artemisia borealis",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Полынь оставшаяся"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "arthonia_patellulata",
+    "acceptedNameRu": "Артония блюдечковидная",
+    "scientificName": "Arthonia patellulata",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "arthonia_vinosa",
+    "acceptedNameRu": "Артония винная",
+    "scientificName": "Arthonia vinosa",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "asahinea_chrysantha",
+    "acceptedNameRu": "Асахинея золотистая",
+    "scientificName": "Asahinea chrysantha",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Цетрария золотистая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "asplenium_ruta_muraria",
+    "acceptedNameRu": "Костенец постенный",
+    "scientificName": "Asplenium ruta-muraria",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Асплений постенный",
+      "Костенец рута постенная",
+      "Костенец стенной"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "asplenium_septentrionale",
+    "acceptedNameRu": "Костенец северный",
+    "scientificName": "Asplenium septentrionale",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "asplenium_trichomanes",
+    "acceptedNameRu": "Костенец волосовидный",
+    "scientificName": "Asplenium trichomanes",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "asplenium_viride",
+    "acceptedNameRu": "Костенец зелёный",
+    "scientificName": "Asplenium viride",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "asterella_lindenbergiana",
+    "acceptedNameRu": "Астерелла Линденберга",
+    "scientificName": "Asterella lindenbergiana",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "astragalus_norvegicus",
+    "acceptedNameRu": "Астрагал норвежский",
+    "scientificName": "Astragalus norvegicus",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Астрагал горошковидный"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "atriplex_kuzenevae",
+    "acceptedNameRu": "Лебеда Кузенёвой",
+    "scientificName": "Atriplex kuzenevae",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "barbilophozia_rubescens",
+    "acceptedNameRu": "Барбилофозия краснеющая",
+    "scientificName": "Barbilophozia rubescens",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "bartramia_halleriana",
+    "acceptedNameRu": "Бартрамия Галлера",
+    "scientificName": "Bartramia halleriana",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "beckwithia_glacialis",
+    "acceptedNameRu": "Беквичия ледниковая",
+    "scientificName": "Beckwithia glacialis",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Беквисия ледниковая",
+      "Беквития ледяная",
+      "Лютик ледниковый",
+      "Лютик ледяной",
+      "Оксиграфис обыкновенный"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "blennothallia_crispa",
+    "acceptedNameRu": "Бленноталлия курчавая",
+    "scientificName": "Blennothallia crispa",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Коллема курчавая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "bolboschoenus_maritimus",
+    "acceptedNameRu": "Клубнекамыш морской",
+    "scientificName": "Bolboschoenus maritimus",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Клубнекамыш приморский"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "botrychium_lanceolatum",
+    "acceptedNameRu": "Гроздовник ланцетовидный",
+    "scientificName": "Botrychium lanceolatum",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Гроздовник ланцетный"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "botrychium_multifidum",
+    "acceptedNameRu": "Гроздовник многораздельный",
+    "scientificName": "Botrychium multifidum",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "bryoria_bicolor",
+    "acceptedNameRu": "Бриория двухцветная",
+    "scientificName": "Bryoria bicolor",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Бриория двуцветная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "bryoria_fremontii",
+    "acceptedNameRu": "Бриория Фремонта",
+    "scientificName": "Bryoria fremontii",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Алектория гривистая",
+      "Бриория гривастая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "bryoria_subcana",
+    "acceptedNameRu": "Бриория сивоватая",
+    "scientificName": "Bryoria subcana",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Бриория сероватая",
+      "Бриория сизоватая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "bryum_cyclophyllum",
+    "acceptedNameRu": "Бриум круглолистный",
+    "scientificName": "Bryum cyclophyllum",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "butomus_umbellatus",
+    "acceptedNameRu": "Сусак зонтичный",
+    "scientificName": "Butomus umbellatus",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "buxbaumia_aphylla",
+    "acceptedNameRu": "Буксбаумия безлистная",
+    "scientificName": "Buxbaumia aphylla",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Буксбаумия обыкновенная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "calicium_abietinum",
+    "acceptedNameRu": "Калициум пихтовый",
+    "scientificName": "Calicium abietinum",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "calicium_adaequatum",
+    "acceptedNameRu": "Калициум равный",
+    "scientificName": "Calicium adaequatum",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "calla_palustris",
+    "acceptedNameRu": "Белокрыльник болотный",
+    "scientificName": "Calla palustris",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "caloplaca_magni_filii",
+    "acceptedNameRu": "Калоплака многодетная",
+    "scientificName": "Caloplaca magni-filii",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "calycularia_laxa",
+    "acceptedNameRu": "Каликулярия рыхлая",
+    "scientificName": "Calycularia laxa",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "calypogeia_suecica",
+    "acceptedNameRu": "Калипогейя шведская",
+    "scientificName": "Calypogeia suecica",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [
+      "Калипогея шведская"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "calypso_bulbosa",
+    "acceptedNameRu": "Калипсо луковичная",
+    "scientificName": "Calypso bulbosa",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Калипсо клубневая",
+      "Калипсо клубневый",
+      "Калипсо северная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "campylophyllum_halleri",
+    "acceptedNameRu": "Кампилофиллум Галлера",
+    "scientificName": "Campylophyllum halleri",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Кампилиум Галлера"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "campylopus_schimperi",
+    "acceptedNameRu": "Кампилопус Шимпера",
+    "scientificName": "Campylopus schimperi",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "carex_appropinquata",
+    "acceptedNameRu": "Осока сближенная",
+    "scientificName": "Carex appropinquata",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "carex_atherodes",
+    "acceptedNameRu": "Осока прямоколосая",
+    "scientificName": "Carex atherodes",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Осока остистая",
+      "Осока прямоколосная",
+      "Осока сверхкрупная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "carex_echinata",
+    "acceptedNameRu": "Осока ёжисто-колючая",
+    "scientificName": "Carex echinata",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Осока ежевидная",
+      "Осока ежевидно-колосковая",
+      "Осока звёздчатая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "carex_elongata",
+    "acceptedNameRu": "Осока удлинённая",
+    "scientificName": "Carex elongata",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "carex_glacialis",
+    "acceptedNameRu": "Осока ледниковая",
+    "scientificName": "Carex glacialis",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Осока ледяная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "carex_heleonastes",
+    "acceptedNameRu": "Осока болотолюбивая",
+    "scientificName": "Carex heleonastes",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Осока болотородная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "carex_holostoma",
+    "acceptedNameRu": "Осока цельноротая",
+    "scientificName": "Carex holostoma",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Осока цельноустая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "carex_hostiana",
+    "acceptedNameRu": "Осока Хоста",
+    "scientificName": "Carex hostiana",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "carex_lapponica",
+    "acceptedNameRu": "Осока лапландская",
+    "scientificName": "Carex lapponica",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "carex_laxa",
+    "acceptedNameRu": "Осока рыхлая",
+    "scientificName": "Carex laxa",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Осока рыхловатая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "carex_maritima",
+    "acceptedNameRu": "Осока поморская",
+    "scientificName": "Carex maritima",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Осока приморская"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "carex_omskiana",
+    "acceptedNameRu": "Осока омская",
+    "scientificName": "Carex omskiana",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "carex_paleacea",
+    "acceptedNameRu": "Осока чешуйчатая",
+    "scientificName": "Carex paleacea",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "carex_recta",
+    "acceptedNameRu": "Осока прямая",
+    "scientificName": "Carex recta",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "carex_rhynchophysa",
+    "acceptedNameRu": "Осока вздутоносная",
+    "scientificName": "Carex rhynchophysa",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Осока вздутоносая",
+      "Осока вздутоносиковая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "carex_tenuiflora",
+    "acceptedNameRu": "Осока тонкоцветковая",
+    "scientificName": "Carex tenuiflora",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Осока тонкоцветная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "cassiope_tetragona",
+    "acceptedNameRu": "Кассиопея четырёхгранная",
+    "scientificName": "Cassiope tetragona",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "castilleja_lapponica",
+    "acceptedNameRu": "Кастиллея лапландская",
+    "scientificName": "Castilleja lapponica",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "catapyrenium_daedaleum",
+    "acceptedNameRu": "Катапирениум узорчатый",
+    "scientificName": "Catapyrenium daedaleum",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Эндопирениум узорчатый"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "cephaloziella_elachista",
+    "acceptedNameRu": "Цефалозиелла нежненькая",
+    "scientificName": "Cephaloziella elachista",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [
+      "Цефалозиелла нежная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "cerastium_jenisejense",
+    "acceptedNameRu": "Ясколка енисейская",
+    "scientificName": "Cerastium jenisejense",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "cetrelia_olivetorum",
+    "acceptedNameRu": "Цетрелия оливковая",
+    "scientificName": "Cetrelia olivetorum",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "chaenotheca_brachypoda",
+    "acceptedNameRu": "Хенотека коротконожковая",
+    "scientificName": "Chaenotheca brachypoda",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Хенотека плеченогая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "chaenotheca_chlorella",
+    "acceptedNameRu": "Хенотека зеленоватая",
+    "scientificName": "Chaenotheca chlorella",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "chaenotheca_gracillima",
+    "acceptedNameRu": "Хенотека грациознейшая",
+    "scientificName": "Chaenotheca gracillima",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "chaenotheca_hispidula",
+    "acceptedNameRu": "Хенотека щетинисто-волосистая",
+    "scientificName": "Chaenotheca hispidula",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Хенотека коротко-щетинистоволосистая",
+      "Хенотека мохнатенькая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "chaenotheca_laevigata",
+    "acceptedNameRu": "Хенотека сглаженная",
+    "scientificName": "Chaenotheca laevigata",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Хенотека гладкая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "chaenotheca_subroscida",
+    "acceptedNameRu": "Хенотека почти росистая",
+    "scientificName": "Chaenotheca subroscida",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Хенотека почти влажная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "chaenothecopsis_fennica",
+    "acceptedNameRu": "Хенотекопсис финский",
+    "scientificName": "Chaenothecopsis fennica",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "chaenothecopsis_nigra",
+    "acceptedNameRu": "Хенотекопсис чёрный",
+    "scientificName": "Chaenothecopsis nigra",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "chaenothecopsis_viridialba",
+    "acceptedNameRu": "Хенотекопсис зеленовато-белый",
+    "scientificName": "Chaenothecopsis viridialba",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Хенотекопсис зелёно-белый"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "chamorchis_alpina",
+    "acceptedNameRu": "Ятрышничек альпийский",
+    "scientificName": "Chamorchis alpina",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "chrysosplenium_alternifolium",
+    "acceptedNameRu": "Селезёночник очерёднолистный",
+    "scientificName": "Chrysosplenium alternifolium",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Селезёночник обыкновенный"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "chrysosplenium_tetrandrum",
+    "acceptedNameRu": "Селезёночник четырёхтычинковый",
+    "scientificName": "Chrysosplenium tetrandrum",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "circaea_alpina",
+    "acceptedNameRu": "Двулепестник альпийский",
+    "scientificName": "Circaea alpina",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Цирцея альпийская"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "cladonia_scabriuscula",
+    "acceptedNameRu": "Кладония шероховатая",
+    "scientificName": "Cladonia scabriuscula",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "clevea_hyalina",
+    "acceptedNameRu": "Клевея бесцветная",
+    "scientificName": "Clevea hyalina",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Аталамия бесцветная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "cnestrum_glaucescens",
+    "acceptedNameRu": "Кнеструм сизоватый",
+    "scientificName": "Cnestrum glaucescens",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Цинодонциум сизоватый"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "collema_curtisporum",
+    "acceptedNameRu": "Коллема короткоспоровая",
+    "scientificName": "Collema curtisporum",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "collema_nigrescens",
+    "acceptedNameRu": "Коллема чернеющая",
+    "scientificName": "Collema nigrescens",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Коллема черноватая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "collema_subnigrescens",
+    "acceptedNameRu": "Коллема почти чёрная",
+    "scientificName": "Collema subnigrescens",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Коллема почти чернеющая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "comastoma_tenellum",
+    "acceptedNameRu": "Комастома нежная",
+    "scientificName": "Comastoma tenellum",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Горечавка вильчатая",
+      "Горечавка нежная",
+      "Горечавочка нежная",
+      "Комастома тоненькая",
+      "Ломатогониум нежный",
+      "Хохлатоустка нежная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "convallaria_majalis",
+    "acceptedNameRu": "Ландыш майский",
+    "scientificName": "Convallaria majalis",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Ландыш закавказский"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "coscinodon_cribrosus",
+    "acceptedNameRu": "Косцинодон ситовидный",
+    "scientificName": "Coscinodon cribrosus",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Косцинодон решетчатый"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "cotoneaster_cinnabarinus",
+    "acceptedNameRu": "Кизильник киноварно-красный",
+    "scientificName": "Cotoneaster cinnabarinus",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Кизильник киноварнокрасный"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "cotoneaster_laxiflorus",
+    "acceptedNameRu": "Кизильник рыхлоцветковый",
+    "scientificName": "Cotoneaster laxiflorus",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "cotoneaster_x_antoninae",
+    "acceptedNameRu": "Кизильник Антонины",
+    "scientificName": "Cotoneaster × antoninae",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Кизильник уральский"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "crossocalyx_hellerianus",
+    "acceptedNameRu": "Кроссокаликс Геллера",
+    "scientificName": "Crossocalyx hellerianus",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "cryptogramma_crispa",
+    "acceptedNameRu": "Криптограмма курчавая",
+    "scientificName": "Cryptogramma crispa",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Скрытокучница курчавая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "cynodontium_suecicum",
+    "acceptedNameRu": "Цинодонциум шведский",
+    "scientificName": "Cynodontium suecicum",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "cyphelium_sessile",
+    "acceptedNameRu": "Цифелиум сидячий",
+    "scientificName": "Cyphelium sessile",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Аколиум сидячий"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "cypripedium_calceolus",
+    "acceptedNameRu": "Венерин башмачок настоящий",
+    "scientificName": "Cypripedium calceolus",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Башмачок известняковый",
+      "Башмачок настоящий",
+      "Венерин башмачок жёлтый"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "cyrtomnium_hymenophyllum",
+    "acceptedNameRu": "Циртомниум кожистолистный",
+    "scientificName": "Cyrtomnium hymenophyllum",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "cystopteris_dickieana",
+    "acceptedNameRu": "Пузырник Дикки",
+    "scientificName": "Cystopteris dickieana",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Пузырник Дайка",
+      "Пузырник Дайкка"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "dactylorhiza_fuchsii",
+    "acceptedNameRu": "Пальчатокоренник Фукса",
+    "scientificName": "Dactylorhiza fuchsii",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Пальцекорник гебридский",
+      "Пальцекорник Фукса",
+      "Пальчатокоренник гебридский",
+      "Пальчатокоренник гибридный",
+      "Пальчатокоренник Мейера",
+      "Пальчатокорник гебридский",
+      "Пальчатокорник Фукса",
+      "Ятрышник Фукса"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "dactylorhiza_incarnata",
+    "acceptedNameRu": "Пальчатокоренник мясо-красный",
+    "scientificName": "Dactylorhiza incarnata",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Пальцекорник кровавый",
+      "Пальцекорник мясо-красный",
+      "Пальцекорник мясокрасный",
+      "Пальцекорник промежуточный",
+      "Пальцекорник пунцовый",
+      "Пальцекорник тёмно-красный",
+      "Пальчатокоренник кровавый",
+      "Пальчатокоренник Крылова",
+      "Пальчатокоренник промежуточный",
+      "Пальчатокоренник пунцовый",
+      "Пальчатокоренник тёмно-красный",
+      "Пальчатокорник промежуточный",
+      "Ятрышник мясо-красный"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "dactylorhiza_traunsteineri",
+    "acceptedNameRu": "Пальчатокоренник Траунштейнера",
+    "scientificName": "Dactylorhiza traunsteineri",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Пальцекорник дуголистный",
+      "Пальцекорник Траунштейнера",
+      "Пальчатокоренник дуголистный",
+      "Пальчатокорник дуголистный",
+      "Пальчатокорник Траунштейнера",
+      "Ятрышник Траунштейнера"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "dermatocarpon_rivulorum",
+    "acceptedNameRu": "Дерматокарпон ручейковый",
+    "scientificName": "Dermatocarpon rivulorum",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "deschampsia_glauca",
+    "acceptedNameRu": "Щучка сизая",
+    "scientificName": "Deschampsia glauca",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "dianthus_arenarius",
+    "acceptedNameRu": "Гвоздика песчаная",
+    "scientificName": "Dianthus arenarius",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Гвоздика Крылова"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "dichiton_integerrimum",
+    "acceptedNameRu": "Дихитон цельнокрайный",
+    "scientificName": "Dichiton integerrimum",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [
+      "Цефалозиелла цельнокрайная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "dicranum_leioneuron",
+    "acceptedNameRu": "Дикранум гладкожилковый",
+    "scientificName": "Dicranum leioneuron",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "didymodon_icmadophilus",
+    "acceptedNameRu": "Дидимодон влаголюбивый",
+    "scientificName": "Didymodon icmadophilus",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Барбула влаголюбивая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "diplazium_sibiricum",
+    "acceptedNameRu": "Диплазиум сибирский",
+    "scientificName": "Diplazium sibiricum",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Диплазий сибирский",
+      "Костенец сибирский",
+      "Кочедыжник городчатый",
+      "Орлячок сибирский"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "discelium_nudum",
+    "acceptedNameRu": "Дисцелиум голый",
+    "scientificName": "Discelium nudum",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "ditrichum_cylindricum",
+    "acceptedNameRu": "Дитрихум цилиндрический",
+    "scientificName": "Ditrichum cylindricum",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Триходон цилиндрический"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "draba_alpina",
+    "acceptedNameRu": "Крупка альпийская",
+    "scientificName": "Draba alpina",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "draba_fladnizensis",
+    "acceptedNameRu": "Крупка фладницийская",
+    "scientificName": "Draba fladnizensis",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Крупка араданская",
+      "Крупка фладнизийская",
+      "Крупка фладницинская",
+      "Крупка чукчей"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "draba_insularis",
+    "acceptedNameRu": "Крупка островная",
+    "scientificName": "Draba insularis",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "draba_lactea",
+    "acceptedNameRu": "Крупка молочно-белая",
+    "scientificName": "Draba lactea",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Крупка ложноволосистая",
+      "Крупка молочнобелая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "draba_nivalis",
+    "acceptedNameRu": "Крупка снежная",
+    "scientificName": "Draba nivalis",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "draba_norvegica",
+    "acceptedNameRu": "Крупка норвежская",
+    "scientificName": "Draba norvegica",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "dupontia_psilosantha",
+    "acceptedNameRu": "Дюпонция голоцветковая",
+    "scientificName": "Dupontia psilosantha",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "elatine_hydropiper",
+    "acceptedNameRu": "Повойничек водноперечный",
+    "scientificName": "Elatine hydropiper",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Повойничек водяной перец",
+      "Повойничек перечный",
+      "Повойничек согнутосемянный"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "elatine_orthosperma",
+    "acceptedNameRu": "Повойничек прямосемянный",
+    "scientificName": "Elatine orthosperma",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Повойничек лопатчатолистный"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "elymus_fibrosus",
+    "acceptedNameRu": "Пырейник волокнистый",
+    "scientificName": "Elymus fibrosus",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Регнерия волокнистая",
+      "Элимус волокнистый"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "encalypta_brevipes",
+    "acceptedNameRu": "Энкалипта коротконожковая",
+    "scientificName": "Encalypta brevipes",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "encalypta_mutica",
+    "acceptedNameRu": "Энкалипта тупоконечная",
+    "scientificName": "Encalypta mutica",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "encalypta_procera",
+    "acceptedNameRu": "Энкалипта высокая",
+    "scientificName": "Encalypta procera",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Энкалипта высокорослая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "encalypta_streptocarpa",
+    "acceptedNameRu": "Энкалипта скрученноплодная",
+    "scientificName": "Encalypta streptocarpa",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Энкалипта завитоплодная",
+      "Энкалипта закрученноплодная",
+      "Энкалипта скрученная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "endocarpon_psorodeum",
+    "acceptedNameRu": "Эндокарпон псоровидный",
+    "scientificName": "Endocarpon psorodeum",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "ephebe_perspinulosa",
+    "acceptedNameRu": "Эфебе сильноколючая",
+    "scientificName": "Ephebe perspinulosa",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Эфебе шероховатая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "epilobium_alsinifolium",
+    "acceptedNameRu": "Кипрей мокричниколистный",
+    "scientificName": "Epilobium alsinifolium",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Кипрей альсинолистный"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "epilobium_davuricum",
+    "acceptedNameRu": "Кипрей даурский",
+    "scientificName": "Epilobium davuricum",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Кипрей арктический"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "epilobium_lactiflorum",
+    "acceptedNameRu": "Кипрей белоцветковый",
+    "scientificName": "Epilobium lactiflorum",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Кипрей молочноцветный"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "epipactis_atrorubens",
+    "acceptedNameRu": "Дремлик тёмно-красный",
+    "scientificName": "Epipactis atrorubens",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Дремлик ржаво-красный",
+      "Дремлик ржавый"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "epipactis_helleborine",
+    "acceptedNameRu": "Дремлик чемерицевидный",
+    "scientificName": "Epipactis helleborine",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Дремлик густоолиствлённый",
+      "Дремлик зимовниковый",
+      "Дремлик зимовниковый левантийский",
+      "Дремлик лесной",
+      "Дремлик морозниковый",
+      "Дремлик согуксуйский",
+      "Дремлик Тремолса",
+      "Дремлик турецкий",
+      "Дремлик чемерицевидный левантийский",
+      "Дремлик чемерицевидный Тремолса",
+      "Дремлик широколистный"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "epipogium_aphyllum",
+    "acceptedNameRu": "Надбородник безлистный",
+    "scientificName": "Epipogium aphyllum",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "eremonotus_myriocarpus",
+    "acceptedNameRu": "Эремонотус бесчисленноплодный",
+    "scientificName": "Eremonotus myriocarpus",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "erigeron_borealis",
+    "acceptedNameRu": "Мелколепестник северный",
+    "scientificName": "Erigeron borealis",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "eriophorum_brachyantherum",
+    "acceptedNameRu": "Пушица короткопыльниковая",
+    "scientificName": "Eriophorum brachyantherum",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "eriophorum_gracile",
+    "acceptedNameRu": "Пушица стройная",
+    "scientificName": "Eriophorum gracile",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Пушица азиатская",
+      "Пушица корейская"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "eritrichium_villosum",
+    "acceptedNameRu": "Незабудочник волосистый",
+    "scientificName": "Eritrichium villosum",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Незабудка мохнатая",
+      "Незабудочник мохнатый",
+      "Незабудочник тянь-шаньский"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "eutrema_edwardsii",
+    "acceptedNameRu": "Эвтрема Эдвардса",
+    "scientificName": "Eutrema edwardsii",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Эвтрема компактная",
+      "Эвтрема разнолистная",
+      "Эутрема компактная",
+      "Эутрема Эдвардса"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "evernia_divaricata",
+    "acceptedNameRu": "Эверния растопыренная",
+    "scientificName": "Evernia divaricata",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "festuca_brachyphylla",
+    "acceptedNameRu": "Овсяница коротколистная",
+    "scientificName": "Festuca brachyphylla",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "festuca_sabulosa",
+    "acceptedNameRu": "Овсяница дюнная",
+    "scientificName": "Festuca sabulosa",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "ficaria_verna",
+    "acceptedNameRu": "Чистяк весенний",
+    "scientificName": "Ficaria verna",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Лютик весенний",
+      "Лютик чистяковый",
+      "Чистяк лютичный"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "fissidens_bryoides",
+    "acceptedNameRu": "Фиссиденс моховидный",
+    "scientificName": "Fissidens bryoides",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Фиссиденс бриевидный",
+      "Фиссиденс бриевый"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "fontinalis_squamosa",
+    "acceptedNameRu": "Фонтиналис чешуйчатый",
+    "scientificName": "Fontinalis squamosa",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "fossombronia_foveolata",
+    "acceptedNameRu": "Фоссомброния ямчатая",
+    "scientificName": "Fossombronia foveolata",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "frangula_alnus",
+    "acceptedNameRu": "Крушина ольховидная",
+    "scientificName": "Frangula alnus",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Крушина ломкая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "frullania_tamarisci",
+    "acceptedNameRu": "Фруллания тамарисковая",
+    "scientificName": "Frullania tamarisci",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [
+      "Фруллания гребенщиковая",
+      "Фрулляния гребенщиковая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "fulgensia_bracteata_var_alpina",
+    "acceptedNameRu": "Фульгензия золотистая альпийская",
+    "scientificName": "Fulgensia bracteata var. alpina",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "fuscopannaria_confusa",
+    "acceptedNameRu": "Фускопаннария смешанная",
+    "scientificName": "Fuscopannaria confusa",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "gagea_lutea",
+    "acceptedNameRu": "Гусиный лук жёлтый",
+    "scientificName": "Gagea lutea",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "galium_triflorum",
+    "acceptedNameRu": "Подмаренник трёхцветковый",
+    "scientificName": "Galium triflorum",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Подмаренник трёхцветкововидный",
+      "Подмаренник японский"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "gastrolychnis_angustiflora",
+    "acceptedNameRu": "Гастролихнис малоцветковый",
+    "scientificName": "Gastrolychnis angustiflora",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Гастролихнис обёрнутый",
+      "Гастролихнис обёртковый",
+      "Гастролихнис таймырский",
+      "Гастролихнис узкоцветковый",
+      "Дрёма таймырская",
+      "Дрёма узкоцветковая",
+      "Дрёмовидка малоцветковая",
+      "Смолёвка обёрнутая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "gastrolychnis_apetala",
+    "acceptedNameRu": "Гастролихнис безлепестный",
+    "scientificName": "Gastrolychnis apetala",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Дрёма безлепестная",
+      "Дрёмовидка безлепестная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "gentiana_nivalis",
+    "acceptedNameRu": "Горечавка снежная",
+    "scientificName": "Gentiana nivalis",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "gentianella_aurea",
+    "acceptedNameRu": "Горечавочка золотистая",
+    "scientificName": "Gentianella aurea",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Горечавка золотистая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "gentianopsis_detonsa",
+    "acceptedNameRu": "Горечавочник оголённый",
+    "scientificName": "Gentianopsis detonsa",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Горечавка оголённая",
+      "Горечавник оголённый"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "graphis_scripta",
+    "acceptedNameRu": "Графис письменный",
+    "scientificName": "Graphis scripta",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Графис написанный"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "grimmia_anomala",
+    "acceptedNameRu": "Гриммия аномальная",
+    "scientificName": "Grimmia anomala",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "grimmia_elatior",
+    "acceptedNameRu": "Гриммия высокая",
+    "scientificName": "Grimmia elatior",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "grimmia_montana",
+    "acceptedNameRu": "Гриммия горная",
+    "scientificName": "Grimmia montana",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "grimmia_muehlenbeckii",
+    "acceptedNameRu": "Гриммия Мюленбека",
+    "scientificName": "Grimmia muehlenbeckii",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "gyalecta_ulmi",
+    "acceptedNameRu": "Гиалекта вязовая",
+    "scientificName": "Gyalecta ulmi",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "gymnocarpium_robertianum",
+    "acceptedNameRu": "Голокучник Роберта",
+    "scientificName": "Gymnocarpium robertianum",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Голокучник Робертов",
+      "Щитовник Роберта"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "gymnostomum_aeruginosum",
+    "acceptedNameRu": "Гимностомум сине-зелёный",
+    "scientificName": "Gymnostomum aeruginosum",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Гимностом сине-зелёный"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "gypsophila_fastigiata",
+    "acceptedNameRu": "Качим пучковатый",
+    "scientificName": "Gypsophila fastigiata",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Гипсолюбка пучковатая",
+      "Качим вильчатый",
+      "Качим украинский"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "hamatocaulis_vernicosus",
+    "acceptedNameRu": "Гаматокаулис глянцеватый",
+    "scientificName": "Hamatocaulis vernicosus",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Гаматокаулис глянцевидный",
+      "Гаматокаулис глянцевитый",
+      "Дрепанокладус глянцеватый"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "hammarbya_paludosa",
+    "acceptedNameRu": "Хаммарбия болотная",
+    "scientificName": "Hammarbya paludosa",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Гаммарбия болотная",
+      "Мякотница болотная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "haplomitrium_hookeri",
+    "acceptedNameRu": "Гапломитриум Хукера",
+    "scientificName": "Haplomitrium hookeri",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "hedysarum_alpinum",
+    "acceptedNameRu": "Копеечник альпийский",
+    "scientificName": "Hedysarum alpinum",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Копеечник сибирский"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "hedysarum_arcticum",
+    "acceptedNameRu": "Копеечник арктический",
+    "scientificName": "Hedysarum arcticum",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "helianthemum_arcticum",
+    "acceptedNameRu": "Солнцецвет арктический",
+    "scientificName": "Helianthemum arcticum",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "hennediella_heimii",
+    "acceptedNameRu": "Геннедиелла Гейма",
+    "scientificName": "Hennediella heimii",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Десматодон Гейма"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "herzogiella_turfacea",
+    "acceptedNameRu": "Герцогиелла торфянистая",
+    "scientificName": "Herzogiella turfacea",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Герцогиелла торфяная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "heterodermia_speciosa",
+    "acceptedNameRu": "Гетеродермия красивая",
+    "scientificName": "Heterodermia speciosa",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Анаптихия красивая",
+      "Гетеродермия прекрасная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "heterogemma_laxa",
+    "acceptedNameRu": "Гетерогемма рыхлая",
+    "scientificName": "Heterogemma laxa",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [
+      "Гетероджемма рыхлая",
+      "Массулярия рыхлая",
+      "Схистохилопсис рыхлый"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "hieracium_albocostatum",
+    "acceptedNameRu": "Ястребинка беложилковая",
+    "scientificName": "Hieracium albocostatum",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Ястребинка белокаёмчатая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "hieracium_furvescens",
+    "acceptedNameRu": "Ястребинка мрачноватая",
+    "scientificName": "Hieracium furvescens",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Ястребинка буроватая",
+      "Ястребинка возвращённая",
+      "Ястребинка имандрасская",
+      "Ястребинка приведённая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "homalia_trichomanoides",
+    "acceptedNameRu": "Гомалия трихомановидная",
+    "scientificName": "Homalia trichomanoides",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Гомалия волосовидная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "homalothecium_sericeum",
+    "acceptedNameRu": "Гомалотециум шелковистый",
+    "scientificName": "Homalothecium sericeum",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Гомалотеций шелковистый"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "hygrohypnella_polare",
+    "acceptedNameRu": "Гигрогипнелла полярная",
+    "scientificName": "Hygrohypnella polare",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Гигрогипнум полярный"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "inula_salicina",
+    "acceptedNameRu": "Девясил иволистный",
+    "scientificName": "Inula salicina",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Девясил Китамуры",
+      "Пентанема иволистная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "isoetes_lacustris",
+    "acceptedNameRu": "Полушник озёрный",
+    "scientificName": "Isoetes lacustris",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Полушник русский",
+      "Полушник тончайший",
+      "Полушник шиповатый",
+      "Полушник щетинистый",
+      "Шильник озёрный",
+      "Шильник русский",
+      "Шильник тончайший",
+      "Шильник щетинистый"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "isoetes_setacea",
+    "acceptedNameRu": "Полушник озёрный",
+    "scientificName": "Isoetes setacea",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Полушник русский",
+      "Полушник тончайший",
+      "Полушник шиповатый",
+      "Полушник щетинистый",
+      "Шильник озёрный",
+      "Шильник русский",
+      "Шильник тончайший",
+      "Шильник щетинистый"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "isopaches_decolorans",
+    "acceptedNameRu": "Изопахес обесцвеченный",
+    "scientificName": "Isopaches decolorans",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [
+      "Лофозия обесцвеченная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "isopterygiopsis_alpicola",
+    "acceptedNameRu": "Изоптеригиопсис альпийский",
+    "scientificName": "Isopterygiopsis alpicola",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "isothecium_alopecuroides",
+    "acceptedNameRu": "Изотециум лисохвостовидный",
+    "scientificName": "Isothecium alopecuroides",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Изотеций мышехвостый",
+      "Изотециум лисохвостоподобный"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "kiaeria_falcata",
+    "acceptedNameRu": "Киерия серповидная",
+    "scientificName": "Kiaeria falcata",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "kobresia_myosuroides",
+    "acceptedNameRu": "Кобрезия мышехвостниковая",
+    "scientificName": "Kobresia myosuroides",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Кобрезия Белларди"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "kurzia_pauciflora",
+    "acceptedNameRu": "Курция малоцветковая",
+    "scientificName": "Kurzia pauciflora",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [
+      "Микролепидозия малоцветковая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "lasallia_rossica",
+    "acceptedNameRu": "Ласаллия русская",
+    "scientificName": "Lasallia rossica",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "lejeunea_cavifolia",
+    "acceptedNameRu": "Леженея пололистная",
+    "scientificName": "Lejeunea cavifolia",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [
+      "Леженеа вогнутолистная",
+      "Леженея вогнутолистная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "leproplaca_chrysodeta",
+    "acceptedNameRu": "Калоплака золотистая",
+    "scientificName": "Leproplaca chrysodeta",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Лепроплака золотистая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "leptogium_cyanescens",
+    "acceptedNameRu": "Лептогиум синеватый",
+    "scientificName": "Leptogium cyanescens",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Лептогиум голубовато-серый",
+      "Лептогиум синеющий"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "leptogium_rivulare",
+    "acceptedNameRu": "Лептогиум приручейный",
+    "scientificName": "Leptogium rivulare",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "lescuraea_patens",
+    "acceptedNameRu": "Лекерея отстоящая",
+    "scientificName": "Lescuraea patens",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Псевдолескея отстоящая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "leskea_polycarpa",
+    "acceptedNameRu": "Лескея многоплодная",
+    "scientificName": "Leskea polycarpa",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Лескеа многоплодная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "lichenomphalia_hudsoniana",
+    "acceptedNameRu": "Лихеномфалия гудзонская",
+    "scientificName": "Lichenomphalia hudsoniana",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Ботридина зелёная",
+      "Корисциум зелёный",
+      "Омфалина гудзонская"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "ligularia_sibirica",
+    "acceptedNameRu": "Бузульник сибирский",
+    "scientificName": "Ligularia sibirica",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Бузульник длинноногий"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "listera_ovata",
+    "acceptedNameRu": "Тайник яйцевидный",
+    "scientificName": "Listera ovata",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Гнездовка яйцевидная",
+      "Тайник овальный"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "lobaria_linita",
+    "acceptedNameRu": "Лобария смазанная",
+    "scientificName": "Lobaria linita",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "lobaria_pulmonaria",
+    "acceptedNameRu": "Лобария лёгочная",
+    "scientificName": "Lobaria pulmonaria",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Лобария лёгочница",
+      "Лобария лёгочноподобная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "lobelia_dortmanna",
+    "acceptedNameRu": "Лобелия Дортманна",
+    "scientificName": "Lobelia dortmanna",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Лобелия Дортманнова"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "lomatogonium_rotatum",
+    "acceptedNameRu": "Ломатогониум колесовидный",
+    "scientificName": "Lomatogonium rotatum",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Краеплодник колесовидный"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "lonicera_altaica",
+    "acceptedNameRu": "Жимолость алтайская",
+    "scientificName": "Lonicera altaica",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "lophozia_ascendens",
+    "acceptedNameRu": "Лофозия восходящая",
+    "scientificName": "Lophozia ascendens",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "luzula_nivalis",
+    "acceptedNameRu": "Ожика снежная",
+    "scientificName": "Luzula nivalis",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Ожика снеговая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "lycopodiella_inundata",
+    "acceptedNameRu": "Плаунок заливаемый",
+    "scientificName": "Lycopodiella inundata",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Плаун болотный",
+      "Плаун заливаемый",
+      "Плаун топяной",
+      "Плаунок затопляемый",
+      "Плаунок пойменный",
+      "Плаунок топяной",
+      "Плауночек топяной"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "lythrum_salicaria",
+    "acceptedNameRu": "Дербенник иволистный",
+    "scientificName": "Lythrum salicaria",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Дербенник обыкновенный"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "malaxis_monophyllos",
+    "acceptedNameRu": "Мякотница однолистная",
+    "scientificName": "Malaxis monophyllos",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Стагачка однолистная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "mannia_pilosa",
+    "acceptedNameRu": "Манния волосистая",
+    "scientificName": "Mannia pilosa",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "meesia_longiseta",
+    "acceptedNameRu": "Меезия длинноножковая",
+    "scientificName": "Meesia longiseta",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Месия длинноножковая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "melanelia_agnata",
+    "acceptedNameRu": "Меланелия родственная",
+    "scientificName": "Melanelia agnata",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "melanelixia_glabratula",
+    "acceptedNameRu": "Меланэликсия оголённая",
+    "scientificName": "Melanelixia glabratula",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Меланеликсия ярко-зеленеющая",
+      "Пармелия ярко-зеленеющая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "melanelixia_subargentifera",
+    "acceptedNameRu": "Меланэликсия серебристоносная",
+    "scientificName": "Melanelixia subargentifera",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Меланеликсия маловетвистая",
+      "Меланеликсия почти сереброносная",
+      "Меланелия серебристоносная",
+      "Меланэликсия почти сереброносная",
+      "Пармелия серебристоносная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "melanelixia_subaurifera",
+    "acceptedNameRu": "Меланэликсия золотистоносная",
+    "scientificName": "Melanelixia subaurifera",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Меланеликсия золотоносная",
+      "Меланелия золотоносная",
+      "Пармелия золотоносная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "melanohalea_exasperata",
+    "acceptedNameRu": "Меланохалея шероховатая",
+    "scientificName": "Melanohalea exasperata",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Меланелия шероховатая",
+      "Меланохэйлия шероховатая",
+      "Пармелия шероховатая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "mesoptychia_badensis",
+    "acceptedNameRu": "Мезоптихия баденская",
+    "scientificName": "Mesoptychia badensis",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [
+      "Лейоколеа баденская"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "metzgeria_furcata",
+    "acceptedNameRu": "Мецгерия вильчатая",
+    "scientificName": "Metzgeria furcata",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [
+      "Метцгерия вильчатая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "mnium_hornum",
+    "acceptedNameRu": "Мниум годовалый",
+    "scientificName": "Mnium hornum",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "myrinia_pulvinata",
+    "acceptedNameRu": "Мириния подушковидная",
+    "scientificName": "Myrinia pulvinata",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "nardia_breidleri",
+    "acceptedNameRu": "Нардия Брайдлера",
+    "scientificName": "Nardia breidleri",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [
+      "Нардия Брейдлера"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "neckera_complanata",
+    "acceptedNameRu": "Неккера сплюснутая",
+    "scientificName": "Neckera complanata",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Неккера уплощённая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "neckera_pennata",
+    "acceptedNameRu": "Неккера перистая",
+    "scientificName": "Neckera pennata",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Некера перистая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "nephroma_helveticum",
+    "acceptedNameRu": "Нефрома швейцарская",
+    "scientificName": "Nephroma helveticum",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "nymphaea_candida",
+    "acceptedNameRu": "Кувшинка чисто-белая",
+    "scientificName": "Nymphaea candida",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Кувшинка белоснежная",
+      "Кувшинка снежно-белая",
+      "Кувшинка чистобелая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "nymphaea_tetragona",
+    "acceptedNameRu": "Кувшинка четырёхгранная",
+    "scientificName": "Nymphaea tetragona",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Кувшинка Венцеля",
+      "Кувшинка малая",
+      "Кувшинка четырёхугольная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "ochyraea_cochlearifolia",
+    "acceptedNameRu": "Охырея ложковиднолистная",
+    "scientificName": "Ochyraea cochlearifolia",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Гигрогипнум ложковиднолистный",
+      "Охырая ложковиднолистная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "oleolophozia_perssonii",
+    "acceptedNameRu": "Олеолофозия Перссона",
+    "scientificName": "Oleolophozia perssonii",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [
+      "Лофозиопсис Перссона",
+      "Лофозия Перссона"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "ophioglossum_vulgatum",
+    "acceptedNameRu": "Ужовник обыкновенный",
+    "scientificName": "Ophioglossum vulgatum",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "orthothecium_chryseon",
+    "acceptedNameRu": "Ортотециум золотистый",
+    "scientificName": "Orthothecium chryseon",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "oxalis_acetosella",
+    "acceptedNameRu": "Кислица обыкновенная",
+    "scientificName": "Oxalis acetosella",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "paeonia_anomala",
+    "acceptedNameRu": "Пион уклоняющийся",
+    "scientificName": "Paeonia anomala",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Пион аптечный",
+      "Пион лекарственный",
+      "Пион Марьин корень",
+      "Пион неправильный"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "papaver_lapponicum",
+    "acceptedNameRu": "Мак лапландский",
+    "scientificName": "Papaver lapponicum",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Мак Толмачёва"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "pellia_endiviifolia",
+    "acceptedNameRu": "Пеллия эндивиелистная",
+    "scientificName": "Pellia endiviifolia",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [
+      "Пеллия рассечённолистная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "peltigera_collina",
+    "acceptedNameRu": "Пельтигера холмовая",
+    "scientificName": "Peltigera collina",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Пельтигера холмистая",
+      "Пельтигера щитковатая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "peltigera_lyngei",
+    "acceptedNameRu": "Пельтигера Люнге",
+    "scientificName": "Peltigera lyngei",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "peltolepis_quadrata",
+    "acceptedNameRu": "Пельтолепис четырёхраздельный",
+    "scientificName": "Peltolepis quadrata",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [
+      "Пелтолепис квадратный"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "pertusaria_alpina",
+    "acceptedNameRu": "Пертузария альпийская",
+    "scientificName": "Pertusaria alpina",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "pertusaria_coccodes",
+    "acceptedNameRu": "Пертузария краснеющая",
+    "scientificName": "Pertusaria coccodes",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Пертузария бородавчатая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "pertusaria_coronata",
+    "acceptedNameRu": "Пертузария увенчанная",
+    "scientificName": "Pertusaria coronata",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Пертузария изидионосная",
+      "Пертузария корончатая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "pertusaria_leioplaca",
+    "acceptedNameRu": "Пертузария гладкослоевищная",
+    "scientificName": "Pertusaria leioplaca",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Пертузария белоустьичная",
+      "Пертузария гладкоплакоидная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "pertusaria_raesaenenii",
+    "acceptedNameRu": "Пертузария Рясянена",
+    "scientificName": "Pertusaria raesaenenii",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "phaeophyscia_kairamoi",
+    "acceptedNameRu": "Феофисция Кайрамо",
+    "scientificName": "Phaeophyscia kairamoi",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "phaeophyscia_orbicularis",
+    "acceptedNameRu": "Феофисция округлая",
+    "scientificName": "Phaeophyscia orbicularis",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "phippsia_algida",
+    "acceptedNameRu": "Фиппсия холодная",
+    "scientificName": "Phippsia algida",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Фиппсия холодолюбивая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "phlyctis_argena",
+    "acceptedNameRu": "Фликтис серебристый",
+    "scientificName": "Phlyctis argena",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "pilosella_arctogena",
+    "acceptedNameRu": "Ястребиночка арктическая",
+    "scientificName": "Pilosella arctogena",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Ястребинка арктическая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "pilosella_erratica",
+    "acceptedNameRu": "Ястребиночка блуждающая",
+    "scientificName": "Pilosella erratica",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Ястребинка береговая",
+      "Ястребинка блуждающая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "pinguicula_villosa",
+    "acceptedNameRu": "Жирянка волосистая",
+    "scientificName": "Pinguicula villosa",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Жирянка мохнатая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "placidiopsis_cervinula",
+    "acceptedNameRu": "Плацидиопсис серо-бурый",
+    "scientificName": "Placidiopsis cervinula",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "placidium_squamulosum",
+    "acceptedNameRu": "Плацидиум чешуйчатый",
+    "scientificName": "Placidium squamulosum",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "placopsis_cribellans",
+    "acceptedNameRu": "Плакопсис мелкорешетчатый",
+    "scientificName": "Placopsis cribellans",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "plagiobryum_demissum",
+    "acceptedNameRu": "Плагиобриум опущенный",
+    "scientificName": "Plagiobryum demissum",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "plagiothecium_latebricola",
+    "acceptedNameRu": "Плагиотециум скрытный",
+    "scientificName": "Plagiothecium latebricola",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "platanthera_bifolia",
+    "acceptedNameRu": "Любка двулистная",
+    "scientificName": "Platanthera bifolia",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "pohlia_atropurpurea",
+    "acceptedNameRu": "Полия чернопурпурная",
+    "scientificName": "Pohlia atropurpurea",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Полия чёрно-пурпурная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "polemonium_acutiflorum",
+    "acceptedNameRu": "Синюха остроцветковая",
+    "scientificName": "Polemonium acutiflorum",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Синюха остролепестная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "polemonium_boreale",
+    "acceptedNameRu": "Синюха северная",
+    "scientificName": "Polemonium boreale",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Синюха гиперборейская",
+      "Синюха голоногая",
+      "Синюха Гультена",
+      "Синюха красивая",
+      "Синюха крупноцветковая",
+      "Синюха лапландская",
+      "Синюха ложно-красивая",
+      "Синюха онежская",
+      "Синюха опушённая",
+      "Синюха Ричардсона"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "polygonum_norvegicum",
+    "acceptedNameRu": "Горец норвежский",
+    "scientificName": "Polygonum norvegicum",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "polystichum_lonchitis",
+    "acceptedNameRu": "Многорядник копьевидный",
+    "scientificName": "Polystichum lonchitis",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Многорядник удлинённый"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "porella_platyphylla",
+    "acceptedNameRu": "Порелла плосколистная",
+    "scientificName": "Porella platyphylla",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "potamogeton_filiformis",
+    "acceptedNameRu": "Рдест нитевидный",
+    "scientificName": "Potamogeton filiformis",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Речник нитевидный",
+      "Штукения нитевидная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "potamogeton_friesii",
+    "acceptedNameRu": "Рдест Фриса",
+    "scientificName": "Potamogeton friesii",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Рдест Фриза"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "potamogeton_obtusifolius",
+    "acceptedNameRu": "Рдест туполистный",
+    "scientificName": "Potamogeton obtusifolius",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "potamogeton_pectinatus",
+    "acceptedNameRu": "Рдест гребенчатый",
+    "scientificName": "Potamogeton pectinatus",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Рдест гребешковый",
+      "Рдест прерывистый",
+      "Речник гребенчатый",
+      "Штукения гребенчатая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "potentilla_arctica",
+    "acceptedNameRu": "Лапчатка арктическая",
+    "scientificName": "Potentilla arctica",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Лапчатка лапландская"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "potentilla_chamissonis",
+    "acceptedNameRu": "Лапчатка Шамиссо",
+    "scientificName": "Potentilla chamissonis",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "potentilla_nivea",
+    "acceptedNameRu": "Лапчатка снежная",
+    "scientificName": "Potentilla nivea",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Лапчатка белоснежная",
+      "Лапчатка Мишкина",
+      "Лапчатка паутинистая",
+      "Лапчатка простёртая",
+      "Лапчатка снежная Мишкина",
+      "Лапчатка снежнобелая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "prasanthus_suecicus",
+    "acceptedNameRu": "Празантус шведский",
+    "scientificName": "Prasanthus suecicus",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "protolophozia_elongata",
+    "acceptedNameRu": "Протолофозия удлинённая",
+    "scientificName": "Protolophozia elongata",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [
+      "Лофозия удлиннённая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "pseudevernia_furfuracea",
+    "acceptedNameRu": "Псевдеверния зернистая",
+    "scientificName": "Pseudevernia furfuracea",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Псевдоэверния зернистая",
+      "Псевдэверния шелушащаяся",
+      "Эверния шелушащаяся"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "pseudorchis_albida",
+    "acceptedNameRu": "Псевдорхис беловатый",
+    "scientificName": "Pseudorchis albida",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Леукорхис беловатая",
+      "Леукорхис беловатый"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "psilopilum_cavifolium",
+    "acceptedNameRu": "Псилопилум вогнутолистный",
+    "scientificName": "Psilopilum cavifolium",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "psilopilum_laevigatum",
+    "acceptedNameRu": "Псилопилум гладкий",
+    "scientificName": "Psilopilum laevigatum",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Псилопилум лоснящийся"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "psora_decipiens",
+    "acceptedNameRu": "Псора обманчивая",
+    "scientificName": "Psora decipiens",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Псора обманная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "pteridium_pinetorum",
+    "acceptedNameRu": "Орляк сосняковый",
+    "scientificName": "Pteridium pinetorum",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "ramalina_obtusata",
+    "acceptedNameRu": "Рамалина притуплённая",
+    "scientificName": "Ramalina obtusata",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "ramalina_subfarinacea",
+    "acceptedNameRu": "Рамалина слабомучнистая",
+    "scientificName": "Ramalina subfarinacea",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Рамалина почти мучнистая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "ramalina_thrausta",
+    "acceptedNameRu": "Рамалина волосовидная",
+    "scientificName": "Ramalina thrausta",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Рамалина длинноволосатая",
+      "Рамалина ниточная",
+      "Рамалина Трауста"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "ranunculus_gmelinii",
+    "acceptedNameRu": "Лютик Гмелина",
+    "scientificName": "Ranunculus gmelinii",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "ranunculus_nivalis",
+    "acceptedNameRu": "Лютик снежный",
+    "scientificName": "Ranunculus nivalis",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Лютик снеговой"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "ranunculus_pallasii",
+    "acceptedNameRu": "Лютик Палласа",
+    "scientificName": "Ranunculus pallasii",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Арктолютик Палласа"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "ranunculus_sulphureus",
+    "acceptedNameRu": "Лютик серно-жёлтый",
+    "scientificName": "Ranunculus sulphureus",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Лютик сернисто-жёлтый",
+      "Лютик сернистый"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "rhabdoweisia_fugax",
+    "acceptedNameRu": "Рабдовейзия скороопадающая",
+    "scientificName": "Rhabdoweisia fugax",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "rhodiola_arctica",
+    "acceptedNameRu": "Родиола арктическая",
+    "scientificName": "Rhodiola arctica",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "rhodiola_rosea",
+    "acceptedNameRu": "Родиола розовая",
+    "scientificName": "Rhodiola rosea",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Родиола Кривохижина",
+      "Родиола северная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "rhynchospora_alba",
+    "acceptedNameRu": "Очеретник белый",
+    "scientificName": "Rhynchospora alba",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "ribes_nigrum",
+    "acceptedNameRu": "Смородина чёрная",
+    "scientificName": "Ribes nigrum",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "riccardia_incurvata",
+    "acceptedNameRu": "Риккардия загнутая",
+    "scientificName": "Riccardia incurvata",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "riccardia_palmata",
+    "acceptedNameRu": "Риккардия пальчатая",
+    "scientificName": "Riccardia palmata",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "riccia_cavernosa",
+    "acceptedNameRu": "Риччия пещеристая",
+    "scientificName": "Riccia cavernosa",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "rosa_acicularis",
+    "acceptedNameRu": "Шиповник иглистый",
+    "scientificName": "Rosa acicularis",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Роза иглистая",
+      "Роза сихотэ-алиньская",
+      "Шиповник сихотэ-алиньский"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "rumex_graminifolius",
+    "acceptedNameRu": "Щавель злаколистный",
+    "scientificName": "Rumex graminifolius",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Щавелёк злаколистный"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "sagittaria_natans",
+    "acceptedNameRu": "Стрелолист плавающий",
+    "scientificName": "Sagittaria natans",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Стрелолист альпийский"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "salix_arbuscula",
+    "acceptedNameRu": "Ива деревцевидная",
+    "scientificName": "Salix arbuscula",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Ива деревцовидная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "salix_arctica",
+    "acceptedNameRu": "Ива арктическая",
+    "scientificName": "Salix arctica",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Ива английская",
+      "Ива Брауна"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "salix_aurita",
+    "acceptedNameRu": "Ива ушастая",
+    "scientificName": "Salix aurita",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "salix_gmelinii",
+    "acceptedNameRu": "Ива Гмелина",
+    "scientificName": "Salix gmelinii",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Ива бурятская",
+      "Ива мохнатопобеговая",
+      "Ива шерстистопобеговая",
+      "Ива шершавая",
+      "Ива якутская"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "salix_nummularia",
+    "acceptedNameRu": "Ива монетолистная",
+    "scientificName": "Salix nummularia",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Ива круглолистная",
+      "Ива монетовидная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "salix_pyrolifolia",
+    "acceptedNameRu": "Ива грушанколистная",
+    "scientificName": "Salix pyrolifolia",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "salix_repens",
+    "acceptedNameRu": "Ива ползучая",
+    "scientificName": "Salix repens",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Ива стелющаяся"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "salix_reptans",
+    "acceptedNameRu": "Ива ползучая",
+    "scientificName": "Salix reptans",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "salix_triandra",
+    "acceptedNameRu": "Ива трёхтычинковая",
+    "scientificName": "Salix triandra",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Ива Медведева",
+      "Ива миндалелистная",
+      "Ива миндальная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "sauteria_alpina",
+    "acceptedNameRu": "Заутерия альпийская",
+    "scientificName": "Sauteria alpina",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "saxifraga_foliolosa",
+    "acceptedNameRu": "Камнеломка листочковая",
+    "scientificName": "Saxifraga foliolosa",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "saxifraga_hieraciifolia",
+    "acceptedNameRu": "Камнеломка ястребинколистная",
+    "scientificName": "Saxifraga hieraciifolia",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "saxifraga_tenuis",
+    "acceptedNameRu": "Камнеломка тонкая",
+    "scientificName": "Saxifraga tenuis",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "scapania_aequiloba",
+    "acceptedNameRu": "Скапания равнолопастная",
+    "scientificName": "Scapania aequiloba",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "scapania_apiculata",
+    "acceptedNameRu": "Скапания заострённая",
+    "scientificName": "Scapania apiculata",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "scapania_kaurinii",
+    "acceptedNameRu": "Скапания Каурина",
+    "scientificName": "Scapania kaurinii",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "scapania_simmonsii",
+    "acceptedNameRu": "Скапания Симмонса",
+    "scientificName": "Scapania simmonsii",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "scapania_sphaerifera",
+    "acceptedNameRu": "Скапания шариконосная",
+    "scientificName": "Scapania sphaerifera",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "scapania_spitsbergensis",
+    "acceptedNameRu": "Скапания шпицбергенская",
+    "scientificName": "Scapania spitsbergensis",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "scapania_tundrae",
+    "acceptedNameRu": "Скапания тундровая",
+    "scientificName": "Scapania tundrae",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "scapania_umbrosa",
+    "acceptedNameRu": "Скапания теневая",
+    "scientificName": "Scapania umbrosa",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "schoenus_ferrugineus",
+    "acceptedNameRu": "Схенус ржавый",
+    "scientificName": "Schoenus ferrugineus",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "scirpus_tabernaemontani",
+    "acceptedNameRu": "Схеноплектус Табернемонтана",
+    "scientificName": "Scirpus tabernaemontani",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Камыш Табернемонтана",
+      "Куга Табернемонтана"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "sciuro_hypnum_glaciale_var_dovrense",
+    "acceptedNameRu": "Сциуро-гипнум доврефьелльский",
+    "scientificName": "Sciuro-hypnum glaciale var. dovrense",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Сциуро-гипнум ледниковый доврефьелльский"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "sciuro_hypnum_ornellanum",
+    "acceptedNameRu": "Сциуро-гипнум орнейский",
+    "scientificName": "Sciuro-hypnum ornellanum",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Склероподиум орнейский",
+      "Сциурогипнум орнейский"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "scytinium_fragrans",
+    "acceptedNameRu": "Сцитиниум пахучий",
+    "scientificName": "Scytinium fragrans",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Коллема пахучая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "sedum_acre",
+    "acceptedNameRu": "Очиток едкий",
+    "scientificName": "Sedum acre",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "seligeria_diversifolia",
+    "acceptedNameRu": "Зелигерия разнолистная",
+    "scientificName": "Seligeria diversifolia",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "seligeria_tristichoides",
+    "acceptedNameRu": "Зелигерия трёхрядновидная",
+    "scientificName": "Seligeria tristichoides",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Зелигерия трёхрядовидная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "silene_rupestris",
+    "acceptedNameRu": "Смолёвка скальная",
+    "scientificName": "Silene rupestris",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Атоцион скальный",
+      "Миняевия скальная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "solorina_bispora",
+    "acceptedNameRu": "Солорина двуспоровая",
+    "scientificName": "Solorina bispora",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "spergularia_salina",
+    "acceptedNameRu": "Торичник морской",
+    "scientificName": "Spergularia salina",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Торичник приморский",
+      "Торичник солелюбивый",
+      "Торичник солончаковый"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "sphagnum_auriculatum",
+    "acceptedNameRu": "Сфагнум ушковидный",
+    "scientificName": "Sphagnum auriculatum",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Сфагнум мелкозубчатый"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "sphagnum_subnitens",
+    "acceptedNameRu": "Сфагнум блестящий",
+    "scientificName": "Sphagnum subnitens",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "stereocaulon_capitellatum",
+    "acceptedNameRu": "Стереокаулон мелкоголовчатый",
+    "scientificName": "Stereocaulon capitellatum",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Стереокаулон головчатый"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "stereocaulon_dactylophyllum",
+    "acceptedNameRu": "Стереокаулон пальчатолистный",
+    "scientificName": "Stereocaulon dactylophyllum",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Стереокаулон коралловидный",
+      "Стереокаулон пальчатый"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "stereodon_bambergeri",
+    "acceptedNameRu": "Стереодон Бамберга",
+    "scientificName": "Stereodon bambergeri",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Гипнум Бамберга"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "stereodon_vaucheri",
+    "acceptedNameRu": "Стереодон Воше",
+    "scientificName": "Stereodon vaucheri",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Гипнум Воше"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "tanacetum_bipinnatum",
+    "acceptedNameRu": "Пижма дваждыперистая",
+    "scientificName": "Tanacetum bipinnatum",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Пижма дважды-перистая",
+      "Пиретрум дваждыперистый"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "taraxacum_leucoglossum",
+    "acceptedNameRu": "Одуванчик белоязычковый",
+    "scientificName": "Taraxacum leucoglossum",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Одуванчик турийский",
+      "Одуванчик турьемысский"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "taraxacum_nivale",
+    "acceptedNameRu": "Одуванчик снежный",
+    "scientificName": "Taraxacum nivale",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Одуванчик тундровый"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "taraxacum_simulum",
+    "acceptedNameRu": "Одуванчик подражающий",
+    "scientificName": "Taraxacum simulum",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "tayloria_serrata",
+    "acceptedNameRu": "Тэйлория пильчатая",
+    "scientificName": "Tayloria serrata",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "tayloria_splachnoides",
+    "acceptedNameRu": "Тэйлория сплахновидная",
+    "scientificName": "Tayloria splachnoides",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "tetrodontium_repandum",
+    "acceptedNameRu": "Тетродонциум широковыемчатый",
+    "scientificName": "Tetrodontium repandum",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Тетродонциум выгрызенный"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "thalictrum_kemense",
+    "acceptedNameRu": "Василисник кемский",
+    "scientificName": "Thalictrum kemense",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Василисник малый кемский",
+      "Василистник кемский",
+      "Василистник малый кемский"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "tholurna_dissimilis",
+    "acceptedNameRu": "Толурна непохожая",
+    "scientificName": "Tholurna dissimilis",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "thymus_serpyllum",
+    "acceptedNameRu": "Тимьян ползучий",
+    "scientificName": "Thymus serpyllum",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Тимьян густоволосистый",
+      "Чабрец густоволосистый",
+      "Чабрец ползучий"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "thymus_subarcticus",
+    "acceptedNameRu": "Тимьян субарктический",
+    "scientificName": "Thymus subarcticus",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Чабрец субарктический"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "thyselium_palustre",
+    "acceptedNameRu": "Гирчовница болотная",
+    "scientificName": "Thyselium palustre",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Горичник болотный",
+      "Калестания болотная",
+      "Тиселиум болотный"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "tillaea_aquatica",
+    "acceptedNameRu": "Тиллея водная",
+    "scientificName": "Tillaea aquatica",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Тиллея водяная",
+      "Толстянка водная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "timmia_bavarica",
+    "acceptedNameRu": "Тиммия баварская",
+    "scientificName": "Timmia bavarica",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "timmia_comata",
+    "acceptedNameRu": "Тиммия хохолковая",
+    "scientificName": "Timmia comata",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "toninia_verrucarioides",
+    "acceptedNameRu": "Тониния бородавковидная",
+    "scientificName": "Toninia verrucarioides",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "tortula_cernua",
+    "acceptedNameRu": "Тортула наклонённая",
+    "scientificName": "Tortula cernua",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Десматодон наклонённый",
+      "Десматодон поникающий",
+      "Десматодон Ранда",
+      "Тортула поникшая",
+      "Тортула Ранда"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "tortula_mucronifolia",
+    "acceptedNameRu": "Тортула остроконечнолистная",
+    "scientificName": "Tortula mucronifolia",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [
+      "Тортула островатая",
+      "Тортула остроконечная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "trematodon_brevicollis",
+    "acceptedNameRu": "Трематодон короткошейковый",
+    "scientificName": "Trematodon brevicollis",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "trisetum_spicatum",
+    "acceptedNameRu": "Трищетинник колосистый",
+    "scientificName": "Trisetum spicatum",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "tritomaria_exsectiformis",
+    "acceptedNameRu": "Тритомария почти-вырезанная",
+    "scientificName": "Tritomaria exsectiformis",
+    "group": "liverwort",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "tuckermanopsis_ciliaris",
+    "acceptedNameRu": "Тукерманнопсис реснитчатый",
+    "scientificName": "Tuckermanopsis ciliaris",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Цетрария реснитчатая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "ulota_phyllantha",
+    "acceptedNameRu": "Пленоглемма цветколистная",
+    "scientificName": "Ulota phyllantha",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Улота лиственноцветная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "umbilicaria_havaasii",
+    "acceptedNameRu": "Умбиликария Гавааса",
+    "scientificName": "Umbilicaria havaasii",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "umbilicaria_lyngei",
+    "acceptedNameRu": "Умбиликария Люнге",
+    "scientificName": "Umbilicaria lyngei",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "umbilicaria_tylorrhiza",
+    "acceptedNameRu": "Умбиликария мозолекорневая",
+    "scientificName": "Umbilicaria tylorrhiza",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "usnea_glabrescens",
+    "acceptedNameRu": "Уснея оголяющаяся",
+    "scientificName": "Usnea glabrescens",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Уснея гладенькая",
+      "Уснея распростёртая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "valeriana_capitata",
+    "acceptedNameRu": "Валериана головчатая",
+    "scientificName": "Valeriana capitata",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "valeriana_sambucifolia",
+    "acceptedNameRu": "Валериана бузинолистная",
+    "scientificName": "Valeriana sambucifolia",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Валериана высокая",
+      "Валериана мурманская"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "veronica_fruticans",
+    "acceptedNameRu": "Вероника кустящаяся",
+    "scientificName": "Veronica fruticans",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Вероника кустарничковая",
+      "Вероника кустистая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "vestergrenopsis_elaeina",
+    "acceptedNameRu": "Вестергренопсис нежный",
+    "scientificName": "Vestergrenopsis elaeina",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Паннария нежная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "viola_selkirkii",
+    "acceptedNameRu": "Фиалка Селькирка",
+    "scientificName": "Viola selkirkii",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Фиалка мясистенькая",
+      "Фиалка толстошпорцевая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "weissia_wimmeriana",
+    "acceptedNameRu": "Вейсия Виммера",
+    "scientificName": "Weissia wimmeriana",
+    "group": "moss",
+    "priority": 100,
+    "synonymsRu": [],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "woodsia_glabella",
+    "acceptedNameRu": "Вудсия гладковатая",
+    "scientificName": "Woodsia glabella",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Вудзия гладенькая",
+      "Вудсия гладкая",
+      "Вудсия головатая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "xanthoparmelia_conspersa",
+    "acceptedNameRu": "Ксантопармелия усеянная",
+    "scientificName": "Xanthoparmelia conspersa",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Ксантопармелия усыпанная",
+      "Пармелия усыпанная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "xanthoparmelia_stenophylla",
+    "acceptedNameRu": "Ксантопармелия узколистная",
+    "scientificName": "Xanthoparmelia stenophylla",
+    "group": "lichen",
+    "priority": 100,
+    "synonymsRu": [
+      "Ксантопармелия сомлоенская",
+      "Пармелия узколистная"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  },
+  {
+    "id": "zannichellia_repens",
+    "acceptedNameRu": "Заникеллия ползучая",
+    "scientificName": "Zannichellia repens",
+    "group": "plant",
+    "priority": 100,
+    "synonymsRu": [
+      "Дзанникеллия позучая",
+      "Занникеллия ползучая",
+      "Цанникелия ползучая",
+      "Цаннихеллия ползучая"
+    ],
+    "source": "Красная книга Мурманской области, 2014 / Plantarium redbook id 129"
+  }
+]

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../services/app_appearance_settings.dart';
@@ -8,6 +9,57 @@ import '../services/session_manager.dart';
 import '../theme/app_theme.dart';
 import '../widgets/wild_page_header.dart';
 import 'login_screen.dart';
+
+class _AccuracyPreset {
+  final String title;
+  final String subtitle;
+  final double meters;
+
+  const _AccuracyPreset({
+    required this.title,
+    required this.subtitle,
+    required this.meters,
+  });
+}
+
+const List<_AccuracyPreset> _accuracyPresets = <_AccuracyPreset>[
+  _AccuracyPreset(
+    title: 'Быстро',
+    subtitle: 'Не рекомендуется, подходит для быстрого сохранения наблюдения.',
+    meters: 30,
+  ),
+  _AccuracyPreset(
+    title: 'Стандартно',
+    subtitle: 'Основной режим для обычной полевой работы.',
+    meters: 15,
+  ),
+  _AccuracyPreset(
+    title: 'Точно',
+    subtitle: 'Более строгая фиксация, ожидание может быть дольше.',
+    meters: 7,
+  ),
+  _AccuracyPreset(
+    title: 'Максимально точно',
+    subtitle: 'Самый строгий режим для важных точек наблюдения.',
+    meters: 5,
+  ),
+];
+
+_AccuracyPreset? _accuracyPresetExactFor(double value) {
+  final normalized = LocationAccuracySettings.normalize(value);
+
+  for (final preset in _accuracyPresets) {
+    if ((normalized - preset.meters).abs() < 0.05) {
+      return preset;
+    }
+  }
+
+  return null;
+}
+
+String _accuracyMetersLabel(double value) {
+  return '±${LocationAccuracySettings.formatMeters(value)} м';
+}
 
 class SettingsScreen extends StatefulWidget {
   final bool isGuest;
@@ -38,8 +90,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Color _selectedAccent = AppAppearanceSettingsData.defaultAccent;
   double _targetAccuracyMeters =
       LocationAccuracySettings.defaultTargetAccuracyMeters;
+  double _customAccuracyMeters =
+      LocationAccuracySettings.defaultTargetAccuracyMeters;
+  bool _accuracyExpanded = false;
+  bool _customAccuracyMode = false;
+  bool _customAccuracyEditorOpen = false;
 
-  static const String _version = '0.1.0';
+  String _versionLabel = 'загрузка...';
   static const String _storeUrl =
       'https://www.rustore.ru/catalog/app/mauniver.ivt.ponarin.wildnote';
 
@@ -59,6 +116,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
 
     _loadLocationAccuracy();
+    _loadAppVersion();
   }
 
   @override
@@ -99,7 +157,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     setState(() {
       _targetAccuracyMeters = value;
+      _customAccuracyMeters = value;
+      _customAccuracyMode = _accuracyPresetExactFor(value) == null;
+      _customAccuracyEditorOpen = false;
     });
+  }
+
+  Future<void> _loadAppVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      final rawVersion = info.version.trim();
+      final version = rawVersion.isEmpty ? 'не определена' : rawVersion;
+
+      if (!mounted) return;
+
+      setState(() {
+        _versionLabel = version;
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() {
+        _versionLabel = 'не определена';
+      });
+    }
   }
 
   Future<void> _logout() async {
@@ -107,6 +188,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     if (!mounted) return;
 
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+          (route) => false,
+    );
+  }
+
+
+  void _openLogin() {
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const LoginScreen()),
           (route) => false,
@@ -126,165 +215,332 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Future<void> _showLocationAccuracyDialog() async {
-    var selected = _targetAccuracyMeters;
+  String _currentAccuracyModeTitle() {
+    if (_customAccuracyMode) {
+      return 'Свой вариант';
+    }
 
-    final saved = await showDialog<double>(
-      context: context,
-      builder: (context) {
-        final colors = WildColors.of(context);
+    return _accuracyPresetExactFor(_targetAccuracyMeters)?.title ??
+        'Свой вариант';
+  }
 
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            String label(double value) {
-              return '${LocationAccuracySettings.formatMeters(value)} м';
-            }
+  Future<void> _saveLocationAccuracyFromUi(
+      double value, {
+        bool customMode = false,
+        bool showMessage = true,
+      }) async {
+    final normalized = LocationAccuracySettings.normalize(value);
 
-            Widget preset(double value) {
-              final isSelected = (selected - value).abs() < 0.1;
-
-              return ChoiceChip(
-                label: Text(label(value)),
-                selected: isSelected,
-                showCheckmark: false,
-                selectedColor: colors.softGreen,
-                labelStyle: TextStyle(
-                  fontWeight: FontWeight.w800,
-                  color: isSelected ? colors.primary : colors.primaryDark,
-                ),
-                side: BorderSide.none,
-                onSelected: (_) {
-                  setDialogState(() => selected = value);
-                },
-              );
-            }
-
-            return Dialog(
-              backgroundColor: colors.surface,
-              insetPadding: const EdgeInsets.symmetric(
-                horizontal: 18,
-                vertical: 24,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppRadius.card),
-              ),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 420),
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(22, 22, 22, 16),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Точность координат',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900,
-                          color: colors.primaryDark,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Чем меньше значение, тем дольше приложение будет уточнять координаты перед сохранением.',
-                        style: TextStyle(
-                          fontSize: 14,
-                          height: 1.35,
-                          color: colors.muted,
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      Center(
-                        child: Text(
-                          '±${label(selected)}',
-                          style: TextStyle(
-                            fontSize: 30,
-                            fontWeight: FontWeight.w900,
-                            color: colors.primary,
-                          ),
-                        ),
-                      ),
-                      Slider(
-                        value: selected,
-                        min: LocationAccuracySettings.minTargetAccuracyMeters,
-                        max: LocationAccuracySettings.maxTargetAccuracyMeters,
-                        divisions: 57,
-                        label: label(selected),
-                        onChanged: (value) {
-                          setDialogState(() => selected = value.roundToDouble());
-                        },
-                      ),
-                      const SizedBox(height: 6),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          preset(5),
-                          preset(10),
-                          preset(15),
-                          preset(25),
-                          preset(35),
-                        ],
-                      ),
-                      const SizedBox(height: 18),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        alignment: WrapAlignment.end,
-                        children: [
-                          TextButton(
-                            onPressed: () async {
-                              await LocationAccuracySettings
-                                  .resetTargetAccuracyMeters();
-
-                              if (!context.mounted) return;
-
-                              Navigator.of(context).pop(
-                                LocationAccuracySettings
-                                    .defaultTargetAccuracyMeters,
-                              );
-                            },
-                            child: const Text('Сбросить'),
-                          ),
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            child: const Text('Отмена'),
-                          ),
-                          FilledButton(
-                            onPressed: () {
-                              Navigator.of(context).pop(selected);
-                            },
-                            child: const Text('Сохранить'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-
-    if (saved == null) return;
-
-    final normalized = LocationAccuracySettings.normalize(saved);
     await LocationAccuracySettings.saveTargetAccuracyMeters(normalized);
 
     if (!mounted) return;
 
     setState(() {
       _targetAccuracyMeters = normalized;
+      _customAccuracyMeters = normalized;
+      _customAccuracyMode =
+          customMode || _accuracyPresetExactFor(normalized) == null;
+      if (!customMode) {
+        _customAccuracyEditorOpen = false;
+      }
+    });
+
+    if (!showMessage) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Режим точности: ${_currentAccuracyModeTitle()} (${_accuracyMetersLabel(normalized)})',
+        ),
+      ),
+    );
+  }
+
+  Future<void> _resetLocationAccuracyFromUi() async {
+    await LocationAccuracySettings.resetTargetAccuracyMeters();
+
+    final value = LocationAccuracySettings.defaultTargetAccuracyMeters;
+
+    if (!mounted) return;
+
+    setState(() {
+      _targetAccuracyMeters = value;
+      _customAccuracyMeters = value;
+      _customAccuracyMode = false;
+      _customAccuracyEditorOpen = false;
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'Требуемая точность: ±${LocationAccuracySettings.formatMeters(normalized)} м',
+          'Режим точности сброшен: ${_currentAccuracyModeTitle()} (${_accuracyMetersLabel(value)})',
         ),
       ),
+    );
+  }
+
+  Future<void> _confirmCustomAccuracyFromUi() async {
+    final normalized = LocationAccuracySettings.normalize(_customAccuracyMeters);
+
+    await LocationAccuracySettings.saveTargetAccuracyMeters(normalized);
+
+    if (!mounted) return;
+
+    setState(() {
+      _targetAccuracyMeters = normalized;
+      _customAccuracyMeters = normalized;
+      _customAccuracyMode = true;
+      _customAccuracyEditorOpen = false;
+    });
+
+    HapticFeedback.selectionClick();
+  }
+
+  Widget _accuracyOptionDivider() {
+    final colors = WildColors.of(context);
+    return Divider(height: 1, color: colors.border);
+  }
+
+  String _accuracyLeadingLabel(double value) {
+    return '±${LocationAccuracySettings.formatMeters(value)}';
+  }
+
+  Widget _distanceLeading(String label, {required bool selected}) {
+    final colors = WildColors.of(context);
+
+    return SizedBox(
+      width: 23,
+      child: Text(
+        label,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w900,
+          color: selected
+              ? colors.primary
+              : colors.primary.withValues(alpha: 0.85),
+        ),
+      ),
+    );
+  }
+
+  Widget _accuracyTrailingSlot({
+    required bool selected,
+    Widget? trailing,
+  }) {
+    final colors = WildColors.of(context);
+
+    final child = trailing ??
+        (selected
+            ? Icon(
+          Icons.check_rounded,
+          size: 22,
+          color: colors.primary,
+        )
+            : const SizedBox.shrink());
+
+    return SizedBox(
+      width: 34,
+      height: 34,
+      child: Center(child: child),
+    );
+  }
+
+  Widget _accuracyOptionRow({
+    required String leading,
+    required String title,
+    required String subtitle,
+    required bool selected,
+    required VoidCallback onTap,
+    Widget? trailing,
+  }) {
+    final colors = WildColors.of(context);
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Row(
+          children: [
+            _distanceLeading(leading, selected: selected),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: colors.primaryDark,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      height: 1.25,
+                      color: colors.muted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            _accuracyTrailingSlot(selected: selected, trailing: trailing),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _accuracyPresetTile(_AccuracyPreset preset) {
+    final isSelected =
+        !_customAccuracyMode &&
+            _accuracyPresetExactFor(_targetAccuracyMeters)?.meters == preset.meters;
+
+    return _accuracyOptionRow(
+      leading: _accuracyLeadingLabel(preset.meters),
+      title: preset.title,
+      subtitle: preset.subtitle,
+      selected: isSelected,
+      onTap: () async {
+        HapticFeedback.selectionClick();
+        await _saveLocationAccuracyFromUi(
+          preset.meters,
+          customMode: false,
+          showMessage: false,
+        );
+      },
+    );
+  }
+
+  Widget _customAccuracyTile() {
+    final colors = WildColors.of(context);
+    final isSavedCustom =
+        _customAccuracyMode ||
+            _accuracyPresetExactFor(_targetAccuracyMeters) == null;
+    final isActive = isSavedCustom || _customAccuracyEditorOpen;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _accuracyOptionRow(
+          leading: _accuracyLeadingLabel(_customAccuracyMeters),
+          title: 'Свой вариант',
+          subtitle: 'Ручная настройка цели от ±3 до ±60 м.',
+          selected: isActive,
+          onTap: () {
+            HapticFeedback.selectionClick();
+            setState(() {
+              _customAccuracyEditorOpen = true;
+              _customAccuracyMeters = _targetAccuracyMeters;
+            });
+          },
+          trailing: _customAccuracyEditorOpen
+              ? IconButton(
+            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints.tightFor(
+              width: 34,
+              height: 34,
+            ),
+            tooltip: 'Сохранить точность',
+            icon: Icon(
+              Icons.check_rounded,
+              size: 22,
+              color: colors.primary,
+            ),
+            onPressed: _confirmCustomAccuracyFromUi,
+          )
+              : null,
+        ),
+        ClipRect(
+          child: TweenAnimationBuilder<double>(
+            tween: Tween<double>(
+              begin: 0.0,
+              end: _customAccuracyEditorOpen ? 1.0 : 0.0,
+            ),
+            duration: const Duration(milliseconds: 170),
+            curve: Curves.easeOutCubic,
+            builder: (context, factor, child) {
+              return Align(
+                alignment: Alignment.topCenter,
+                heightFactor: factor,
+                child: child,
+              );
+            },
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(35, 0, 22, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Slider(
+                    value: LocationAccuracySettings.normalize(
+                      _customAccuracyMeters,
+                    ),
+                    min: LocationAccuracySettings.minTargetAccuracyMeters,
+                    max: LocationAccuracySettings.maxTargetAccuracyMeters,
+                    divisions: 57,
+                    label: _accuracyMetersLabel(_customAccuracyMeters),
+                    onChanged: (value) {
+                      setState(() {
+                        _customAccuracyMeters =
+                            LocationAccuracySettings.normalize(value);
+                      });
+                    },
+                  ),
+                  Row(
+                    children: [
+                      Text(
+                        '±3 м',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: colors.muted,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '±60 м',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: colors.muted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _accuracyInlineSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _accuracyOptionDivider(),
+        for (final preset in _accuracyPresets) ...[
+          _accuracyPresetTile(preset),
+          _accuracyOptionDivider(),
+        ],
+        _customAccuracyTile(),
+        _accuracyOptionDivider(),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: _resetLocationAccuracyFromUi,
+            child: const Text('Сбросить'),
+          ),
+        ),
+      ],
     );
   }
 
@@ -592,7 +848,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Версия: $_version',
+                  'Версия: $_versionLabel',
                   style: TextStyle(color: colors.muted),
                 ),
                 const SizedBox(height: 18),
@@ -641,7 +897,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
               ),
-              ?trailing,
+              if (trailing != null) trailing,
             ],
           ),
           const SizedBox(height: 8),
@@ -819,10 +1075,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 _divider(),
                 _row(
-                  icon: Icons.logout_rounded,
-                  title: 'Выйти',
-                  color: colors.danger,
-                  onTap: _logout,
+                  icon: widget.isGuest
+                      ? Icons.login_rounded
+                      : Icons.logout_rounded,
+                  title: widget.isGuest ? 'Войти' : 'Выйти',
+                  subtitle: widget.isGuest
+                      ? 'Перейти к авторизации на геопортале'
+                      : null,
+                  color: widget.isGuest ? colors.primary : colors.danger,
+                  onTap: widget.isGuest ? _openLogin : _logout,
                 ),
               ],
             ),
@@ -869,12 +1130,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   icon: Icons.gps_fixed_rounded,
                   title: 'Точность координат',
                   subtitle:
-                  'Сейчас: ±${LocationAccuracySettings.formatMeters(_targetAccuracyMeters)} м. Чем точнее, тем дольше ожидание.',
+                  'Сейчас: ${_currentAccuracyModeTitle()} · ${_accuracyMetersLabel(_targetAccuracyMeters)}. Чем точнее режим, тем дольше ожидание.',
                   trailing: Icon(
-                    Icons.chevron_right_rounded,
+                    _accuracyExpanded
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
                     color: colors.muted,
                   ),
-                  onTap: _showLocationAccuracyDialog,
+                  onTap: () {
+                    setState(() {
+                      _accuracyExpanded = !_accuracyExpanded;
+                      if (!_accuracyExpanded) {
+                        _customAccuracyEditorOpen = false;
+                        _customAccuracyMeters = _targetAccuracyMeters;
+                      }
+                    });
+                  },
+                ),
+                ClipRect(
+                  child: TweenAnimationBuilder<double>(
+                    tween: Tween<double>(
+                      begin: 0.0,
+                      end: _accuracyExpanded ? 1.0 : 0.0,
+                    ),
+                    duration: const Duration(milliseconds: 190),
+                    curve: Curves.easeOutCubic,
+                    builder: (context, factor, child) {
+                      return Align(
+                        alignment: Alignment.topCenter,
+                        heightFactor: factor,
+                        child: child,
+                      );
+                    },
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: _accuracyInlineSelector(),
+                    ),
+                  ),
                 ),
                 _divider(),
                 _switchRow(
@@ -883,8 +1175,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   subtitle: _darkTheme
                       ? 'Недоступна в тёмной теме'
                       : (_sunlightContrast
-                      ? 'Яркий уличный свет: включено усиление читаемости'
-                      : 'Обычный вид сохраняется, усиление включается только при ярком свете'),
+                      ? 'Солнце на датчике: включена ультраконтрастность'
+                      : 'Обычная тема в тени и ультраконтраст при прямом солнце'),
                   value: _darkTheme ? false : _autoContrast,
                   onChanged: _darkTheme ? null : _setAutoContrast,
                 ),
@@ -893,7 +1185,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   icon: Icons.wb_sunny_outlined,
                   title: 'Автояркость',
                   subtitle:
-                  'Мягкая яркость в помещении и высокая яркость на улице',
+                  'Экран подстраивается под любое освещение',
                   value: _autoBrightness,
                   onChanged: _setAutoBrightness,
                 ),
@@ -905,7 +1197,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _row(
                   icon: Icons.info_outline_rounded,
                   title: 'Справка и версия',
-                  subtitle: 'Версия $_version',
+                  subtitle: 'Версия $_versionLabel',
                   trailing: Icon(
                     Icons.chevron_right_rounded,
                     color: colors.muted,

@@ -4,7 +4,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../data/database_helper.dart';
+import '../services/pdf_share_service.dart';
 import '../theme/app_theme.dart';
+import 'add_plant_screen.dart';
 
 class ObservationDetailBadge {
   final IconData icon;
@@ -27,6 +29,11 @@ class ObservationDetailData {
   final Map<String, String>? imageHeaders;
   final List<ObservationDetailBadge> badges;
   final List<MapEntry<String, String>> technicalRows;
+  final int? localObservationId;
+  final bool canEdit;
+  final bool isGuest;
+  final String userLogin;
+  final Future<void> Function()? onChanged;
 
   const ObservationDetailData({
     required this.title,
@@ -37,6 +44,11 @@ class ObservationDetailData {
     this.imageHeaders,
     this.badges = const [],
     this.technicalRows = const [],
+    this.localObservationId,
+    this.canEdit = false,
+    this.isGuest = false,
+    this.userLogin = '',
+    this.onChanged,
   });
 }
 
@@ -68,6 +80,7 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
   ];
 
   int _currentPhotoIndex = 0;
+  bool _isSharingPdf = false;
   final ValueNotifier<int> _photoIndexNotifier = ValueNotifier<int>(0);
   final Set<String> _precachedPhotos = <String>{};
 
@@ -300,7 +313,7 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
 
   Widget _topButton({
     required IconData icon,
-    required VoidCallback onTap,
+    required VoidCallback? onTap,
     String? tooltip,
   }) {
     return Tooltip(
@@ -314,7 +327,13 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
           child: SizedBox(
             width: 42,
             height: 42,
-            child: Icon(icon, size: 22, color: WildColors.of(context).primaryDark),
+            child: Icon(
+              icon,
+              size: 22,
+              color: onTap == null
+                  ? WildColors.of(context).muted.withValues(alpha: 0.55)
+                  : WildColors.of(context).primaryDark,
+            ),
           ),
         ),
       ),
@@ -669,6 +688,97 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
     );
   }
 
+  Future<void> _shareObservationPdf(List<String> photos) async {
+    if (_isSharingPdf) return;
+
+    setState(() => _isSharingPdf = true);
+
+    try {
+      final badges = widget.data.badges
+          .map(
+            (badge) => MapEntry<String, String>(
+          '',
+          badge.text.trim().isEmpty ? '—' : badge.text.trim(),
+        ),
+      )
+          .toList();
+
+      final record = ObservationPdfRecord(
+        title: widget.data.title,
+        description: widget.data.description,
+        ownerLabel: widget.data.userLogin.trim().isEmpty
+            ? 'Гость'
+            : widget.data.userLogin.trim(),
+        photos: photos,
+        imageHeaders: widget.data.imageHeaders,
+        attributes: widget.data.attributes,
+        badges: badges,
+        technicalRows: widget.data.technicalRows,
+      );
+
+      await PdfShareService.instance.shareObservationReport(record);
+      await Future<void>.delayed(const Duration(milliseconds: 900));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось создать PDF-файл: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSharingPdf = false);
+      }
+    }
+  }
+
+  Future<void> _openEditScreen() async {
+    final id = widget.data.localObservationId;
+    if (id == null || !widget.data.canEdit) return;
+
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (_) => AddPlantScreen(
+          isGuest: widget.data.isGuest,
+          userLogin: widget.data.userLogin,
+          editObservationId: id,
+        ),
+      ),
+    );
+
+    if (changed == true) {
+      await widget.data.onChanged?.call();
+      if (mounted) Navigator.of(context).pop(true);
+    }
+  }
+
+  Widget _editButton() {
+    if (!widget.data.canEdit || widget.data.localObservationId == null) {
+      return const SizedBox.shrink();
+    }
+
+    final colors = WildColors.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 18),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: _openEditScreen,
+          icon: const Icon(Icons.edit_outlined),
+          label: const Text('Редактировать запись'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: colors.primary,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 17),
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _contentBody(ScrollController controller) {
     return ScrollConfiguration(
       behavior: ScrollConfiguration.of(context).copyWith(
@@ -702,6 +812,7 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
             title: 'Охрана и воздействие',
             rows: _protectionRows,
           ),
+          _editButton(),
         ],
       ),
     );
@@ -871,14 +982,29 @@ class _ObservationDetailScreenState extends State<ObservationDetailScreen> {
                       tooltip: 'Назад',
                       onTap: () => Navigator.of(context).pop(),
                     ),
-                    Builder(
-                      builder: (buttonContext) {
-                        return _topButton(
-                          icon: Icons.more_horiz_rounded,
-                          tooltip: 'Информация',
-                          onTap: () => _showTechnicalInfo(buttonContext),
-                        );
-                      },
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _topButton(
+                          icon: _isSharingPdf
+                              ? Icons.hourglass_top_rounded
+                              : Icons.ios_share_rounded,
+                          tooltip: 'Поделиться PDF',
+                          onTap: _isSharingPdf
+                              ? null
+                              : () => _shareObservationPdf(photos),
+                        ),
+                        const SizedBox(width: 8),
+                        Builder(
+                          builder: (buttonContext) {
+                            return _topButton(
+                              icon: Icons.more_horiz_rounded,
+                              tooltip: 'Информация',
+                              onTap: () => _showTechnicalInfo(buttonContext),
+                            );
+                          },
+                        ),
+                      ],
                     ),
                   ],
                 ),
